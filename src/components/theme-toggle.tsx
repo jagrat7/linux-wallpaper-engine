@@ -31,6 +31,9 @@ export function ThemeToggle() {
         <DropdownMenuItem onClick={() => setTheme("system")}>
           System
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("steam")}>
+          Steam
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

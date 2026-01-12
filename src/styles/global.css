@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -74,6 +73,29 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
+.steam {
+  --background: oklch(0.2 0.01 240);
+  --foreground: oklch(0.9 0.01 240);
+  --card: oklch(0.25 0.02 240);
+  --card-foreground: oklch(0.9 0.01 240);
+  --popover: oklch(0.25 0.02 240);
+  --popover-foreground: oklch(0.9 0.01 240);
+  --primary: oklch(0.7 0.15 40);
+  --primary-foreground: oklch(0.2 0.01 240);
+  --secondary: oklch(0.4 0.05 240);
+  --secondary-foreground: oklch(0.9 0.01 240);
+  --muted: oklch(0.3 0.03 240);
+  --muted-foreground: oklch(0.7 0.01 240);
+  --accent: oklch(0.8 0.1 80);
+  --accent-foreground: oklch(0.2 0.01 240);
+  --destructive: oklch(0.6 0.2 20);
+  --destructive-foreground: oklch(0.9 0.01 240);
+  --border: oklch(0.4 0.05 240);
+  --input: oklch(0.4 0.05 240);
+  --ring: oklch(0.7 0.15 40);
+  --radius: 0.5rem;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -119,5 +141,8 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  .steam body {
+    background-image: url('../assets/background.svg');
   }
 }
