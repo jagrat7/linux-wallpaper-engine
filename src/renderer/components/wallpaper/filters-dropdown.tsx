@@ -30,6 +30,10 @@ export function FiltersDropdown() {
         toggleTag,
         setFilterTags,
         availableTags,
+        filterResolution,
+        toggleResolution,
+        setFilterResolution,
+        availableResolutions,
         filterCompatibility,
         toggleFilterCompatibility,
         setFilterCompatibility,
@@ -38,11 +42,13 @@ export function FiltersDropdown() {
     const activeFilterCount =
         filterType.length +
         filterTags.length +
+        filterResolution.length +
         filterCompatibility.length
 
     const handleClearAll = (e: React.MouseEvent) => {
         e.stopPropagation()
         setFilterType([])
+        setFilterResolution([])
         setFilterTags([])
         setFilterCompatibility([])
     }
@@ -106,6 +112,19 @@ export function FiltersDropdown() {
                         multi
                         badge={filterTags.length > 0 ? (
                             <span className="text-primary">{filterTags.length} selected</span>
+                        ) : undefined}
+                    />
+                )}
+
+                {availableResolutions.length > 0 && (
+                    <FilterSection
+                        label="Resolution"
+                        items={availableResolutions.map((res) => ({ key: res, label: res }))}
+                        selected={filterResolution}
+                        onToggle={toggleResolution}
+                        multi
+                        badge={filterResolution.length > 0 ? (
+                            <span className="text-primary">{filterResolution.length} selected</span>
                         ) : undefined}
                     />
                 )}

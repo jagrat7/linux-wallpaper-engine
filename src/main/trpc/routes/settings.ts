@@ -45,6 +45,7 @@ const settingsSchema = z.object({
   // Persisted filter & sort preferences
   filterType: z.array(z.enum(['all', 'scene', 'video', 'web', 'application'])).optional(),
   filterTags: z.array(z.string()).optional(),
+  filterResolution:z.array(z.string()).optional(),
   filterCompatibility: z.array(z.enum(['unknown', 'broken', 'major', 'minor', 'perfect'])).optional(),
   sortBy: z.enum(['name', 'size', 'recent']).optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),

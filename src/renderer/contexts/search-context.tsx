@@ -40,6 +40,11 @@ interface FilterContextType {
   toggleTag: (tag: string) => void
   availableTags: string[]
   setAvailableTags: (tags: string[]) => void
+  filterResolution: string[]
+  setFilterResolution: (resolutions: string[]) => void
+  toggleResolution: (res: string) => void
+  availableResolutions: string[]
+  setAvailableResolutions: (resolutions: string[]) => void
   filterCompatibility: CompatibilityStatus[]
   setFilterCompatibility: (statuses: CompatibilityStatus[]) => void
   toggleFilterCompatibility: (status: CompatibilityStatus) => void
@@ -57,6 +62,8 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const [filterType, setFilterType] = useState<WallpaperFilterType[]>([])
   const [filterTags, setFilterTags] = useState<string[]>([])
   const [availableTags, setAvailableTags] = useState<string[]>([])
+  const [filterResolution, setFilterResolution] = useState<string[]>([])
+  const [availableResolutions, setAvailableResolutions] = useState<string[]>([])
   const [sortBy, setSortBy] = useState<SortBy>("name")
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc")
   const [filterCompatibility, setFilterCompatibility] = useState<CompatibilityStatus[]>([])
@@ -67,6 +74,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     if (settings && !initialized) {
       setFilterType(settings.filterType ?? [])
       setFilterTags(settings.filterTags)
+      setFilterResolution(settings.filterResolution)
       setFilterCompatibility(settings.filterCompatibility)
       setSortBy(settings.sortBy)
       setSortOrder(settings.sortOrder)
@@ -137,6 +145,22 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     })
   }, [persist])
 
+  const handleSetFilterResolution = useCallback((resolutions: string[]) => {
+    setFilterResolution(resolutions)
+    persist({ filterResolution: resolutions })
+  }, [persist])
+
+  const handleToggleResolution = useCallback((res: string) => {
+    setFilterResolution(prev => {
+      const next = prev.includes(res)
+        ? prev.filter(r => r !== res)
+        : [...prev, res]
+      persist({ filterResolution: next })
+      return next
+    })
+    
+  }, [persist])
+
   const handleSetFilterCompatibility = useCallback((statuses: CompatibilityStatus[]) => {
     setFilterCompatibility(statuses)
     persist({ filterCompatibility: statuses })
@@ -161,11 +185,17 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     toggleTag: handleToggleTag,
     availableTags,
     setAvailableTags,
+    filterResolution,
+    setFilterResolution: handleSetFilterResolution,
+    toggleResolution: handleToggleResolution,
+    availableResolutions,
+    setAvailableResolutions,
     filterCompatibility,
     setFilterCompatibility: handleSetFilterCompatibility,
     toggleFilterCompatibility: handleToggleFilterCompatibility,
-  }), [filterType, filterTags, availableTags, filterCompatibility, handleSetFilterType, handleToggleFilterType, handleSetFilterTags, handleToggleTag, handleSetFilterCompatibility, handleToggleFilterCompatibility])
+  }), [filterType, filterTags,filterResolution, availableTags,availableResolutions,filterResolution, filterCompatibility, handleSetFilterType, handleToggleFilterType, handleSetFilterTags,handleSetFilterResolution, handleToggleTag,handleToggleResolution, handleSetFilterCompatibility, handleToggleFilterCompatibility])
 
+  
   return (
     <SearchQueryContext.Provider value={searchQueryValue}>
       <SortContext.Provider value={sortValue}>

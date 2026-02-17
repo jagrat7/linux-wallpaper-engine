@@ -97,6 +97,8 @@ export interface AppSettings {
   // Persisted filter & sort preferences
   filterType: WallpaperFilterType[]
   filterTags: string[]
+  filterResolution:string[]
+
   filterCompatibility: CompatibilityStatus[]
   sortBy: SortBy
   sortOrder: SortOrder
@@ -138,6 +140,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // Filters & sort
   filterType: [],
   filterTags: [],
+  filterResolution:[],
   filterCompatibility: [],
   sortBy: 'name',
   sortOrder: 'asc',
