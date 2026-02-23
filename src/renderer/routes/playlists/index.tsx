@@ -1,4 +1,4 @@
-import * as React from "react"
+import {useState} from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus, Clock, Shuffle, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/playlists/")({
 
 function PlaylistsPage() {
     const navigate = useNavigate()
-    const [applyingPlaylist, setApplyingPlaylist] = React.useState<string | null>(null)
+    const [applyingPlaylist, setApplyingPlaylist] = useState<string | null>(null)
 
     const { data: playlists = [], isLoading, refetch } = trpc.playlist.list.useQuery()
     const { data: wallpapers = [] } = trpc.wallpaper.getWallpapers.useQuery({})
@@ -41,11 +41,11 @@ function PlaylistsPage() {
     }
 
     const handleEdit = (playlist: Playlist) => {
-        navigate({ to: "/playlists/new", search: { edit: playlist } })
+        navigate({ to: "/playlists/editor", search: { edit: playlist } })
     }
 
     const handleCreate = () => {
-        navigate({ to: "/playlists/new" })
+        navigate({ to: "/playlists/editor" })
     }
 
     const getThumbnailForPlaylist = (playlist: Playlist): string | null => {

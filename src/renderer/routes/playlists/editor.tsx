@@ -2,21 +2,21 @@ import { createFileRoute, useSearch } from "@tanstack/react-router"
 import { PlaylistEditorGrid } from "@/components/playlist/playlist-editor-grid"
 import type { Playlist } from "../../../shared/constants"
 
-interface PlaylistNewSearch {
+interface PlaylistEditorSearch {
     edit?: Playlist
 }
 
-export const Route = createFileRoute("/playlists/new")({
-    validateSearch: (search: Record<string, unknown>): PlaylistNewSearch => {
+export const Route = createFileRoute("/playlists/editor")({
+    validateSearch: (search: Record<string, unknown>): PlaylistEditorSearch => {
         return {
             edit: search.edit as Playlist | undefined,
         }
     },
-    component: PlaylistNewPage,
+    component: PlaylistEditorPage,
 })
 
-function PlaylistNewPage() {
-    const { edit } = useSearch({ from: "/playlists/new" })
+function PlaylistEditorPage() {
+    const { edit } = useSearch({ from: "/playlists/editor" })
 
     return (
         <div className="h-full p-6">

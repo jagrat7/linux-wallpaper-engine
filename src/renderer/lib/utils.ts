@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { BASE_FPS_OPTIONS } from "../../shared/constants"
+import { BASE_FPS_OPTIONS, type PlaylistTimeUnit } from "../../shared/constants"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -34,4 +34,30 @@ export function getFpsOptions(maxRefreshRate: number, currentFps?: number): numb
   }
 
   return Array.from(options).sort((a, b) => a - b)
+}
+
+// ── Playlist delay conversion ──────────────────────────────────────────
+
+const MS_PER_SECOND = 1_000
+const MS_PER_MINUTE = 60 * MS_PER_SECOND
+const MS_PER_HOUR = 60 * MS_PER_MINUTE
+
+const UNIT_TO_MS: Record<PlaylistTimeUnit, number> = {
+  seconds: MS_PER_SECOND,
+  minutes: MS_PER_MINUTE,
+  hours: MS_PER_HOUR,
+}
+
+/** Convert a UI delay value + unit into engine-compatible minutes */
+export function delayToMinutes(value: number, unit: PlaylistTimeUnit): number {
+  const ms = value * UNIT_TO_MS[unit]
+  return Math.max(ms / MS_PER_MINUTE, 1 / 60)
+}
+
+/** Convert engine minutes into the best-fit UI value + unit */
+export function minutesToDelay(minutes: number): { value: number, unit: PlaylistTimeUnit } {
+  const totalMs = minutes * MS_PER_MINUTE
+  if (totalMs >= MS_PER_HOUR && totalMs % MS_PER_HOUR === 0) return { value: totalMs / MS_PER_HOUR, unit: "hours" }
+  if (totalMs >= MS_PER_MINUTE) return { value: totalMs / MS_PER_MINUTE, unit: "minutes" }
+  return { value: Math.round(totalMs / MS_PER_SECOND), unit: "seconds" }
 }

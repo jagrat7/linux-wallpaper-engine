@@ -4,6 +4,16 @@ import { playlistService } from '../../services/playlist'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { displayService } from '../../services/display'
 import { hostSpawn } from '../../services/flatpak'
+import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants'
+
+const playlistSettingsSchema = z.object({
+  delay: z.number().min(1),
+  timeunit: z.enum(PLAYLIST_TIME_UNIT_VALUES),
+  mode: z.enum(PLAYLIST_MODE_VALUES),
+  order: z.enum(PLAYLIST_ORDER_VALUES),
+  updateonpause: z.boolean(),
+  videosequence: z.boolean(),
+})
 
 export const playlistRouter = trpc.router({
   // List all playlists
@@ -23,13 +33,7 @@ export const playlistRouter = trpc.router({
     .input(z.object({
       name: z.string().min(1),
       items: z.array(z.string()),
-      settings: z.object({
-        delay: z.number().min(1),
-        mode: z.literal('timer'),
-        order: z.enum(['sequential', 'random']),
-        updateonpause: z.boolean(),
-        videosequence: z.boolean(),
-      }),
+      settings: playlistSettingsSchema,
     }))
     .mutation(async ({ input }) => {
       return playlistService.createPlaylist(input)
@@ -42,13 +46,7 @@ export const playlistRouter = trpc.router({
       playlist: z.object({
         name: z.string().min(1),
         items: z.array(z.string()),
-        settings: z.object({
-          delay: z.number().min(1),
-          mode: z.literal('timer'),
-          order: z.enum(['sequential', 'random']),
-          updateonpause: z.boolean(),
-          videosequence: z.boolean(),
-        }),
+        settings: playlistSettingsSchema,
       }),
     }))
     .mutation(async ({ input }) => {
