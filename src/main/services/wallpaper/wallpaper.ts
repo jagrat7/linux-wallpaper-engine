@@ -1,15 +1,14 @@
-import { spawn, exec, type ChildProcess } from 'node:child_process'
-import { promisify } from 'node:util'
+import type { ChildProcess } from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { glob } from 'glob'
-import { displayService } from './display'
-import { settingsService } from './settings'
-import { storeService } from './store'
-import { STEAM_PATHS, CACHE_TTL, type WallpaperOverrides, type Wallpaper, type ApplyWallpaperOptions } from '../../shared/constants'
-import { CompatibilityService } from './compatibility'
-
-const execAsync = promisify(exec)
+import { displayService } from '../display'
+import { settingsService } from '../settings'
+import { storeService } from '../store'
+import { hostSpawn, hostExecAsync } from '../flatpak'
+import { STEAM_PATHS, CACHE_TTL, type WallpaperOverrides, type Wallpaper, type ApplyWallpaperOptions } from '../../../shared/constants'
+import { CompatibilityService } from '../compatibility'
+import { parseImageHeader } from './wallpaper.utils'
 
 export type { Wallpaper, ApplyWallpaperOptions }
 
@@ -18,7 +17,7 @@ export interface GetWallpapersOptions {
   refresh?: boolean
 }
 
-// TODO: simplify active wallpaper and scan/get logic 
+// TODO: Simplify and organize this monstrosity 💀
 class WallpaperService {
   private static instance: WallpaperService | null = null
 
@@ -54,7 +53,7 @@ class WallpaperService {
     if (this.activeWallpapers.size === 0) return
 
     try {
-      const { stdout } = await execAsync('pgrep -a linux-wallpaperengine').catch(() => ({ stdout: '' }))
+      const { stdout } = await hostExecAsync('pgrep -a linux-wallpaperengine').catch(() => ({ stdout: '' }))
       const processOutput = stdout.trim()
 
       for (const [screen] of this.activeWallpapers.entries()) {
@@ -132,7 +131,7 @@ class WallpaperService {
 
   async checkBackendInstalled(): Promise<boolean> {
     try {
-      await execAsync('which linux-wallpaperengine')
+      await hostExecAsync('which linux-wallpaperengine')
       return true
     } catch {
       return false
@@ -197,7 +196,7 @@ class WallpaperService {
             // Calculate total file size using du command
             let fileSize = 0
             try {
-              const { stdout } = await execAsync(`du -sb "${wallpaperPath}"`)
+              const { stdout } = await hostExecAsync(`du -sb "${wallpaperPath}"`)
               fileSize = parseInt(stdout.split('\t')[0], 10) || 0
             } catch {
               // Ignore size errors
@@ -270,31 +269,34 @@ class WallpaperService {
       const files = await fs.readdir(wallpaperPath)
 
       // Look for video files first
-      const videoFile = files.find(f =>
-        f.endsWith('.mp4') || f.endsWith('.webm') || f.endsWith('.avi') || f.endsWith('.mkv')
-      )
+      const videoFile = files.find(f => {
+        const file = f.toLowerCase()
+        return file.endsWith('.mp4') || file.endsWith('.webm') || file.endsWith('.avi') || file.endsWith('.mkv')
+      })
 
       if (videoFile) {
         const videoPath = path.join(wallpaperPath, videoFile)
-        const { stdout } = await execAsync(`ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`)
+        const { stdout } = await hostExecAsync(`ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`)
         const [w, h] = stdout.trim().split(',')
         if (w && h) {
           return { width: parseInt(w, 10), height: parseInt(h, 10) }
         }
       } else {
         // Look for image files (excluding preview thumbnails)
-        const imageFile = files.find(f =>
-          (f.endsWith('.png') || f.endsWith('.jpg') || f.endsWith('.jpeg') || f.endsWith('.bmp')) &&
-          !f.toLowerCase().includes('preview')
-        )
+        const imageFile = files.find(f => {
+          const file = f.toLowerCase()
+          return (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.bmp')) &&
+            !file.includes('preview')
+        })
 
         if (imageFile) {
           const imagePath = path.join(wallpaperPath, imageFile)
-          const { stdout } = await execAsync(`file "${imagePath}"`)
+          const { stdout } = await hostExecAsync(`file "${imagePath}"`)
           const match = stdout.match(/(\d+)\s*x\s*(\d+)/)
           if (match) {
             return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) }
           }
+          return parseImageHeader(imagePath)
         }
       }
     } catch {
@@ -394,7 +396,7 @@ class WallpaperService {
       // Also kill any orphaned linux-wallpaperengine processes for this screen
       try {
         if (targetScreen) {
-          await execAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${targetScreen}"`)
+          await hostExecAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${targetScreen}"`)
         }
       } catch {
         // pkill returns error if no process found, that's ok
@@ -403,7 +405,7 @@ class WallpaperService {
       // Small delay to ensure cleanup
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      const proc = spawn('linux-wallpaperengine', args, {
+      const proc = hostSpawn('linux-wallpaperengine', args, {
         detached: true,
         stdio: ['ignore', 'ignore', 'pipe'],
       })
@@ -435,13 +437,13 @@ class WallpaperService {
         }
         // Also kill any orphaned processes for this screen
         try {
-          await execAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${screen}"`)
+          await hostExecAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${screen}"`)
         } catch {
           // No process found is ok
         }
       } else {
         // Kill all linux-wallpaperengine processes
-        await execAsync('pkill -9 -f linux-wallpaperengine')
+        await hostExecAsync('pkill -9 -f linux-wallpaperengine')
         this.runningProcesses.clear()
         this.activeWallpapers.clear()
         this.saveActiveWallpapers()
@@ -546,7 +548,7 @@ class WallpaperService {
     outputPath: string,
   ): Promise<{ success: boolean; path?: string; error?: string }> {
     try {
-      await execAsync(`linux-wallpaperengine --screenshot "${outputPath}" "${backgroundPath}"`)
+      await hostExecAsync(`linux-wallpaperengine --screenshot "${outputPath}" "${backgroundPath}"`)
       return { success: true, path: outputPath }
     } catch (error) {
       return {

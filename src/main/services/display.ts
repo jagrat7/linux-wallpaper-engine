@@ -1,7 +1,4 @@
-import { exec } from 'node:child_process'
-import { promisify } from 'node:util'
-
-const execAsync = promisify(exec)
+import { hostExecAsync } from './flatpak'
 
 export interface Display {
   id: string
@@ -34,7 +31,7 @@ class DisplayService {
 
     // Try xrandr first (X11)
     try {
-      const { stdout } = await execAsync('xrandr --query')
+      const { stdout } = await hostExecAsync('xrandr --query')
       const lines = stdout.split('\n')
 
       // Regex to match: Name connected [primary] WxH+X+Y ...
@@ -81,7 +78,7 @@ class DisplayService {
 
     // Try wlr-randr (Wayland with wlroots-based compositors)
     try {
-      const { stdout } = await execAsync('wlr-randr')
+      const { stdout } = await hostExecAsync('wlr-randr')
       const lines = stdout.split('\n')
 
       let currentDisplay: Partial<Display> | null = null
@@ -131,7 +128,7 @@ class DisplayService {
 
     // Try gnome-randr for GNOME Wayland
     try {
-      const { stdout } = await execAsync('gnome-randr query')
+      const { stdout } = await hostExecAsync('gnome-randr query')
       // Parse gnome-randr output (format varies)
       const lines = stdout.split('\n')
 

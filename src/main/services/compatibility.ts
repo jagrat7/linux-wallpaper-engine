@@ -1,4 +1,5 @@
-import { spawn, type ChildProcess } from 'node:child_process'
+import type { ChildProcess } from 'node:child_process'
+import { hostSpawn } from './flatpak'
 import {
   type WallpaperOverrides,
   type CompatibilityStatus,
@@ -165,7 +166,7 @@ class CompatibilityService {
       this.scanProgress.current = wallpaper.title
 
       return new Promise<void>((resolve) => {
-        const proc = spawn('linux-wallpaperengine', [
+        const proc = hostSpawn('linux-wallpaperengine', [
           '--window', '0x0x1x1',
           '--silent',
           wallpaper.path,

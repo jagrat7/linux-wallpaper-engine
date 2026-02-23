@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
 import { settingsService, type AppSettings } from '../../services/settings'
-import { wallpaperService } from '../../services/wallpaper'
+import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { THEME_OPTIONS, SCALING_OPTIONS, type ThemeOption, type ScalingOption } from '../../../shared/constants'
 
 // Keys that affect the wallpaper backend process and require reapply
@@ -45,6 +45,7 @@ const settingsSchema = z.object({
   // Persisted filter & sort preferences
   filterType: z.array(z.enum(['all', 'scene', 'video', 'web', 'application'])).optional(),
   filterTags: z.array(z.string()).optional(),
+  filterResolution: z.array(z.string()).optional(),
   filterCompatibility: z.array(z.enum(['unknown', 'broken', 'major', 'minor', 'perfect'])).optional(),
   sortBy: z.enum(['name', 'size', 'recent']).optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),

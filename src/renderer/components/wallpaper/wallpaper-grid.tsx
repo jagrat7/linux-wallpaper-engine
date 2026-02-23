@@ -7,19 +7,24 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useDebounce } from "@uidotdev/usehooks"
 import { useSearch } from "@/contexts/search-context"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
-import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef, lazy, Suspense } from "react"
 
 const WallpaperDetails = lazy(() => import("./wallpaper-details").then(m => ({ default: m.WallpaperDetails })))
 
+// TODO: Fix wallpaper details size so that is consistent width with a column
 export function WallpaperGrid() {
     const [selectedWallpaper, setSelectedWallpaper] = useState<Wallpaper | null>(null)
     const [detailsVisible, setDetailsVisible] = useState(false)
-    const { searchQuery, filterType, filterTags, sortBy, sortOrder, setAvailableTags, filterCompatibility } = useSearch()
+    const { searchQuery, filterType, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useSearch()
     const debouncedSearch = useDebounce(searchQuery, 300)
     const { setSelectedUrl } = useWallpaperBackground()
 
     const { data: compatibilityMap } = trpc.wallpaper.getCompatibilityMap.useQuery()
     const { data: settings } = trpc.settings.get.useQuery()
+
+    // Throttle wallpaper selection to prevent UI freezing from rapid clicks
+    const lastClickTime = useRef(0)
+    const THROTTLE_MS = 150
 
     const {
         data,
@@ -54,13 +59,16 @@ export function WallpaperGrid() {
         const hasTypeFilter = filterType.length > 0
         const typeSet = hasTypeFilter ? new Set(filterType) : null
         const hasTagFilter = filterTags.length > 0
+        const hasResolutionFilter = filterResolution.length > 0
         const hasCompatFilter = filterCompatibility.length > 0 && compatibilityMap
         const compatSet = hasCompatFilter ? new Set(filterCompatibility) : null
 
-        if (hasTypeFilter || hasTagFilter || hasCompatFilter) {
+        if (hasTypeFilter || hasTagFilter || hasCompatFilter || hasResolutionFilter) {
             result = result.filter(w => {
                 if (typeSet && !typeSet.has(w.type)) return false
                 if (hasTagFilter && !filterTags.some(tag => w.tags?.includes(tag))) return false
+                if (hasResolutionFilter && !filterResolution.includes(!w.resolution.height || !w.resolution.width ? "Unknown" : `${w.resolution.width}x${w.resolution.height}`)) return false
+
                 if (compatSet && compatibilityMap) {
                     const status = compatibilityMap[w.path ?? ''] ?? 'unknown'
                     if (!compatSet.has(status)) return false
@@ -92,7 +100,7 @@ export function WallpaperGrid() {
         })
 
         return result
-    }, [data, filterType, filterTags, sortBy, sortOrder, filterCompatibility, compatibilityMap])
+    }, [data, filterType, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
 
     // Sync selected wallpaper thumbnail as blurred page background
     useEffect(() => {
@@ -103,12 +111,44 @@ export function WallpaperGrid() {
     // Extract and set available tags from raw data (before filtering)
     useEffect(() => {
         if (!data) return
-        const allTags = data.flatMap(w => w.tags ?? [])
-        const uniqueTags = [...new Set(allTags)].sort()
+
+        const { tags, resolutions } = data.reduce((acc, item) => {
+
+            item.tags && acc.tags.push(...item.tags);
+
+
+            acc.resolutions.push(!item.resolution.height || !item.resolution.width ? "Unknown" : `${item.resolution.width}x${item.resolution.height}`);
+
+            return acc;
+        },
+            {
+                tags: [] as string[],
+                resolutions: [] as string[],
+            },
+        );
+
+
+        const uniqueTags = [...new Set(tags)].sort()
+        const uniqueResolutions = [...new Set(resolutions)].sort((a, b) => {
+            if (a === "Unknown") return -1
+            if (b === "Unknown") return 1
+
+            const [widthA, heightA] = a.split('x')
+            const [widthB, heightB] = b.split('x')
+            return parseInt(widthB) * parseInt(heightB) - parseInt(widthA) * parseInt(heightA)
+        })
         setAvailableTags(uniqueTags)
-    }, [data, setAvailableTags])
+        setAvailableResolutions(uniqueResolutions)
+
+    }, [data, setAvailableTags, setAvailableResolutions])
+
 
     const toggleWallpaper = useCallback((w: Wallpaper) => {
+        const now = Date.now()
+        if (now - lastClickTime.current < THROTTLE_MS) {
+            return // Ignore rapid clicks
+        }
+        lastClickTime.current = now
         setSelectedWallpaper(prev => prev?.id === w.id ? null : w)
     }, [])
 

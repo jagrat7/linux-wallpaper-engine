@@ -20,11 +20,11 @@ export type ScalingOption = typeof SCALING_OPTIONS[number]['value']
 
 // Wallpaper compatibility status
 export const COMPATIBILITY_OPTIONS = [
-  { label: 'Unknown', value: 'unknown', color: 'gray', textColor: 'text-muted-foreground', bgColor: 'bg-muted-foreground/50' },
-  { label: 'Broken', value: 'broken', color: 'red', textColor: 'text-red-500', bgColor: 'bg-red-500' },
-  { label: 'Major Issues', value: 'major', color: 'orange', textColor: 'text-orange-500', bgColor: 'bg-orange-500' },
-  { label: 'Minor Issues', value: 'minor', color: 'yellow', textColor: 'text-yellow-500', bgColor: 'bg-yellow-500' },
   { label: 'Perfect', value: 'perfect', color: 'green', textColor: 'text-green-500', bgColor: 'bg-green-500' },
+  { label: 'Minor Issues', value: 'minor', color: 'yellow', textColor: 'text-yellow-500', bgColor: 'bg-yellow-500' },
+  { label: 'Major Issues', value: 'major', color: 'orange', textColor: 'text-orange-500', bgColor: 'bg-orange-500' },
+  { label: 'Broken', value: 'broken', color: 'red', textColor: 'text-red-500', bgColor: 'bg-red-500' },
+  { label: 'Unknown', value: 'unknown', color: 'gray', textColor: 'text-muted-foreground', bgColor: 'bg-muted-foreground/50' },
 ] as const
 export type CompatibilityStatus = typeof COMPATIBILITY_OPTIONS[number]['value']
 
@@ -97,6 +97,8 @@ export interface AppSettings {
   // Persisted filter & sort preferences
   filterType: WallpaperFilterType[]
   filterTags: string[]
+  filterResolution:string[]
+
   filterCompatibility: CompatibilityStatus[]
   sortBy: SortBy
   sortOrder: SortOrder
@@ -138,6 +140,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // Filters & sort
   filterType: [],
   filterTags: [],
+  filterResolution:[],
   filterCompatibility: [],
   sortBy: 'name',
   sortOrder: 'asc',

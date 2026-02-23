@@ -27,6 +27,7 @@ export function WallpaperThumbnail({
             <img
                 src={src}
                 alt={alt}
+                draggable={false}
                 className={cn(
                     "size-full object-cover",
                     enableHover && "transition-transform duration-300 group-hover:scale-105",

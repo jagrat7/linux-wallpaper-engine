@@ -30,6 +30,10 @@ export function FiltersDropdown() {
         toggleTag,
         setFilterTags,
         availableTags,
+        filterResolution,
+        toggleResolution,
+        setFilterResolution,
+        availableResolutions,
         filterCompatibility,
         toggleFilterCompatibility,
         setFilterCompatibility,
@@ -38,11 +42,13 @@ export function FiltersDropdown() {
     const activeFilterCount =
         filterType.length +
         filterTags.length +
+        filterResolution.length +
         filterCompatibility.length
 
     const handleClearAll = (e: React.MouseEvent) => {
         e.stopPropagation()
         setFilterType([])
+        setFilterResolution([])
         setFilterTags([])
         setFilterCompatibility([])
     }
@@ -68,10 +74,10 @@ export function FiltersDropdown() {
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 align="end"
-                className="w-56 rounded-xl border-border bg-popover"
+                className="w-56 rounded-xl border-border bg-popover scrollbar-styled"
             >
                 {/* Header with Clear All */}
-                <div className="flex items-center justify-between px-2 py-1.5">
+                <div className="flex items-center justify-between px-2 py-1.5 ">
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60">Filters</span>
                     {activeFilterCount > 0 && (
                         <Button
@@ -97,15 +103,16 @@ export function FiltersDropdown() {
                     ) : undefined}
                 />
 
-                {availableTags.length > 0 && (
+
+                {availableResolutions.length > 0 && (
                     <FilterSection
-                        label="Tags"
-                        items={availableTags.map((tag) => ({ key: tag, label: tag }))}
-                        selected={filterTags}
-                        onToggle={toggleTag}
+                        label="Resolution"
+                        items={availableResolutions.map((res) => ({ key: res, label: res }))}
+                        selected={filterResolution}
+                        onToggle={toggleResolution}
                         multi
-                        badge={filterTags.length > 0 ? (
-                            <span className="text-primary">{filterTags.length} selected</span>
+                        badge={filterResolution.length > 0 ? (
+                            <span className="text-primary">{filterResolution.length} selected</span>
                         ) : undefined}
                     />
                 )}
@@ -120,6 +127,22 @@ export function FiltersDropdown() {
                         <span className="text-primary">{filterCompatibility.length} selected</span>
                     ) : undefined}
                 />
+
+
+
+
+                {availableTags.length > 0 && (
+                    <FilterSection
+                        label="Tags"
+                        items={availableTags.map((tag) => ({ key: tag, label: tag }))}
+                        selected={filterTags}
+                        onToggle={toggleTag}
+                        multi
+                        badge={filterTags.length > 0 ? (
+                            <span className="text-primary">{filterTags.length} selected</span>
+                        ) : undefined}
+                    />
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     )

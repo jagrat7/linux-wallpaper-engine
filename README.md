@@ -1,6 +1,8 @@
 
 ## Overview
 
+[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/jagrat7/linux-wallpaper-engine/total?style=flat-square&logo=github&label=Downloads)](https://github.com/jagrat7/linux-wallpaper-engine/releases) [![GitHub Release](https://img.shields.io/github/v/release/jagrat7/linux-wallpaper-engine?style=flat-square&logo=github)](https://github.com/jagrat7/linux-wallpaper-engine/releases/latest)
+
 This is a modern UI wrapper for [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine). This app has most features of [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) plus some additional features(like compatibility tagging for wallpapers) for a better user experience. Also a shoutout to [simple-linux-wallpaperengine-gui](https://github.com/Maxnights/simple-linux-wallpaperengine-gui), which I referenced for CLI commands.
 
 ![Overview](docs/preview.gif)
@@ -62,7 +64,7 @@ sudo dnf install ./linux-wallpaper-engine-<version>.x86_64.rpm
 #### Flatpak
 
 ```bash
-flatpak install ./linux-wallpaper-engine_<version>_x64.flatpak
+flatpak install --user ./com.github.jagrat7.LinuxWallpaperEngine_stable_x86_64.flatpak
 ```
 
 ---
@@ -126,6 +128,7 @@ bun install
 # Start the app
 bun start
 ```
+
 You can check out my [react-electron-template](https://github.com/jagrat7/react-electron-template) for a more details on how I setup the app.
 
 ## 📄 License

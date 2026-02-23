@@ -39,8 +39,36 @@ const config: ForgeConfig = {
     }),
     new MakerFlatpak({
       options: {
+        id: 'com.github.jagrat7.LinuxWallpaperEngine',
+        icon: './assests/transperent-logo.png',
         categories: ['Utility'],
+        runtimeVersion: '24.08',
+        base: 'org.electronjs.Electron2.BaseApp',
+        baseVersion: '24.08',
+        finishArgs: [
+          // X11 + Wayland rendering
+          '--socket=x11',
+          '--socket=wayland',
+          '--share=ipc',
+          // GPU access
+          '--device=dri',
+          // Audio
+          '--socket=pulseaudio',
+          // Home directory access (read wallpapers + write config)
+          '--filesystem=home',
+          // Chromium singleton check socket
+          '--env=TMPDIR=/var/tmp',
+          // Network access
+          '--share=network',
+          // Access to linux-wallpaperengine binary on host
+          '--talk-name=org.freedesktop.Flatpak',
+          // System notifications
+          '--talk-name=org.freedesktop.Notifications',
+        ],
         files: [],
+        // BaseApp already includes zypak; skip the default module
+        // that tries to compile it from source (requires clang++)
+        modules: [],
       },
     }),
   ],
