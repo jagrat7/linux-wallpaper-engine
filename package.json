@@ -14,7 +14,9 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx --ignore-pattern demo-video .",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run lint && bun run typecheck"
   },
   "keywords": ["wallpaper", "linux", "electron", "wallpaper-engine", "desktop", "engine"],
   "author": {

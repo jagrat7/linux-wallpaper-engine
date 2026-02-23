@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from "react"
+import { useDebounce } from "@uidotdev/usehooks"
 import { trpc } from "@/lib/trpc"
 import type {
   CompatibilityStatus,
@@ -239,6 +240,17 @@ export function useSearch() {
     ...useSearchQuery(),
     ...useSort(),
     ...useFilter(),
+  }
+}
+
+// Hook that provides debounced search query
+export function useDebouncedSearchQuery(delay = 300) {
+  const { searchQuery, setSearchQuery } = useSearchQuery()
+  const debouncedSearchQuery = useDebounce(searchQuery, delay)
+  return {
+    searchQuery,
+    setSearchQuery,
+    debouncedSearchQuery,
   }
 }
 

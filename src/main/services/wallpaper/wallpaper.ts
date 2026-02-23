@@ -454,6 +454,26 @@ class WallpaperService {
     }
   }
 
+  /**
+   * Register an externally-spawned process (e.g. playlist mode) so it is
+   * tracked for stop/restore/status just like applyWallpaper does.
+   */
+  registerProcess(screen: string, proc: ChildProcess, options: ApplyWallpaperOptions): void {
+    const screenKey = screen ?? 'default'
+
+    // Kill any existing process for this screen first
+    const existing = this.runningProcesses.get(screenKey)
+    if (existing) {
+      existing.kill('SIGKILL')
+      this.runningProcesses.delete(screenKey)
+    }
+
+    proc.unref()
+    this.runningProcesses.set(screenKey, proc)
+    this.activeWallpapers.set(screenKey, options)
+    this.saveActiveWallpapers()
+  }
+
   getActiveWallpapers(): Map<string, ApplyWallpaperOptions> {
     return this.activeWallpapers
   }

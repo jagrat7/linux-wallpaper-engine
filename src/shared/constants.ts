@@ -251,3 +251,44 @@ export const MINOR_PATTERNS = [
   /not supported/i,
   /failed to load/i,
 ]
+
+// Playlist settings
+export const PLAYLIST_ORDER_OPTIONS = [
+  { label: 'Sequential', value: 'sequential' },
+  { label: 'Random', value: 'random' },
+] as const
+export type PlaylistOrder = typeof PLAYLIST_ORDER_OPTIONS[number]['value']
+
+export interface PlaylistSettings {
+  delay: number // minutes between switches
+  mode: 'timer'
+  order: PlaylistOrder
+  updateonpause: boolean
+  videosequence: boolean
+}
+
+export const DEFAULT_PLAYLIST_SETTINGS: PlaylistSettings = {
+  delay: 60,
+  mode: 'timer',
+  order: 'sequential',
+  updateonpause: false,
+  videosequence: false,
+}
+
+export interface Playlist {
+  name: string
+  items: string[] // wallpaper paths
+  settings: PlaylistSettings
+}
+
+// Steam Wallpaper Engine config.json structure
+export interface SteamConfig {
+  steamuser: {
+    general: {
+      playlists?: Playlist[]
+    }
+    wallpaperconfig?: {
+      selectedwallpapers?: Record<string, { playlist?: Playlist }>
+    }
+  }
+}

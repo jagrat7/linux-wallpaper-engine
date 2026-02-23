@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router"
 import {
     Download,
+    LayoutGrid,
     Monitor,
     Settings,
 } from "lucide-react"
@@ -21,7 +22,7 @@ import { useTheme } from "../theme-provider"
 
 const navItems = [
     { to: "/", icon: Download, label: "Installed" },
-    // { to: "/playlists", icon: ListMusic, label: "Playlists" }, //todo add playlists
+    { to: "/playlists", icon: LayoutGrid, label: "Playlists" },
     { to: "/displays", icon: Monitor, label: "Displays" },
     { to: "/settings", icon: Settings, label: "Settings" },
 ] as const
