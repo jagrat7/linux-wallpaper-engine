@@ -1,17 +1,10 @@
-import {useState} from "react"
+import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { Plus, Clock, Shuffle, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react"
+import { Plus, Shuffle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { trpc } from "@/lib/trpc"
 import { type Playlist } from "../../../shared/constants"
-import { ApplyButton } from "@/components/wallpaper/apply-button"
+import { PlaylistCard } from "@/components/playlist/playlist-card"
 
 export const Route = createFileRoute("/playlists/")({
     component: PlaylistsPage,
@@ -48,11 +41,10 @@ function PlaylistsPage() {
         navigate({ to: "/playlists/editor" })
     }
 
-    const getThumbnailForPlaylist = (playlist: Playlist): string | null => {
-        const firstItem = playlist.items[0]
-        if (!firstItem) return null
-        const wallpaper = wallpapers.find(w => w.path === firstItem)
-        return wallpaper?.thumbnail ?? null
+    const getWallpapersForPlaylist = (playlist: Playlist) => {
+        return playlist.items
+            .map(path => wallpapers.find(w => w.path === path))
+            .filter((w): w is NonNullable<typeof w> => w !== null)
     }
 
     if (isLoading) {
@@ -89,78 +81,21 @@ function PlaylistsPage() {
                     <p className="text-sm">Create a playlist to rotate wallpapers automatically</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="flex flex-col gap-4">
                     {playlists.map((playlist) => {
-                        const thumbnail = getThumbnailForPlaylist(playlist)
+                        const playlistWallpapers = getWallpapersForPlaylist(playlist)
                         const isApplying = applyingPlaylist === playlist.name
 
                         return (
-                            <div
+                            <PlaylistCard
                                 key={playlist.name}
-                                className="group relative overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-ring/50 hover:shadow-lg"
-                            >
-                                <div className="aspect-video overflow-hidden bg-muted">
-                                    {thumbnail ? (
-                                        <img
-                                            src={`local-file://${thumbnail}`}
-                                            alt={playlist.name}
-                                            className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                        />
-                                    ) : (
-                                        <div className="size-full flex items-center justify-center">
-                                            <Shuffle className="size-8 text-muted-foreground" />
-                                        </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                                </div>
-
-                                <div className="absolute inset-x-0 bottom-0 p-4">
-                                    <h3 className="font-semibold text-white">{playlist.name}</h3>
-                                    <div className="mt-1 flex items-center gap-3 text-sm text-white/70">
-                                        <span>{playlist.items.length} wallpapers</span>
-                                        <div className="flex items-center gap-1">
-                                            <Clock className="size-3" />
-                                            {playlist.settings.delay}m
-                                        </div>
-                                        {playlist.settings.order === 'random' && (
-                                            <Shuffle className="size-3" />
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button size="icon-sm" variant="secondary" className="size-8">
-                                                <MoreVertical className="size-3.5" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleEdit(playlist)}>
-                                                <Pencil className="size-4" />
-                                                Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                className="text-destructive"
-                                                onClick={() => handleDelete(playlist.name)}
-                                            >
-                                                <Trash2 className="size-4" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-
-                                {/* Apply button */}
-                                <div className="absolute left-3 top-3 opacity-0 transition-opacity group-hover:opacity-100">
-                                    <ApplyButton
-                                        onApply={(screen) => handleApply(playlist.name, screen)}
-                                        isApplying={isApplying}
-                                        size="sm"
-                                    />
-                                </div>
-                            </div>
+                                playlist={playlist}
+                                wallpapers={playlistWallpapers}
+                                isApplying={isApplying}
+                                onApply={(screen) => handleApply(playlist.name, screen)}
+                                onEdit={() => handleEdit(playlist)}
+                                onDelete={() => handleDelete(playlist.name)}
+                            />
                         )
                     })}
                 </div>
