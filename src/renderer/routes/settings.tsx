@@ -9,7 +9,6 @@ import {
     Loader2,
     ScanSearch,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import {
     Select,
@@ -99,7 +98,7 @@ function SettingsPage() {
                 </LoadingButton>
             </div>
 
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
                 {/* Performance Section */}
                 <SettingsSection
                     id="onboarding-performance"
@@ -240,6 +239,7 @@ function SettingsPage() {
                     icon={Palette}
                     title="Appearance"
                     description="Theme and visual preferences"
+                    className="max-2xl:mb-4"
                 >
                     <SettingRow label="Theme">
                         <Select
@@ -283,28 +283,6 @@ function SettingsPage() {
 
                 </SettingsSection>
 
-
-                {/* About Section */}
-                <div className="rounded-xl border border-border bg-card p-4 glass">
-                    <div className="flex items-center gap-3">
-                        <div className="flex size-9 items-center justify-center rounded-lg bg-secondary">
-                            <Info className="size-4 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1">
-                            <h2 className="font-semibold">About</h2>
-                            <p className="text-sm text-muted-foreground">
-                                Linux Wallpaper Engine UI v1.0.0
-                            </p>
-                        </div>
-                        {/* <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateSetting("onboardingComplete", false)}
-                        >
-                            Tutorial
-                        </Button> */}
-                    </div>
-                </div>
             </div>
         </div>
     )

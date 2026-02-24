@@ -1,4 +1,5 @@
 import * as React from "react"
+import { cn } from "@/lib/utils"
 
 interface SettingsSectionProps {
     id?: string
@@ -6,11 +7,12 @@ interface SettingsSectionProps {
     title: string
     description: string
     children: React.ReactNode
+    className?: string
 }
 
-export function SettingsSection({ id, icon: Icon, title, description, children }: SettingsSectionProps) {
+export function SettingsSection({ id, icon: Icon, title, description, children, className }: SettingsSectionProps) {
     return (
-        <div id={id} className="rounded-xl border border-border bg-card glass">
+        <div id={id} className={cn("rounded-xl border border-border bg-card glass", className)}>
             <div className="flex items-center gap-3 border-b border-border p-4">
                 <div className="flex size-9 items-center justify-center rounded-lg bg-secondary">
                     <Icon className="size-4 text-muted-foreground" />
