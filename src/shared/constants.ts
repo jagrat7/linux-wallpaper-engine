@@ -261,7 +261,6 @@ export type PlaylistOrder = typeof PLAYLIST_ORDER_OPTIONS[number]['value']
 export const PLAYLIST_ORDER_VALUES = PLAYLIST_ORDER_OPTIONS.map(o => o.value) as [PlaylistOrder, ...PlaylistOrder[]]
 
 export const PLAYLIST_TIME_UNIT_OPTIONS = [
-  { label: 'sec', value: 'seconds' },
   { label: 'min', value: 'minutes' },
   { label: 'hr', value: 'hours' },
 ] as const
@@ -285,7 +284,7 @@ export interface PlaylistSettings {
 
 export const DEFAULT_PLAYLIST_SETTINGS: PlaylistSettings = {
   delay: 1,
-  timeunit: PLAYLIST_TIME_UNIT_OPTIONS[2].value,
+  timeunit: PLAYLIST_TIME_UNIT_OPTIONS[0].value,
   mode: PLAYLIST_MODE_OPTIONS[0].value,
   order: PLAYLIST_ORDER_OPTIONS[0].value,
   updateonpause: false,
