@@ -14,6 +14,7 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
+    "release": "bash .github/scripts/release.sh",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern demo-video .",
     "typecheck": "tsc --noEmit",
     "check": "bun run lint && bun run typecheck"
@@ -28,6 +29,7 @@
     "@electron-forge/maker-deb": "^7.10.2",
     "@electron-forge/maker-flatpak": "^7.11.1",
     "@electron-forge/maker-rpm": "^7.10.2",
+    "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.10.2",
     "@electron-forge/plugin-fuses": "^7.10.2",
     "@electron-forge/plugin-vite": "^7.10.2",
@@ -51,7 +53,6 @@
     "vite": "^5.4.21"
   },
   "dependencies": {
-    "@electron-forge/maker-zip": "^7.11.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
