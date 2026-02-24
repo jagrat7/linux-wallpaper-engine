@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useState } from "react"
 import {
     X,
     Monitor,
@@ -30,8 +30,7 @@ interface WallpaperDetailsProps {
 
 
 export function WallpaperDetails({ wallpaper, onClose }: WallpaperDetailsProps) {
-    const [isApplying, setIsApplying] = React.useState(false)
-
+    const [isApplying, setIsApplying] = useState(false)
     const applyMutation = trpc.wallpaper.setWallpaper.useMutation()
     const stopMutation = trpc.wallpaper.stopWalpaper.useMutation()
     const utils = trpc.useUtils()

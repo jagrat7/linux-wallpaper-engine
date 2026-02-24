@@ -1,5 +1,6 @@
 import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images, CircleCheck } from "lucide-react"
 import * as React from "react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
@@ -44,18 +45,14 @@ export function PlaylistRow({
         .filter(Boolean) as Wallpaper[]
 
     return (
-        <div className={`group p-1 rounded-xl min-h-[200px] border bg-card transition-all hover:shadow-lg overflow-hidden glass ${isActive ? "border-emerald-500/50 shadow-emerald-500/10" : "border-border hover:border-ring/50"}`}>
+        <div className={cn(
+            "group glass p-1 rounded-xl min-h-[200px] transition-all overflow-hidden"
+        )}>
             {/* Header with info */}
             <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-ring/30">
                 <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-center gap-2">
                         <h3 className="font-semibold truncate text-lg">{playlist.name}</h3>
-                        {isActive && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                                <CircleCheck className="size-3" />
-                                Active
-                            </span>
-                        )}
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5 font-medium">

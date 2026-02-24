@@ -9,6 +9,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { trpc } from "@/lib/trpc"
+import { cn } from "@/lib/utils"
 
 interface ApplyButtonProps {
     onApply: (screen?: string) => Promise<void>
@@ -39,7 +40,10 @@ export function ApplyButton({
                 <Button
                     size={size}
                     variant={isActive ? "outline" : "default"}
-                    className={`gap-2 rounded-r-none flex-1 ${isActive ? "border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" : ""}`}
+                    className={cn(
+                        "gap-2 rounded-r-none flex-1",
+                        isActive && "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    )}
                     onClick={() => isActive && onStop ? onStop() : onApply()}
                     disabled={isApplying}
                 >
@@ -57,7 +61,12 @@ export function ApplyButton({
                         <Button
                             size={size}
                             variant={isActive ? "outline" : "default"}
-                            className={`rounded-l-none border-l px-2 ${isActive ? "border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" : "border-primary-foreground/20"}`}
+                            className={cn(
+                                "rounded-l-none border-l px-2",
+                                isActive
+                                    ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    : "border-primary-foreground/20"
+                            )}
                             disabled={isApplying}
                         >
                             <ChevronDown className="size-4" />
