@@ -1,26 +1,40 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router"
+import { Loader2 } from "lucide-react"
 import { PlaylistEditorGrid } from "@/components/playlist/playlist-editor-grid"
-import type { Playlist } from "../../../shared/constants"
+import { trpc } from "@/lib/trpc"
 
 interface PlaylistEditorSearch {
-    edit?: Playlist
+    name?: string
 }
 
 export const Route = createFileRoute("/playlists/editor")({
     validateSearch: (search: Record<string, unknown>): PlaylistEditorSearch => {
         return {
-            edit: search.edit as Playlist | undefined,
+            name: typeof search.name === "string" ? search.name : undefined,
         }
     },
     component: PlaylistEditorPage,
 })
 
 function PlaylistEditorPage() {
-    const { edit } = useSearch({ from: "/playlists/editor" })
+    const { name } = useSearch({ from: "/playlists/editor" })
+
+    const { data: playlist, isLoading } = trpc.playlist.get.useQuery(
+        { name: name ?? "" },
+        { enabled: !!name },
+    )
+
+    if (name && isLoading) {
+        return (
+            <div className="flex h-full items-center justify-center">
+                <Loader2 className="size-8 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
 
     return (
         <div className="h-full p-6">
-            <PlaylistEditorGrid editPlaylist={edit ?? null} />
+            <PlaylistEditorGrid editPlaylist={playlist ?? null} />
         </div>
     )
 }

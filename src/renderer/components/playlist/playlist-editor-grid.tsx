@@ -44,6 +44,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
     const navigate = useNavigate()
     const { searchQuery, filterType, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility } = useSearch()
     const [selectedWallpapers, setSelectedWallpapers] = useState<string[]>(editPlaylist?.items ?? [])
+    const [serverError, setServerError] = useState<string | null>(null)
 
     const {
         wallpapers: transformedWallpapers,
@@ -52,6 +53,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
         appSettings,
     } = useWallpapers()
 
+    const utils = trpc.useUtils()
     const createMutation = trpc.playlist.create.useMutation()
     const updateMutation = trpc.playlist.update.useMutation()
 
@@ -87,19 +89,15 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                 },
             }
 
-            if (isEditing && editPlaylist) {
-                const result = await updateMutation.mutateAsync({
-                    name: editPlaylist.name,
-                    playlist,
-                })
-                if (result.success) {
-                    navigate({ to: "/playlists" })
-                }
+            const result = isEditing && editPlaylist
+                ? await updateMutation.mutateAsync({ name: editPlaylist.name, playlist })
+                : await createMutation.mutateAsync(playlist)
+
+            if (result.success) {
+                await utils.playlist.list.invalidate()
+                navigate({ to: "/playlists" })
             } else {
-                const result = await createMutation.mutateAsync(playlist)
-                if (result.success) {
-                    navigate({ to: "/playlists" })
-                }
+                setServerError(result.error ?? "Failed to save playlist")
             }
         },
     })
@@ -132,7 +130,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
         const newSelection = currentWallpapers.includes(wallpaper.path)
             ? currentWallpapers.filter(p => p !== wallpaper.path)
             : [...currentWallpapers, wallpaper.path]
-        
+
         form.setFieldValue('wallpapers', newSelection)
         setSelectedWallpapers(newSelection)
     }
@@ -140,7 +138,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
     const handleRemoveWallpaper = (path: string) => {
         const currentWallpapers = form.getFieldValue('wallpapers')
         const newSelection = currentWallpapers.filter(p => p !== path)
-        
+
         form.setFieldValue('wallpapers', newSelection)
         setSelectedWallpapers(newSelection)
     }
@@ -217,7 +215,8 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                     <form.Field
                         name="name"
                         children={(field) => {
-                            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+                            const hasValidationError = field.state.meta.isTouched && !field.state.meta.isValid
+                            const hasError = hasValidationError || !!serverError
                             return (
                                 <div className="flex-1 space-y-2">
                                     <FieldLabel htmlFor={field.name}>Playlist Name</FieldLabel>
@@ -226,13 +225,17 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                        aria-invalid={isInvalid}
+                                        onChange={(e) => {
+                                            field.handleChange(e.target.value)
+                                            if (serverError) setServerError(null)
+                                        }}
+                                        aria-invalid={hasError}
                                         placeholder="My Playlist"
                                         className="h-9 max-w-md"
                                         autoComplete="off"
                                     />
-                                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                                    {hasValidationError && <FieldError errors={field.state.meta.errors} />}
+                                    {serverError && <FieldError>{serverError}</FieldError>}
                                 </div>
                             )
                         }}
