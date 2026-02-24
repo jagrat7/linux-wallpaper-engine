@@ -5,6 +5,7 @@
     "": {
       "name": "my-app",
       "dependencies": {
+        "@electron-forge/maker-zip": "^7.11.1",
         "@radix-ui/react-alert-dialog": "^1.1.15",
         "@radix-ui/react-dialog": "^1.1.15",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -121,6 +122,8 @@
     "@electron-forge/maker-flatpak": ["@electron-forge/maker-flatpak@7.11.1", "", { "dependencies": { "@electron-forge/maker-base": "7.11.1", "@electron-forge/shared-types": "7.11.1", "fs-extra": "^10.0.0" }, "optionalDependencies": { "@malept/electron-installer-flatpak": "^0.11.4" } }, "sha512-H7+aa1OkJUHBj08DdbhSz2gL1hD/IowYpVS+uv7e6PcDqRYy/5XQQ2FoX52+3Qlik8d+tai7iOzVGcqb+D7f0Q=="],
 
     "@electron-forge/maker-rpm": ["@electron-forge/maker-rpm@7.10.2", "", { "dependencies": { "@electron-forge/maker-base": "7.10.2", "@electron-forge/shared-types": "7.10.2" }, "optionalDependencies": { "electron-installer-redhat": "^3.2.0" } }, "sha512-LQoeYzbY/z1yuBBA+bNutCJmhCA4NcXUbFO4OTqsIX8B6y1zNTYZT4JEuhoK7eBsP4/Rz6u/JnNp0XOyjftOUQ=="],
+
+    "@electron-forge/maker-zip": ["@electron-forge/maker-zip@7.11.1", "", { "dependencies": { "@electron-forge/maker-base": "7.11.1", "@electron-forge/shared-types": "7.11.1", "cross-zip": "^4.0.0", "fs-extra": "^10.0.0", "got": "^11.8.5" } }, "sha512-30rcp0AbJLfkFBX2hmO14LKXx7z9V61LffTVbTCFMh5vUB2kZvcA5xAhsBk2oUJWfGVxe1DuSEU0rDR9bUMHUg=="],
 
     "@electron-forge/plugin-auto-unpack-natives": ["@electron-forge/plugin-auto-unpack-natives@7.10.2", "", { "dependencies": { "@electron-forge/plugin-base": "7.10.2", "@electron-forge/shared-types": "7.10.2" } }, "sha512-uQnahm1DECwqI8hBC7PKccyfovY/YqHNz8de3OxyjQDmwsqQfCA8Ucyh1E9n4NMEpw6Co8KLn+qF2BuIOsftLA=="],
 
@@ -891,6 +894,8 @@
     "cross-dirname": ["cross-dirname@0.1.0", "", {}, "sha512-+R08/oI0nl3vfPcqftZRpytksBXDzOUveBq/NBVx0sUp1axwzPQrKinNx5yd5sxPu8j1wIy8AfnVQ+5eFdha6Q=="],
 
     "cross-spawn": ["cross-spawn@7.0.6", "", { "dependencies": { "path-key": "^3.1.0", "shebang-command": "^2.0.0", "which": "^2.0.1" } }, "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA=="],
+
+    "cross-zip": ["cross-zip@4.0.1", "", {}, "sha512-n63i0lZ0rvQ6FXiGQ+/JFCKAUyPFhLQYJIqKaa+tSJtfKeULF/IDNDAbdnSIxgS4NTuw2b0+lj8LzfITuq+ZxQ=="],
 
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
 
@@ -1872,6 +1877,10 @@
 
     "@electron-forge/maker-flatpak/@electron-forge/shared-types": ["@electron-forge/shared-types@7.11.1", "", { "dependencies": { "@electron-forge/tracer": "7.11.1", "@electron/packager": "^18.3.5", "@electron/rebuild": "^3.7.0", "listr2": "^7.0.2" } }, "sha512-vvBWdAEh53UJlDGUevpaJk1+sqDMQibfrbHR+0IPA4MPyQex7/Uhv3vYH9oGHujBVAChQahjAuJt0fG6IJBLZg=="],
 
+    "@electron-forge/maker-zip/@electron-forge/maker-base": ["@electron-forge/maker-base@7.11.1", "", { "dependencies": { "@electron-forge/shared-types": "7.11.1", "fs-extra": "^10.0.0", "which": "^2.0.2" } }, "sha512-yhZrCGoN6bDeiB5DHFaueZ1h84AReElEj+f0hl2Ph4UbZnO0cnLpbx+Bs+XfMLAiA+beC8muB5UDK5ysfuT9BQ=="],
+
+    "@electron-forge/maker-zip/@electron-forge/shared-types": ["@electron-forge/shared-types@7.11.1", "", { "dependencies": { "@electron-forge/tracer": "7.11.1", "@electron/packager": "^18.3.5", "@electron/rebuild": "^3.7.0", "listr2": "^7.0.2" } }, "sha512-vvBWdAEh53UJlDGUevpaJk1+sqDMQibfrbHR+0IPA4MPyQex7/Uhv3vYH9oGHujBVAChQahjAuJt0fG6IJBLZg=="],
+
     "@electron-forge/publisher-base/@electron-forge/shared-types": ["@electron-forge/shared-types@7.11.1", "", { "dependencies": { "@electron-forge/tracer": "7.11.1", "@electron/packager": "^18.3.5", "@electron/rebuild": "^3.7.0", "listr2": "^7.0.2" } }, "sha512-vvBWdAEh53UJlDGUevpaJk1+sqDMQibfrbHR+0IPA4MPyQex7/Uhv3vYH9oGHujBVAChQahjAuJt0fG6IJBLZg=="],
 
     "@electron-forge/publisher-github/@electron-forge/shared-types": ["@electron-forge/shared-types@7.11.1", "", { "dependencies": { "@electron-forge/tracer": "7.11.1", "@electron/packager": "^18.3.5", "@electron/rebuild": "^3.7.0", "listr2": "^7.0.2" } }, "sha512-vvBWdAEh53UJlDGUevpaJk1+sqDMQibfrbHR+0IPA4MPyQex7/Uhv3vYH9oGHujBVAChQahjAuJt0fG6IJBLZg=="],
@@ -2165,6 +2174,8 @@
     "@babel/helper-compilation-targets/lru-cache/yallist": ["yallist@3.1.1", "", {}, "sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g=="],
 
     "@electron-forge/maker-flatpak/@electron-forge/shared-types/@electron-forge/tracer": ["@electron-forge/tracer@7.11.1", "", { "dependencies": { "chrome-trace-event": "^1.0.3" } }, "sha512-tiB6cglVQFcSw9N8GRwVwZUeB9u0DOx2Mj7aFXBUsFLUYQapvVGv51tUSy/UAW5lvmubGscYIILuVko+II3+NA=="],
+
+    "@electron-forge/maker-zip/@electron-forge/shared-types/@electron-forge/tracer": ["@electron-forge/tracer@7.11.1", "", { "dependencies": { "chrome-trace-event": "^1.0.3" } }, "sha512-tiB6cglVQFcSw9N8GRwVwZUeB9u0DOx2Mj7aFXBUsFLUYQapvVGv51tUSy/UAW5lvmubGscYIILuVko+II3+NA=="],
 
     "@electron-forge/publisher-base/@electron-forge/shared-types/@electron-forge/tracer": ["@electron-forge/tracer@7.11.1", "", { "dependencies": { "chrome-trace-event": "^1.0.3" } }, "sha512-tiB6cglVQFcSw9N8GRwVwZUeB9u0DOx2Mj7aFXBUsFLUYQapvVGv51tUSy/UAW5lvmubGscYIILuVko+II3+NA=="],
 

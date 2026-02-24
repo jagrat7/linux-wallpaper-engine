@@ -51,6 +51,7 @@
     "vite": "^5.4.21"
   },
   "dependencies": {
+    "@electron-forge/maker-zip": "^7.11.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",

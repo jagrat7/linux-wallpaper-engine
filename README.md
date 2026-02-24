@@ -76,14 +76,19 @@ flatpak install --user ./com.github.jagrat7.LinuxWallpaperEngine_stable_x86_64.f
 
 <br />
 
-- **Multi-Monitor Support** — Detect all connected displays, apply different wallpapers per screen, and view your monitor layout at a glance
-![Multi-Monitor Support](docs/displays.png)
+- **Playlists (NEW!)** —  You can create and apply playlists to group wallpapers together and apply them to your monitors.
+![Playlist Support](docs/playlists.png)
 
 <br />
 
 - **Compatibility/Errors Tags** —  You can manually tag the wallpapers as compatible or not from the settings or run the compatibility scanner to bulk-tag them, it's not 100% accurate but it will get you close. You can filter out wallpapers with errors or compatibility issues so you don't see them in the gallery.
 ![Compatibility Tag](docs/comp-tag.png)
 ![Compatibility Scanner](docs/comp-scan.png)
+
+<br />
+
+- **Multi-Monitor Support** — Detect all connected displays, apply different wallpapers per screen, and view your monitor layout at a glance
+![Multi-Monitor Support](docs/displays.png)
 
 <br />
 
