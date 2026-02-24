@@ -1,4 +1,4 @@
-import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images } from "lucide-react"
+import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images, CircleCheck } from "lucide-react"
 import * as React from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,34 +17,46 @@ import {
 import { type Playlist, type Wallpaper } from "../../../shared/constants"
 import { ApplyButton } from "@/components/wallpaper/apply-button"
 
-interface PlaylistCardProps {
+interface PlaylistRowProps {
     playlist: Playlist
     wallpapers: Wallpaper[]
     isApplying: boolean
+    isActive: boolean
     onApply: (screen?: string) => Promise<void>
+    onStop: (screen?: string) => Promise<void>
     onEdit: () => void
     onDelete: () => void
 }
 
-export function PlaylistCard({
+export function PlaylistRow({
     playlist,
     wallpapers,
     isApplying,
+    isActive,
     onApply,
+    onStop,
     onEdit,
     onDelete,
-}: PlaylistCardProps) {
+}: PlaylistRowProps) {
     // Get wallpapers for this playlist
     const playlistWallpapers = playlist.items
         .map(path => wallpapers.find(w => w.path === path))
         .filter(Boolean) as Wallpaper[]
 
     return (
-        <div className="group p-1 rounded-xl min-h-[200px] border border-border bg-card transition-all hover:border-ring/50 hover:shadow-lg overflow-hidden border-b border-ring/30 glass">
+        <div className={`group p-1 rounded-xl min-h-[200px] border bg-card transition-all hover:shadow-lg overflow-hidden glass ${isActive ? "border-emerald-500/50 shadow-emerald-500/10" : "border-border hover:border-ring/50"}`}>
             {/* Header with info */}
             <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-ring/30">
                 <div className="flex flex-col gap-1 min-w-0">
-                    <h3 className="font-semibold truncate text-lg">{playlist.name}</h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-semibold truncate text-lg">{playlist.name}</h3>
+                        {isActive && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                                <CircleCheck className="size-3" />
+                                Active
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5 font-medium">
                             <Images className="size-3.5" />
@@ -62,10 +74,12 @@ export function PlaylistCard({
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* Apply button */}
+                    {/* Apply / Stop button */}
                     <ApplyButton
                         onApply={onApply}
+                        onStop={onStop}
                         isApplying={isApplying}
+                        isActive={isActive}
                         size="sm"
                     />
 

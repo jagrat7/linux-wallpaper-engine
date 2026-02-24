@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Monitor, Loader2, ChevronDown } from "lucide-react"
+import { Monitor, Loader2, ChevronDown, Square } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
@@ -12,7 +12,9 @@ import { trpc } from "@/lib/trpc"
 
 interface ApplyButtonProps {
     onApply: (screen?: string) => Promise<void>
+    onStop?: (screen?: string) => Promise<void>
     isApplying: boolean
+    isActive?: boolean
     label?: string
     applyingLabel?: string
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm"
@@ -21,7 +23,9 @@ interface ApplyButtonProps {
 
 export function ApplyButton({
     onApply,
+    onStop,
     isApplying,
+    isActive = false,
     label = "Apply",
     applyingLabel = "Applying...",
     size = "default",
@@ -29,31 +33,31 @@ export function ApplyButton({
 }: ApplyButtonProps) {
     const { data: displays } = trpc.display.list.useQuery()
 
-    const handleApply = async (screen?: string) => {
-        await onApply(screen)
-    }
-
     return (
         <div className={className}>
             <div className="flex">
                 <Button
                     size={size}
-                    className="gap-2 rounded-r-none flex-1"
-                    onClick={() => handleApply()}
+                    variant={isActive ? "outline" : "default"}
+                    className={`gap-2 rounded-r-none flex-1 ${isActive ? "border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" : ""}`}
+                    onClick={() => isActive && onStop ? onStop() : onApply()}
                     disabled={isApplying}
                 >
                     {isApplying ? (
                         <Loader2 className="size-4 animate-spin" />
+                    ) : isActive ? (
+                        <Square className="size-4" />
                     ) : (
                         <Monitor className="size-4" />
                     )}
-                    {isApplying ? applyingLabel : label}
+                    {isApplying ? applyingLabel : isActive ? "Stop" : label}
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
                             size={size}
-                            className="rounded-l-none border-l border-primary-foreground/20 px-2"
+                            variant={isActive ? "outline" : "default"}
+                            className={`rounded-l-none border-l px-2 ${isActive ? "border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" : "border-primary-foreground/20"}`}
                             disabled={isApplying}
                         >
                             <ChevronDown className="size-4" />
@@ -65,10 +69,10 @@ export function ApplyButton({
                                 {displays.map((display) => (
                                     <DropdownMenuItem
                                         key={display.name}
-                                        onClick={() => handleApply(display.name)}
+                                        onClick={() => isActive && onStop ? onStop(display.name) : onApply(display.name)}
                                     >
-                                        <Monitor className="size-4" />
-                                        {display.name}
+                                        {isActive ? <Square className="size-4" /> : <Monitor className="size-4" />}
+                                        {isActive ? `Stop on ${display.name}` : display.name}
                                         {display.primary && (
                                             <span className="ml-auto text-xs text-muted-foreground">Primary</span>
                                         )}
@@ -77,9 +81,9 @@ export function ApplyButton({
                                 <DropdownMenuSeparator />
                             </>
                         )}
-                        <DropdownMenuItem onClick={() => handleApply()}>
-                            <Monitor className="size-4" />
-                            All
+                        <DropdownMenuItem onClick={() => isActive && onStop ? onStop() : onApply()}>
+                            {isActive ? <Square className="size-4" /> : <Monitor className="size-4" />}
+                            {isActive ? "Stop all" : "All displays"}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

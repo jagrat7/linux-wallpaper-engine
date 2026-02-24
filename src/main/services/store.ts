@@ -7,8 +7,14 @@ import {
 } from '../../shared/constants'
 
 // Store schemas
+export interface ActivePlaylistInfo {
+  name: string
+  screen: string
+}
+
 export interface ActiveWallpapersSchema {
   activeWallpapers: Record<string, ApplyWallpaperOptions>
+  activePlaylist: ActivePlaylistInfo | null
 }
 
 export interface WallpaperOverridesSchema {
@@ -32,6 +38,7 @@ class StoreService {
       name: 'active-wallpapers',
       defaults: {
         activeWallpapers: {},
+        activePlaylist: null,
       },
     })
 

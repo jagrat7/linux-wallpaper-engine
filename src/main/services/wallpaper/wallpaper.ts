@@ -4,7 +4,7 @@ import * as path from 'node:path'
 import { glob } from 'glob'
 import { displayService } from '../display'
 import { settingsService } from '../settings'
-import { storeService } from '../store'
+import { storeService, type ActivePlaylistInfo } from '../store'
 import { hostSpawn, hostExecAsync } from '../flatpak'
 import { STEAM_PATHS, CACHE_TTL, type WallpaperOverrides, type Wallpaper, type ApplyWallpaperOptions } from '../../../shared/constants'
 import { CompatibilityService } from '../compatibility'
@@ -414,6 +414,7 @@ class WallpaperService {
       CompatibilityService.getInstance().monitorProcess(proc, options.backgroundId)
       this.runningProcesses.set(screenKey, proc)
       this.activeWallpapers.set(screenKey, options)
+      this.clearActivePlaylist() // single wallpaper overrides any playlist
       this.saveActiveWallpapers()
 
       return { success: true }
@@ -426,32 +427,37 @@ class WallpaperService {
   }
 
   async stopWallpaper(screen?: string): Promise<{ success: boolean }> {
-    try {
-      if (screen) {
-        const proc = this.runningProcesses.get(screen)
-        if (proc) {
-          proc.kill('SIGKILL')
-          this.runningProcesses.delete(screen)
-          this.activeWallpapers.delete(screen)
-          this.saveActiveWallpapers()
-        }
-        // Also kill any orphaned processes for this screen
-        try {
-          await hostExecAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${screen}"`)
-        } catch {
-          // No process found is ok
-        }
-      } else {
-        // Kill all linux-wallpaperengine processes
-        await hostExecAsync('pkill -9 -f linux-wallpaperengine')
-        this.runningProcesses.clear()
-        this.activeWallpapers.clear()
-        this.saveActiveWallpapers()
+    if (screen) {
+      const proc = this.runningProcesses.get(screen)
+      if (proc) {
+        proc.kill('SIGKILL')
       }
-      return { success: true }
-    } catch {
-      return { success: true }
+      this.runningProcesses.delete(screen)
+      this.activeWallpapers.delete(screen)
+      this.clearActivePlaylistForScreen(screen)
+      this.saveActiveWallpapers()
+
+      // Also kill any orphaned processes for this screen
+      try {
+        await hostExecAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${screen}"`)
+      } catch {
+        // No process found is ok
+      }
+    } else {
+      // Clear all tracking state first
+      this.runningProcesses.clear()
+      this.activeWallpapers.clear()
+      this.clearActivePlaylist()
+      this.saveActiveWallpapers()
+
+      // Then attempt to kill all processes
+      try {
+        await hostExecAsync('pkill -9 -f linux-wallpaperengine')
+      } catch {
+        // No process found is ok
+      }
     }
+    return { success: true }
   }
 
   /**
@@ -472,6 +478,27 @@ class WallpaperService {
     this.runningProcesses.set(screenKey, proc)
     this.activeWallpapers.set(screenKey, options)
     this.saveActiveWallpapers()
+  }
+
+  // ── Playlist tracking ────────────────────────────────────────────────
+
+  setActivePlaylist(name: string, screen: string): void {
+    this.store.set('activePlaylist', { name, screen })
+  }
+
+  getActivePlaylist(): ActivePlaylistInfo | null {
+    return this.store.get('activePlaylist')
+  }
+
+  clearActivePlaylist(): void {
+    this.store.set('activePlaylist', null)
+  }
+
+  private clearActivePlaylistForScreen(screen: string): void {
+    const active = this.getActivePlaylist()
+    if (active?.screen === screen) {
+      this.clearActivePlaylist()
+    }
   }
 
   getActiveWallpapers(): Map<string, ApplyWallpaperOptions> {

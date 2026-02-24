@@ -4,7 +4,7 @@ import { Plus, Shuffle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { trpc } from "@/lib/trpc"
 import { type Playlist } from "../../../shared/constants"
-import { PlaylistCard } from "@/components/playlist/playlist-card"
+import { PlaylistRow } from "@/components/playlist/playlist-row"
 
 export const Route = createFileRoute("/playlists/")({
     component: PlaylistsPage,
@@ -16,16 +16,33 @@ function PlaylistsPage() {
 
     const { data: playlists = [], isLoading, refetch } = trpc.playlist.list.useQuery()
     const { data: wallpapers = [] } = trpc.wallpaper.getWallpapers.useQuery({})
+    const { data: activePlaylist } = trpc.playlist.active.useQuery(undefined, {
+        refetchInterval: 5000,
+    })
     const deleteMutation = trpc.playlist.delete.useMutation()
     const applyMutation = trpc.playlist.start.useMutation()
+    const stopMutation = trpc.playlist.stop.useMutation()
+    const stopWallpaperMutation = trpc.wallpaper.stopWalpaper.useMutation()
+    const utils = trpc.useUtils()
 
     const handleApply = async (playlistName: string, screen?: string) => {
         setApplyingPlaylist(playlistName)
         try {
             await applyMutation.mutateAsync({ playlistName, screen })
+            await utils.playlist.active.invalidate()
         } finally {
             setApplyingPlaylist(null)
         }
+    }
+
+    const handleStop = async (screen?: string) => {
+        if (screen) {
+            await stopWallpaperMutation.mutateAsync({ screen })
+        } else {
+            await stopMutation.mutateAsync()
+        }
+        await utils.playlist.active.invalidate()
+        await utils.wallpaper.getActiveWallpaper.invalidate()
     }
 
     const handleDelete = async (name: string) => {
@@ -39,12 +56,6 @@ function PlaylistsPage() {
 
     const handleCreate = () => {
         navigate({ to: "/playlists/editor" })
-    }
-
-    const getWallpapersForPlaylist = (playlist: Playlist) => {
-        return playlist.items
-            .map(path => wallpapers.find(w => w.path === path))
-            .filter((w): w is NonNullable<typeof w> => w !== null)
     }
 
     if (isLoading) {
@@ -83,16 +94,18 @@ function PlaylistsPage() {
             ) : (
                 <div className="flex flex-col gap-4">
                     {playlists.map((playlist) => {
-                        const playlistWallpapers = getWallpapersForPlaylist(playlist)
                         const isApplying = applyingPlaylist === playlist.name
+                        const isActive = activePlaylist?.name === playlist.name
 
                         return (
-                            <PlaylistCard
+                            <PlaylistRow
                                 key={playlist.name}
                                 playlist={playlist}
-                                wallpapers={playlistWallpapers}
+                                wallpapers={wallpapers}
                                 isApplying={isApplying}
+                                isActive={isActive}
                                 onApply={(screen) => handleApply(playlist.name, screen)}
+                                onStop={handleStop}
                                 onEdit={() => handleEdit(playlist)}
                                 onDelete={() => handleDelete(playlist.name)}
                             />

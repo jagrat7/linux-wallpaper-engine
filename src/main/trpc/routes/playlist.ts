@@ -60,6 +60,14 @@ export const playlistRouter = trpc.router({
       return playlistService.deletePlaylist(input.name)
     }),
 
+  // Stop the currently active playlist
+  stop: trpc.procedure.mutation(async () => {
+    const active = wallpaperService.getActivePlaylist()
+    if (!active) return { success: true }
+    await wallpaperService.stopWallpaper(active.screen)
+    return { success: true }
+  }),
+
   // Start playlist on screen
   start: trpc.procedure
     .input(z.object({
@@ -112,6 +120,9 @@ export const playlistRouter = trpc.router({
           screen: targetScreen,
         })
 
+        // Track which playlist is active
+        wallpaperService.setActivePlaylist(input.playlistName, screenKey)
+
         return { success: true }
       } catch (error) {
         return {
@@ -120,4 +131,9 @@ export const playlistRouter = trpc.router({
         }
       }
     }),
+
+  // Get currently active playlist info
+  active: trpc.procedure.query(() => {
+    return wallpaperService.getActivePlaylist()
+  }),
 })

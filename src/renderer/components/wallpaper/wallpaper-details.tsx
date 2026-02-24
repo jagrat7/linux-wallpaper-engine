@@ -4,7 +4,6 @@ import {
     Monitor,
     HardDrive,
     Layers,
-    Square,
     ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -35,6 +34,15 @@ export function WallpaperDetails({ wallpaper, onClose }: WallpaperDetailsProps) 
 
     const applyMutation = trpc.wallpaper.setWallpaper.useMutation()
     const stopMutation = trpc.wallpaper.stopWalpaper.useMutation()
+    const utils = trpc.useUtils()
+
+    const { data: activeWallpapers = [] } = trpc.wallpaper.getActiveWallpaper.useQuery(undefined, {
+        refetchInterval: 5000,
+    })
+
+    const isActive = activeWallpapers.some(
+        w => w.wallpaper.backgroundId === (wallpaper.path ?? wallpaper.id)
+    )
 
     const handleApply = async (screen?: string) => {
         if (!wallpaper.path && !wallpaper.id) return
@@ -44,13 +52,17 @@ export function WallpaperDetails({ wallpaper, onClose }: WallpaperDetailsProps) 
                 backgroundId: wallpaper.path || wallpaper.id,
                 screen,
             })
+            await utils.wallpaper.getActiveWallpaper.invalidate()
+            await utils.playlist.active.invalidate()
         } finally {
             setIsApplying(false)
         }
     }
 
-    const handleStop = async () => {
-        await stopMutation.mutateAsync({})
+    const handleStop = async (screen?: string) => {
+        await stopMutation.mutateAsync({ screen })
+        await utils.wallpaper.getActiveWallpaper.invalidate()
+        await utils.playlist.active.invalidate()
     }
 
     return (
@@ -80,22 +92,15 @@ export function WallpaperDetails({ wallpaper, onClose }: WallpaperDetailsProps) 
                 <h2 className="text-lg font-semibold">{wallpaper.title}</h2>
                 <p className="text-sm text-muted-foreground">by {wallpaper.author}</p>
 
-                {/* Action buttons */}
-                <div className="mt-4 flex gap-2">
+                {/* Action button */}
+                <div className="mt-4">
                     <ApplyButton
                         onApply={handleApply}
+                        onStop={handleStop}
                         isApplying={isApplying}
-                        className="flex-1"
+                        isActive={isActive}
+                        className="w-full"
                     />
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleStop}
-                        disabled={stopMutation.isPending}
-                        title="Stop wallpaper"
-                    >
-                        <Square className="size-4" />
-                    </Button>
                 </div>
 
                 {/* Details */}
