@@ -287,7 +287,7 @@ export const DEFAULT_PLAYLIST_SETTINGS: PlaylistSettings = {
   delay: 1,
   timeunit: PLAYLIST_TIME_UNIT_OPTIONS[2].value,
   mode: PLAYLIST_MODE_OPTIONS[0].value,
-  order: PLAYLIST_ORDER_OPTIONS[1].value,
+  order: PLAYLIST_ORDER_OPTIONS[0].value,
   updateonpause: false,
   videosequence: false,
 }

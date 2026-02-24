@@ -50,11 +50,9 @@ export function PlaylistRow({
         )}>
             {/* Header with info */}
             <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-ring/30">
-                <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                        <h3 className="font-semibold truncate text-lg">{playlist.name}</h3>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                <div className="flex flex-col gap-1.5 min-w-0">
+                    <h3 className="font-bold truncate text-xl tracking-tight">{playlist.name}</h3>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5 font-medium">
                             <Images className="size-3.5" />
                             {playlist.items.length}
@@ -121,7 +119,10 @@ export function PlaylistRow({
                                 key={wallpaper.path}
                                 className="pl-3 basis-auto"
                             >
+
                                 <div className="relative size-32 sm:size-36 md:size-40 lg:size-44 xl:size-48 rounded-lg overflow-hidden ring-1 ring-border/50 transition-all">
+                                    {!isActive && <div className="absolute inset-0 bg-gradient-to-t from-card/40 via-card/10 to-card/10 transition-opacity duration-300 group-hover:opacity-0 z-10" />}
+
                                     <img
                                         src={`local-file://${wallpaper.thumbnail ?? wallpaper.path}`}
                                         alt={wallpaper.title ?? wallpaper.path.split('/').pop() ?? 'Wallpaper'}
