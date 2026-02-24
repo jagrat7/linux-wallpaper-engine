@@ -80,11 +80,11 @@ function DisplaysPage() {
                 }
             />
 
-            <div id="onboarding-display-layout" className="mb-8 rounded-xl border border-border bg-card p-6 glass">
+            <div id="onboarding-display-layout" className="mb-8 min-h-[200px] md:min-h-[300px] lg:min-h-[400px] xl:min-h-[450px] rounded-xl border border-border bg-card p-6 glass">
                 <h2 className="mb-4 text-sm font-medium text-muted-foreground">
                     Monitor Layout
                 </h2>
-                <div className="flex items-center justify-center gap-4 py-8">
+                <div className="flex items-center justify-center gap-4 md:gap-6 lg:gap-8 py-8 md:py-12 lg:py-16">
                     {monitors.length === 0 ? (
                         <div className="text-center text-muted-foreground">
                             <Monitor className="size-12 mx-auto mb-2 opacity-50" />
@@ -94,11 +94,8 @@ function DisplaysPage() {
                         monitors.map((monitor) => (
                             <div
                                 key={monitor.id}
-                                className="group relative overflow-hidden rounded-lg border-2 border-border bg-secondary/50 transition-all hover:border-ring"
-                                style={{
-                                    width: monitor.resolution.includes("2560") ? 200 : 160,
-                                    height: monitor.resolution.includes("2560") ? 112 : 90,
-                                }}
+                                className="group relative aspect-video overflow-hidden rounded-lg border-2 border-border bg-secondary/50 transition-all hover:border-ring
+                                    w-36 sm:w-44 md:w-56 lg:w-72 xl:w-80"
                             >
                                 {monitor.wallpaper ? (
                                     <WallpaperThumbnail
