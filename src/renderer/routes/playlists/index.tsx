@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { trpc } from "@/lib/trpc"
 import { type Playlist } from "../../../shared/constants"
 import { PlaylistRow } from "@/components/playlist/playlist-row"
+import { PageHeader } from "@/components/page-header"
 
 export const Route = createFileRoute("/playlists/")({
     component: PlaylistsPage,
@@ -68,22 +69,20 @@ function PlaylistsPage() {
 
     return (
         <div className="p-6">
-            <div className="mb-6 flex items-start justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Playlists</h1>
-                    <p className="text-muted-foreground">
-                        Create wallpaper rotations with custom timing
-                    </p>
-                </div>
-                <Button
-                    size="sm"
-                    className="gap-2"
-                    onClick={handleCreate}
-                >
-                    <Plus className="size-4" />
-                    New Playlist
-                </Button>
-            </div>
+            <PageHeader
+                title="Playlists"
+                description="Create wallpaper rotations with custom timing"
+                action={
+                    <Button
+                        size="sm"
+                        className="gap-2 flex justify-center items-center"
+                        onClick={handleCreate}
+                    >
+                        <Plus className="size-4" />
+                        New Playlist
+                    </Button>
+                }
+            />
 
             {playlists.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">

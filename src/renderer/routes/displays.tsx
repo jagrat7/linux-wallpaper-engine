@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Monitor, Plus, Loader2, AlertCircle, Info } from "lucide-react"
 import { WallpaperThumbnail } from "@/components/wallpaper/wallpaper-thumbnail"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { PageHeader } from "@/components/page-header"
 import { trpc } from "@/lib/trpc"
 import { useMemo } from "react"
 
@@ -67,19 +68,17 @@ function DisplaysPage() {
 
     return (
         <div className="p-6">
-            <div className="mb-6 flex items-start justify-between ">
-                <div>
-                    <h1 className="text-2xl font-bold">Displays</h1>
-                    <p className="text-muted-foreground">
-                        View wallpapers for each monitor
-                        {session && (
-                            <span className="ml-2 text-xs bg-secondary px-2 py-0.5 rounded">
-                                {session.type.toUpperCase()}
-                            </span>
-                        )}
-                    </p>
-                </div>
-            </div>
+            <PageHeader
+                title="Displays"
+                description="View wallpapers for each monitor"
+                action={
+                    session ? (
+                        <span className="text-xs bg-secondary px-2 py-0.5 rounded text-muted-foreground">
+                            {session.type.toUpperCase()}
+                        </span>
+                    ) : undefined
+                }
+            />
 
             <div id="onboarding-display-layout" className="mb-8 rounded-xl border border-border bg-card p-6 glass">
                 <h2 className="mb-4 text-sm font-medium text-muted-foreground">

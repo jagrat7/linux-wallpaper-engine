@@ -26,6 +26,7 @@ import { type AppSettings, SCALING_OPTIONS, THEME_OPTIONS } from "../../shared/c
 import { getFpsOptions } from "@/lib/utils"
 import { CompatibilityScanRow } from "@/components/settings/compatibility-scan-row"
 import { LoadingButton } from "@/components/loading-button"
+import { PageHeader } from "@/components/page-header"
 export const Route = createFileRoute("/settings")({
     component: SettingsPage,
 })
@@ -78,25 +79,24 @@ function SettingsPage() {
 
     return (
         <div className="p-6 max-h-[100vh]">
-            <div id="onboarding-settings-page" className="mb-6 flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Settings</h1>
-                    <p className="text-muted-foreground">
-                        Configure global application preferences
-                    </p>
-                </div>
-                <LoadingButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => resetMutation.mutate()}
-                    isLoading={resetMutation.isPending}
-                    loadingText="Resetting..."
-                    className="ring-1 ring-foreground/20 hover:ring-foreground/40"
-                >
-                    <RotateCcw className="size-4 mr-2" />
-                    Reset to Defaults
-                </LoadingButton>
-            </div>
+            <PageHeader
+                id="onboarding-settings-page"
+                title="Settings"
+                description="Configure global application preferences"
+                action={
+                    <LoadingButton
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => resetMutation.mutate()}
+                        isLoading={resetMutation.isPending}
+                        loadingText="Resetting..."
+                        className="ring-1 ring-foreground/20 hover:ring-foreground/40"
+                    >
+                        <RotateCcw className="size-4 mr-2" />
+                        Reset to Defaults
+                    </LoadingButton>
+                }
+            />
 
             <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
                 {/* Performance Section */}

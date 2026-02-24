@@ -2,6 +2,7 @@ import { SearchInput } from "@/components/wallpaper/search"
 import { FiltersDropdown } from "./filters-dropdown"
 import { SortDropdown } from "./sort-dropdown"
 import { RefreshButton } from "./refresh-button"
+import { PageHeader } from "@/components/page-header"
 
 interface GridHeaderProps {
     onRefresh: () => void
@@ -11,17 +12,11 @@ interface GridHeaderProps {
 export function GridHeader({ onRefresh, isLoading }: GridHeaderProps) {
 
     return (
-        <div className="mb-6 space-y-4">
-            <div className="flex flex-row items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Installed</h1>
-                    <p className="text-muted-foreground">
-                        Wallpapers downloaded to your system
-                    </p>
-                </div>
-                <RefreshButton onClick={onRefresh} isLoading={isLoading} />
-            </div>
-
+        <PageHeader
+            title="Installed"
+            description="Wallpapers downloaded to your system"
+            action={<RefreshButton onClick={onRefresh} isLoading={isLoading} />}
+        >
             <div id="onboarding-topbar" className="flex items-center gap-3 max-w-xl mx-auto py-1.5">
                 <SearchInput className="flex-1" />
 
@@ -34,6 +29,6 @@ export function GridHeader({ onRefresh, isLoading }: GridHeaderProps) {
                     </div>
                 </div>
             </div>
-        </div>
+        </PageHeader>
     )
 }
