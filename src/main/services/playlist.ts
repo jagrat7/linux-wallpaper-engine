@@ -76,17 +76,24 @@ class PlaylistService {
 
   private async readConfig(): Promise<SteamConfig> {
     const configPath = await this.ensureConfigExists()
+    const defaultConfig: SteamConfig = {
+      steamuser: {
+        general: { playlists: [] },
+        wallpaperconfig: { selectedwallpapers: {} },
+      },
+    }
     try {
       const content = await fs.readFile(configPath, 'utf-8')
-      return JSON.parse(content)
+      const parsed = JSON.parse(content)
+      // The real Wallpaper Engine config.json may exist but lack the keys we
+      // need (e.g. on a fresh install where playlists were never used).
+      // Normalise the structure so callers can always assume it is present.
+      parsed.steamuser ??= defaultConfig.steamuser
+      parsed.steamuser.general ??= { playlists: [] }
+      parsed.steamuser.general.playlists ??= []
+      return parsed
     } catch {
-      // Return default config if read fails
-      return {
-        steamuser: {
-          general: { playlists: [] },
-          wallpaperconfig: { selectedwallpapers: {} },
-        },
-      }
+      return defaultConfig
     }
   }
 
