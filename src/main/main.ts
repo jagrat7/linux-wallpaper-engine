@@ -10,7 +10,22 @@ import { setFlatpakBypass } from './services/flatpak.ts'
 let tray: Tray | null = null
 let isQuitting = false
 
-const appIcon = nativeImage.createFromPath(path.join(__dirname, '../../assests/transperent-logo.png'))
+const resolveAssetPath = (assetName: string): string => {
+  // If packaged normally in forge-maker
+  if (app.isPackaged)
+    return path.join(process.resourcesPath, 'assets', assetName)
+
+  // If packaged with Nix, the resource path will point to Electron's default,
+  // so it needs to point to the app directory, where the assets are copied
+  const appPath = app.getAppPath()
+  if (appPath.includes('app.asar'))
+    return path.join(path.dirname(appPath), 'assets', assetName)
+
+  // For local dev, relative paths just work
+  return path.join(__dirname, '../../assets', assetName)
+}
+
+const appIcon = nativeImage.createFromPath(resolveAssetPath('transparent-logo.png'))
 
 const shouldMinimizeOnClose = (): boolean => {
   return settingsService.getSetting('enableSystemTray') && settingsService.getSetting('minimizeOnClose')

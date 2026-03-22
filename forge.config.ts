@@ -24,26 +24,27 @@ const config: ForgeConfig = {
   ],
   packagerConfig: {
     asar: true,
-    icon: './assests/transperent-logo',
+    icon: './assets/transparent-logo',
     executableName: 'linux-wallpaper-engine',
+    extraResource: ["./assets"],
   },
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ['linux']),
     new MakerDeb({
       options: {
-        icon: './assests/transperent-logo.png',
+        icon: './assets/transparent-logo.png',
       },
     }),
     new MakerRpm({
       options: {
-        icon: './assests/transperent-logo.png',
+        icon: './assets/transparent-logo.png',
       },
     }),
     new MakerFlatpak({
       options: {
         id: 'com.github.jagrat7.LinuxWallpaperEngine',
-        icon: './assests/transperent-logo.png',
+        icon: './assets/transparent-logo.png',
         categories: ['Utility'],
         runtimeVersion: '24.08',
         base: 'org.electronjs.Electron2.BaseApp',
