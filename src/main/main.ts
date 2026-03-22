@@ -3,8 +3,9 @@ import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
 import { appRouter } from './trpc/router.ts'
-import { settingsService } from './services/settings.ts'
+import { settingsService as settings } from './services/settings.ts'
 import { setFlatpakBypass } from './services/flatpak.ts'
+import { setAutostart } from './services/autostart.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
@@ -28,11 +29,11 @@ const resolveAssetPath = (assetName: string): string => {
 const appIcon = nativeImage.createFromPath(resolveAssetPath('transparent-logo.png'))
 
 const shouldMinimizeOnClose = (): boolean => {
-  return settingsService.getSetting('enableSystemTray') && settingsService.getSetting('minimizeOnClose')
+  return settings.getSetting('enableSystemTray') && settings.getSetting('minimizeOnClose')
 }
 
 const shouldMinimizeOnStartup = (): boolean => {
-  return settingsService.getSetting('enableSystemTray') && settingsService.getSetting('minimizeOnStartup')
+  return settings.getSetting('enableSystemTray') && settings.getSetting('minimizeOnStartup')
 }
 
 // Register the local-file protocol for serving local wallpaper images
@@ -120,7 +121,10 @@ const initializeTray = (mainWindow: BrowserWindow): void => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Sync flatpak bypass from saved settings
-  setFlatpakBypass(settingsService.getSetting('flatpakBypass'))
+  setFlatpakBypass(settings.getSetting('flatpakBypass'))
+
+  // Sync autostart entry from saved settings
+  setAutostart(settings.getSetting('launchOnLogin'))
 
   // Register protocol handler for local files
   protocol.handle('local-file', (request) => {
@@ -131,7 +135,7 @@ app.whenReady().then(() => {
 
   const mainWindow = createWindow()
 
-  if (settingsService.getSetting('enableSystemTray'))
+  if (settings.getSetting('enableSystemTray'))
     initializeTray(mainWindow)
 
   mainWindow.on('close', (e) => {

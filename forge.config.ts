@@ -66,8 +66,9 @@ const config: ForgeConfig = {
           '--share=network',
           // Access to linux-wallpaperengine binary on host
           '--talk-name=org.freedesktop.Flatpak',
-          // System notifications
+          // System notifications / tray
           '--talk-name=org.freedesktop.Notifications',
+          '--talk-name=org.kde.StatusNotifierWatcher',
         ],
         files: [],
         // BaseApp already includes zypak; skip the default module
