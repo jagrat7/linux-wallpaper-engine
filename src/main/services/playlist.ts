@@ -92,8 +92,12 @@ class PlaylistService {
       parsed.steamuser.general ??= { playlists: [] }
       parsed.steamuser.general.playlists ??= []
       return parsed
-    } catch {
-      return defaultConfig
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return defaultConfig
+      }
+
+      throw error
     }
   }
 
