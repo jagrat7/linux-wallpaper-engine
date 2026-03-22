@@ -1,4 +1,4 @@
-import { app, protocol, net, BrowserWindow, Tray, Menu } from 'electron'
+import { app, protocol, net, nativeImage, BrowserWindow, Tray, Menu } from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -10,7 +10,7 @@ import { setFlatpakBypass } from './services/flatpak.ts'
 let tray: Tray | null = null
 let isQuitting = false
 
-const iconPath: string = path.join(__dirname, '../../assests/transperent-logo.png')
+const appIcon = nativeImage.createFromPath(path.join(__dirname, '../../assests/transperent-logo.png'))
 
 const shouldMinimizeOnClose = (): boolean => {
   return settingsService.getSetting('enableSystemTray') && settingsService.getSetting('minimizeOnClose')
@@ -41,7 +41,7 @@ const createWindow = () => {
     show: false,
     backgroundColor: '#09090b',
     autoHideMenuBar: true,
-    icon: iconPath,
+    icon: appIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -71,7 +71,7 @@ const createWindow = () => {
 // Initialize the system tray with context menu
 const initializeTray = (mainWindow: BrowserWindow): void => {
   if (tray !== null) return
-  tray = new Tray(iconPath)
+  tray = new Tray(appIcon)
 
   const toggleMainWindow = (): void => {
     if (!mainWindow.isVisible()) {
