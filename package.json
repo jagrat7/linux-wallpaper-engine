@@ -13,7 +13,7 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "publish": "export GITHUB_TOKEN=$(grep -oP '(?<=GITHUB_TOKEN=).*' .env) && electron-forge publish",
+    "publish": "source .env && electron-forge publish",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern demo-video .",
     "typecheck": "tsc --noEmit",
     "check": "bun run lint && bun run typecheck",
