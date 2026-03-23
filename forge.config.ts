@@ -44,7 +44,12 @@ const config: ForgeConfig = {
     new MakerFlatpak({
       options: {
         id: 'com.github.jagrat7.LinuxWallpaperEngine',
-        icon: './assets/transparent-logo.png',
+        // Default handling of icons are broken for flatpak
+        // Need to explicitly pass a set of size values
+        // and ignore the typing for this one lol
+        icon: {
+          '512x512': './assets/transparent-logo.png'
+        } as any,
         categories: ['Utility'],
         runtimeVersion: '24.08',
         base: 'org.electronjs.Electron2.BaseApp',

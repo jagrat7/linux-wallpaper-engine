@@ -4,6 +4,7 @@
 
   bun,
   nodejs,
+  imagemagick,
   bun2nix,
   nix-output-monitor,
 
@@ -49,6 +50,7 @@ mkShell {
     bun
     nodejs
     electron
+    imagemagick
 
     # Nix
     bun2nix

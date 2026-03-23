@@ -2,10 +2,11 @@
   lib,
   stdenv,
   runCommand,
-
   bun2nix,
+
   zip,
   nodejs,
+  imagemagick,
   makeWrapper,
   copyDesktopItems,
   makeDesktopItem,
@@ -70,6 +71,7 @@ bun2nix.mkDerivation rec {
 
   nativeBuildInputs = [
     nodejs
+    imagemagick
     makeWrapper
     copyDesktopItems
   ];
