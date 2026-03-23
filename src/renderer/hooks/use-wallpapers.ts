@@ -85,6 +85,7 @@ export function useWallpapers() {
         search: debouncedSearchQuery || undefined,
     })
 
+    const invalidateCache = trpc.wallpaper.invalidateCache.useMutation()
     const { data: compatibilityMap } = trpc.wallpaper.getCompatibilityMap.useQuery()
     const { data: appSettings } = trpc.settings.get.useQuery()
 
@@ -108,6 +109,11 @@ export function useWallpapers() {
         }))
     }, [rawWallpapers])
 
+    const hardRefresh = async () => {
+        await invalidateCache.mutateAsync()
+        return refetch()
+    }
+
     return {
         /** Raw data from tRPC (before transformation), useful for extracting tags/resolutions */
         rawWallpapers,
@@ -116,7 +122,7 @@ export function useWallpapers() {
         isLoading,
         isFetching,
         error,
-        refetch,
+        refetch: hardRefresh,
         compatibilityMap,
         appSettings,
     }

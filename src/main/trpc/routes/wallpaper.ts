@@ -16,12 +16,17 @@ export const wallpaperRouter = trpc.router({
     .input(
       z.object({
         search: z.string().optional(),
-        refresh: z.boolean().default(false),
       }),
     )
     .query(async ({ input }) => {
       return wallpaperService.getWallpapers(input)
     }),
+
+  // Invalidate wallpaper cache so the next query triggers a fresh scan
+  invalidateCache: trpc.procedure.mutation(() => {
+    wallpaperService.invalidateCache()
+    return { success: true }
+  }),
 
   // Get per-wallpaper setting overrides
   getOverrides: trpc.procedure

@@ -1,5 +1,6 @@
 import type { ChildProcess } from 'node:child_process'
 import * as fs from 'node:fs/promises'
+import * as fsSync from 'node:fs'
 import * as path from 'node:path'
 import { glob } from 'glob'
 import { displayService } from '../display'
@@ -14,7 +15,6 @@ export type { Wallpaper, ApplyWallpaperOptions }
 
 export interface GetWallpapersOptions {
   search?: string
-  refresh?: boolean
 }
 
 // TODO: Simplify and organize this monstrosity 💀
@@ -31,6 +31,8 @@ class WallpaperService {
   private overridesStore = storeService.wallpaperOverrides
   private debugLogs: Map<string, string[]> = new Map()
   private debugCommands: Map<string, string> = new Map()
+  private fsWatchers: fsSync.FSWatcher[] = []
+  private watchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   private constructor() {
     this.restoreActiveWallpapers()
@@ -265,7 +267,39 @@ class WallpaperService {
     // Sort by title
     wallpapers.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()))
 
+    // Start watching discovered directories for changes
+    this.startWatchers([...workshopDirs])
+
     return wallpapers
+  }
+
+  private startWatchers(dirs: string[]): void {
+    this.stopWatchers()
+    for (const dir of dirs) {
+      try {
+        const watcher = fsSync.watch(dir, { recursive: false }, () => {
+          if (this.watchDebounceTimer) clearTimeout(this.watchDebounceTimer)
+          this.watchDebounceTimer = setTimeout(() => {
+            this.invalidateCache()
+          }, 1500)
+        })
+        watcher.on('error', () => watcher.close())
+        this.fsWatchers.push(watcher)
+      } catch {
+        // Directory may have disappeared
+      }
+    }
+  }
+
+  stopWatchers(): void {
+    if (this.watchDebounceTimer) {
+      clearTimeout(this.watchDebounceTimer)
+      this.watchDebounceTimer = null
+    }
+    for (const watcher of this.fsWatchers) {
+      watcher.close()
+    }
+    this.fsWatchers = []
   }
 
   private async detectResolution(wallpaperPath: string): Promise<{ width: number; height: number }> {
@@ -311,13 +345,13 @@ class WallpaperService {
   }
 
   async getWallpapers(options: GetWallpapersOptions = {}): Promise<Wallpaper[]> {
-    const { search, refresh = false } = options
+    const { search } = options
 
     // Check if we need to refresh cache
     const now = Date.now()
     const cacheExpired = !this.cacheTimestamp || (now - this.cacheTimestamp) > CACHE_TTL
 
-    if (refresh || !this.wallpaperCache || cacheExpired) {
+    if (!this.wallpaperCache || cacheExpired) {
       this.wallpaperCache = await this.scanWallpapers()
       this.cacheTimestamp = now
     }
@@ -751,6 +785,11 @@ class WallpaperService {
   clearDebugLogs(screen: string): void {
     this.debugLogs.delete(screen)
     this.debugCommands.delete(screen)
+  }
+
+  invalidateCache(): void {
+    this.wallpaperCache = null
+    this.cacheTimestamp = null
   }
 
   async takeScreenshot(
