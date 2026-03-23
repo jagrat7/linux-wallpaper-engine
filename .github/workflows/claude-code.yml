@@ -26,7 +26,30 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Find Linear issue identifier
+        id: linear
+        if: github.event.issue != null
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: |
+          RESPONSE=$(curl -s -X POST https://api.linear.app/graphql \
+            -H "Authorization: ${LINEAR_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg url "$ISSUE_URL" \
+              '{
+                query: "query FindIssue($url: String!) { attachmentsForURL(url: $url) { nodes { issue { identifier } } } }",
+                variables: { url: $url }
+              }'
+            )")
+
+          IDENTIFIER=$(echo "$RESPONSE" | jq -r '.data.attachmentsForURL.nodes[0].issue.identifier // empty')
+          echo "identifier=${IDENTIFIER}" >> "$GITHUB_OUTPUT"
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            ${{ steps.linear.outputs.identifier && format('The Linear issue identifier for this GitHub issue is {0}. The user who triggered this is {1}. When creating a branch for your PR, use the format: {1}/prefix/{0}-description (e.g. {1}/fix/{0}-short-slug).', steps.linear.outputs.identifier, github.event.comment.user.login) || '' }}
