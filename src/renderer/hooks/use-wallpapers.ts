@@ -78,6 +78,7 @@ export function useWallpapers() {
     const {
         data: rawWallpapers,
         isLoading,
+        isFetching,
         error,
         refetch,
     } = trpc.wallpaper.getWallpapers.useQuery({
@@ -113,6 +114,7 @@ export function useWallpapers() {
         /** Transformed wallpapers with local-file:// prefixed thumbnails */
         wallpapers,
         isLoading,
+        isFetching,
         error,
         refetch,
         compatibilityMap,
