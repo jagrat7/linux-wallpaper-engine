@@ -19,18 +19,13 @@ Thanks for your interest in contributing! For bug reports and feature requests, 
 - [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) installed and binary accessible in your `$PATH`
 - [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/) installed on Steam with wallpapers downloaded
 
+For Nix, refer to the [devshell](#nix-devshell) section.
 
 ### Development Setup
 
 ```bash
 git clone https://github.com/jagrat7/linux-wallpaper-engine.git
 cd linux-wallpaper-engine
-```
-
-(Optional) For Nix ONLY, you can enter the dev shell that will set up bun + electron for you:
-
-```bash
-nix develop
 ```
 
 Then, on any distro, proceed to:
@@ -48,7 +43,25 @@ bun run make
 
 Builds packages for your current platform using Electron Forge. Build configuration is in `forge.config.ts`. The results will be in the `out/` directory.
 
-For Nix, you'll have to build the flake package with:
+### Nix Devshell
+
+As with the installation setup, flakes must be enabled. With [nix-direnv](https://github.com/nix-community/nix-direnv), it's as simple as getting in to the project root and allowing it.
+
+```bash
+cd linux-wallpaper-engine
+direnv allow
+```
+
+Now, every time you cd into the repo, you should be in the devshell with all the necessary dependencies and packaging set up. If not using direnv, you can access the devshell with:
+
+```bash
+nix develop
+
+# you can also pass commands without entering the devshell
+nix develop -c bun start
+```
+
+In the devshell, you can run the make targets to package for other platforms. To build specifically for Nix, you'll have to build the flake output package:
 
 ```bash
 # nix build, but with prettier output
@@ -58,7 +71,7 @@ nom build
 ./result/bin/linux-wallpaper-engine
 ```
 
-The Nix dev shell should be able to run the make targets as well, if packaging for other distros.
+> NOTE: For non-NixOS systems, there's currently a limitation when it comes to graphics drivers for Electron.
 
 
 ## Project Structure

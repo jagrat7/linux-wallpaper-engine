@@ -73,13 +73,13 @@ mkShell {
         # Do not download unpatched Electron
         export ELECTRON_SKIP_BINARY_DOWNLOAD=1
 
-        # Instead create an override in tmp with symlinks
-        export ELECTRON_OVERRIDE_DIST_PATH="/tmp/${package.name}-electron"
-        mkdir -p "$ELECTRON_OVERRIDE_DIST_PATH"
+        # Instead create an override with symlinks
+        export ELECTRON_OVERRIDE_DIR="$DEV_TEMP_DIR/${package.name}-electron"
+        mkdir -p "$ELECTRON_OVERRIDE_DIR"
 
-        ln -snf ${electron}/bin/electron "$ELECTRON_OVERRIDE_DIST_PATH/electron"
-        ln -snf ${electron}/libexec/electron/resources "$ELECTRON_OVERRIDE_DIST_PATH/resources"
-        ln -snf ${electron}/libexec/electron/locales "$ELECTRON_OVERRIDE_DIST_PATH/locales"
+        ln -snf ${electron}/bin/electron "$ELECTRON_OVERRIDE_DIR/electron"
+        ln -snf ${electron}/libexec/electron/resources "$ELECTRON_OVERRIDE_DIR/resources"
+        ln -snf ${electron}/libexec/electron/locales "$ELECTRON_OVERRIDE_DIR/locales"
       '';
 
       mkWraperForRpm =
@@ -130,7 +130,7 @@ mkShell {
       rpmOnNixHack = ''
         # bash
         # Workaround for RPM's hardcoded reliance on global system state
-        export RPM_WRAPPER_DIR="/tmp/${package.name}-rpmbuild"
+        export RPM_WRAPPER_DIR="$DEV_TEMP_DIR/${package.name}-rpmbuild"
         export LOCAL_RPM_DB="$RPM_WRAPPER_DIR/rpmdb"
 
         mkdir -p "$RPM_WRAPPER_DIR/bin"
@@ -142,34 +142,13 @@ mkShell {
         # Prepend our wrapped binaries so they override
         export PATH="$RPM_WRAPPER_DIR/bin:$PATH"
       '';
-
-      userShell = ''
-        # bash
-        # Clean up on exit
-        CLEANUP_CMD="rm -rf $ELECTRON_OVERRIDE_DIST_PATH $RPM_WRAPPER_DIR"
-
-        # Find user's shell if set, since $SHELL gets stripped
-        if command -v getent >/dev/null 2>&1; then
-          USER_SHELL=$(getent passwd "$USER" | cut -d: -f7)
-        elif [ -f /etc/passwd ]; then
-          USER_SHELL=$(grep "^$USER:" /etc/passwd | cut -d: -f7)
-        fi
-
-        # Run preferred shell if found and in interactive mode
-        if [[ -n "$USER_SHELL" && "$USER_SHELL" != *"bash"* && $- == *i* ]]; then
-          "$USER_SHELL"
-          eval "$CLEANUP_CMD"
-          exit
-
-        # If falling back to bash, use a trap to clean up on exit
-        else
-          trap "$CLEANUP_CMD" EXIT
-        fi
-      '';
     in
     ''
+      # bash
+      PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+      export DEV_TEMP_DIR="$PROJECT_ROOT/.direnv/tmp"
+      mkdir -p "$DEV_TEMP_DIR"
       ${electronOffline}
       ${rpmOnNixHack}
-      ${userShell}
     '';
 }
