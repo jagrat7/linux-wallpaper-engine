@@ -153,13 +153,13 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
    cd linux-wallpaper-engine
    ```
 
-3. Create a branch from `main`:
+3. Create a branch from `dev`:
 
    ```bash
    git checkout -b feat/your-feature-name
    ```
 
-4. Push to your fork and open a pull request against `main`
+4. Push to your fork and open a pull request against `dev`
 5. In the PR description, explain what you changed and link any related issues (e.g. "Closes #12")
 
 ### Branch Naming
