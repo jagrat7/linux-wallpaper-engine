@@ -94,8 +94,10 @@ out/
 # Nix build output symlink
 result*
 
-# CLAUDE.md
+# Direnv
+.direnv/
 
+# CLAUDE.md
 
 .claude 
 
@@ -110,5 +112,6 @@ demo-video/
 docs/demo-video-tool.md
 
 docs/testing.md
+
 # CocoIndex Code (ccc)
 /.cocoindex_code/
