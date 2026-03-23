@@ -2,10 +2,11 @@
   lib,
   stdenv,
   runCommand,
-
   bun2nix,
+
   zip,
   nodejs,
+  imagemagick,
   makeWrapper,
   copyDesktopItems,
   makeDesktopItem,
@@ -70,6 +71,7 @@ bun2nix.mkDerivation rec {
 
   nativeBuildInputs = [
     nodejs
+    imagemagick
     makeWrapper
     copyDesktopItems
   ];
@@ -103,11 +105,11 @@ bun2nix.mkDerivation rec {
     mkdir -p $out/share/pixmaps
     mkdir -p $out/bin
 
-    # Copy the compiled app
-    cp out/*/resources/app.asar $out/share/${pname}/
+    # Copy resources
+    cp -a out/*/resources/. $out/share/${pname}/
 
     # Copy the icon so the .desktop file can find it
-    cp assests/transperent-logo.png $out/share/pixmaps/${pname}.png
+    cp assets/transparent-logo.png $out/share/pixmaps/${pname}.png
 
     # Wrap the binary with runtime deps
     makeWrapper ${electron}/bin/electron $out/bin/${pname} \

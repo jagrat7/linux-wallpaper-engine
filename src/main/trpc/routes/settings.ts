@@ -4,6 +4,7 @@ import { settingsService, type AppSettings } from '../../services/settings'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { THEME_OPTIONS, SCALING_OPTIONS, type ThemeOption, type ScalingOption } from '../../../shared/constants'
 import { isFlatpak, setFlatpakBypass } from '../../services/flatpak'
+import { setAutostart } from '../../services/autostart'
 
 // Keys that affect the wallpaper backend process and require reapply
 const BACKEND_KEYS = new Set([
@@ -73,6 +74,11 @@ export const settingsRouter = trpc.router({
       // Sync flatpak bypass state to the module
       if (input.flatpakBypass !== undefined) {
         setFlatpakBypass(input.flatpakBypass)
+      }
+
+      // Write / delete autostart file on update
+      if (input.launchOnLogin !== undefined) {
+        setAutostart(input.launchOnLogin)
       }
 
       // Only reapply wallpapers if backend-relevant settings changed

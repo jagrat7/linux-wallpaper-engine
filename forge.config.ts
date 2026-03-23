@@ -24,26 +24,32 @@ const config: ForgeConfig = {
   ],
   packagerConfig: {
     asar: true,
-    icon: './assests/transperent-logo',
+    icon: './assets/transparent-logo',
     executableName: 'linux-wallpaper-engine',
+    extraResource: ["./assets"],
   },
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ['linux']),
     new MakerDeb({
       options: {
-        icon: './assests/transperent-logo.png',
+        icon: './assets/transparent-logo.png',
       },
     }),
     new MakerRpm({
       options: {
-        icon: './assests/transperent-logo.png',
+        icon: './assets/transparent-logo.png',
       },
     }),
     new MakerFlatpak({
       options: {
         id: 'com.github.jagrat7.LinuxWallpaperEngine',
-        icon: './assests/transperent-logo.png',
+        // Default handling of icons are broken for flatpak
+        // Need to explicitly pass a set of size values
+        // and ignore the typing for this one lol
+        icon: {
+          '512x512': './assets/transparent-logo.png'
+        } as any,
         categories: ['Utility'],
         runtimeVersion: '24.08',
         base: 'org.electronjs.Electron2.BaseApp',
@@ -65,8 +71,9 @@ const config: ForgeConfig = {
           '--share=network',
           // Access to linux-wallpaperengine binary on host
           '--talk-name=org.freedesktop.Flatpak',
-          // System notifications
+          // System notifications / tray
           '--talk-name=org.freedesktop.Notifications',
+          '--talk-name=org.kde.StatusNotifierWatcher',
         ],
         files: [],
         // BaseApp already includes zypak; skip the default module

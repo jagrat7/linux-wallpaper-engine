@@ -1,23 +1,39 @@
-import { app, protocol, net, BrowserWindow, Tray, Menu } from 'electron'
+import { app, protocol, net, nativeImage, BrowserWindow, Tray, Menu } from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
 import { appRouter } from './trpc/router.ts'
-import { settingsService } from './services/settings.ts'
+import { settingsService as settings } from './services/settings.ts'
 import { setFlatpakBypass } from './services/flatpak.ts'
+import { setAutostart } from './services/autostart.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
 let isQuitting = false
 
-const iconPath: string = path.join(__dirname, '../../assests/transperent-logo.png')
+const resolveAssetPath = (assetName: string): string => {
+  // If packaged normally in forge-maker
+  if (app.isPackaged)
+    return path.join(process.resourcesPath, 'assets', assetName)
+
+  // If packaged with Nix, the resource path will point to Electron's default,
+  // so it needs to point to the app directory, where the assets are copied
+  const appPath = app.getAppPath()
+  if (appPath.includes('app.asar'))
+    return path.join(path.dirname(appPath), 'assets', assetName)
+
+  // For local dev, relative paths just work
+  return path.join(__dirname, '../../assets', assetName)
+}
+
+const appIcon = nativeImage.createFromPath(resolveAssetPath('transparent-logo.png'))
 
 const shouldMinimizeOnClose = (): boolean => {
-  return settingsService.getSetting('enableSystemTray') && settingsService.getSetting('minimizeOnClose')
+  return settings.getSetting('enableSystemTray') && settings.getSetting('minimizeOnClose')
 }
 
 const shouldMinimizeOnStartup = (): boolean => {
-  return settingsService.getSetting('enableSystemTray') && settingsService.getSetting('minimizeOnStartup')
+  return settings.getSetting('enableSystemTray') && settings.getSetting('minimizeOnStartup')
 }
 
 // Register the local-file protocol for serving local wallpaper images
@@ -41,7 +57,7 @@ const createWindow = () => {
     show: false,
     backgroundColor: '#09090b',
     autoHideMenuBar: true,
-    icon: iconPath,
+    icon: appIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -71,7 +87,7 @@ const createWindow = () => {
 // Initialize the system tray with context menu
 const initializeTray = (mainWindow: BrowserWindow): void => {
   if (tray !== null) return
-  tray = new Tray(iconPath)
+  tray = new Tray(appIcon)
 
   const toggleMainWindow = (): void => {
     if (!mainWindow.isVisible()) {
@@ -105,7 +121,10 @@ const initializeTray = (mainWindow: BrowserWindow): void => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Sync flatpak bypass from saved settings
-  setFlatpakBypass(settingsService.getSetting('flatpakBypass'))
+  setFlatpakBypass(settings.getSetting('flatpakBypass'))
+
+  // Write / delete autostart file from saved settings
+  setAutostart(settings.getSetting('launchOnLogin'))
 
   // Register protocol handler for local files
   protocol.handle('local-file', (request) => {
@@ -116,7 +135,7 @@ app.whenReady().then(() => {
 
   const mainWindow = createWindow()
 
-  if (settingsService.getSetting('enableSystemTray'))
+  if (settings.getSetting('enableSystemTray'))
     initializeTray(mainWindow)
 
   mainWindow.on('close', (e) => {

@@ -5,7 +5,7 @@ import {
     Monitor,
     Settings,
 } from "lucide-react"
-import logoImage from "../../../../assests/transperent-logo.png"
+import logoImage from "../../../../assets/transparent-logo.png"
 import {
     Sidebar as SidebarPrimitive,
     SidebarContent,

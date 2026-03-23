@@ -1,6 +1,3 @@
-import { app } from 'electron'
-import * as fs from 'node:fs'
-import * as path from 'node:path'
 import { DEFAULT_SETTINGS, type AppSettings } from '../../shared/constants'
 import { storeService } from './store'
 
@@ -25,11 +22,6 @@ class SettingsService {
     for (const [key, value] of Object.entries(settings)) {
       this.store.set(key as keyof AppSettings, value)
     }
-
-    if (settings.launchOnLogin !== undefined) {
-      this.setAutostart(settings.launchOnLogin)
-    }
-
     return this.store.store
   }
 
@@ -48,38 +40,6 @@ class SettingsService {
 
   setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
     this.store.set(key, value)
-  }
-
-  private getDesktopFilePath(): string {
-    const autostartDir = path.join(app.getPath('home'), '.config', 'autostart')
-    return path.join(autostartDir, `${app.getName()}.desktop`)
-  }
-
-  private setAutostart(enabled: boolean): void {
-    const desktopFile = this.getDesktopFilePath()
-
-    if (enabled) {
-      const dir = path.dirname(desktopFile)
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true })
-      }
-
-      const content = [
-        '[Desktop Entry]',
-        'Type=Application',
-        `Name=${app.getName()}`,
-        `Exec=${process.execPath} %U`,
-        'Terminal=false',
-        'StartupNotify=false',
-        `X-GNOME-Autostart-enabled=true`,
-      ].join('\n')
-
-      fs.writeFileSync(desktopFile, content)
-    } else {
-      if (fs.existsSync(desktopFile)) {
-        fs.unlinkSync(desktopFile)
-      }
-    }
   }
 
   settingsToArgs(settings: AppSettings): string[] {
