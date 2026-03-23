@@ -1,6 +1,5 @@
 import { DEFAULT_SETTINGS, type AppSettings } from '../../shared/constants'
 import { storeService } from './store'
-import { setAutostart } from './autostart'
 
 export type { AppSettings }
 
@@ -23,8 +22,6 @@ class SettingsService {
     for (const [key, value] of Object.entries(settings)) {
       this.store.set(key as keyof AppSettings, value)
     }
-
-    setAutostart(settings.launchOnLogin)
     return this.store.store
   }
 

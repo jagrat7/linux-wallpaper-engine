@@ -123,7 +123,7 @@ app.whenReady().then(() => {
   // Sync flatpak bypass from saved settings
   setFlatpakBypass(settings.getSetting('flatpakBypass'))
 
-  // Sync autostart entry from saved settings
+  // Write / delete autostart file from saved settings
   setAutostart(settings.getSetting('launchOnLogin'))
 
   // Register protocol handler for local files

@@ -12,6 +12,12 @@ export const isFlatpak = (): boolean =>
     !!process.env.FLATPAK_ID || fs.existsSync('/.flatpak-info')
 
 /**
+ * Returns the process Flatpak ID or the default one set in forge.config
+ */
+export const getFlatpakID = (): string =>
+    process.env.FLATPAK_ID || 'com.github.jagrat7.LinuxWallpaperEngine'
+
+/**
  * Environment variables that must be forwarded to host processes via flatpak-spawn.
  * Without these, graphical apps like linux-wallpaperengine can't connect to the display server.
  */

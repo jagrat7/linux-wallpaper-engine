@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { isFlatpak } from './flatpak'
+import { isFlatpak, getFlatpakID } from './flatpak'
 
 const BINARY_NAME = 'linux-wallpaper-engine';
 
@@ -24,7 +24,7 @@ const isBinaryInPath = (): boolean => {
 const getLinuxExec = (): string => {
   // If flatpak, run via the host command
   if (isFlatpak())
-    return `flatpak run ${process.env.FLATPAK_ID}`;
+    return `flatpak run ${getFlatpakID()}`;
 
   // If in PATH, use the binary name
   if (isBinaryInPath())
@@ -37,6 +37,9 @@ const getLinuxExec = (): string => {
   return `"${process.execPath}"`;
 }
 
+/**
+ * Write / delete the autostart desktop entry
+ */
 export const setAutostart = (enabled: boolean | undefined): void => {
   if (enabled === undefined) return
 
@@ -78,7 +81,11 @@ export const setAutostart = (enabled: boolean | undefined): void => {
   ];
 
   if (isFlatpak())
-    content.push(`X-Flatpak=${process.env.FLATPAK_ID}`)
+    content.push(`X-Flatpak=${getFlatpakID()}`)
 
-  fs.writeFileSync(desktopFile, content.join('\n'));
+  try {
+    fs.writeFileSync(desktopFile, content.join('\n') + '\n')
+  } catch (err) {
+    console.error('Failed to write autostart entry:', err)
+  }
 }
