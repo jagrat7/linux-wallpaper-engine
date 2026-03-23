@@ -1,7 +1,7 @@
 {
   "name": "linux-wallpaper-engine",
   "productName": "Linux Wallpaper Engine",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "A modern desktop GUI for linux-wallpaperengine — browse, manage, and apply your Steam Wallpaper Engine wallpapers on Linux.",
   "homepage": "https://github.com/jagrat7/linux-wallpaper-engine",
   "repository": {
@@ -13,7 +13,7 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "publish": "export GITHUB_TOKEN=$(grep -oP '(?<=GITHUB_TOKEN=).*' .env) && electron-forge publish",
+    "publish": "source .env && electron-forge publish",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern demo-video .",
     "typecheck": "tsc --noEmit",
     "check": "bun run lint && bun run typecheck",
