@@ -84,7 +84,7 @@ class CompatibilityService {
     })
 
     // No stderr at all → classify as perfect
-    const silenceTimer = setTimeout(() => classify(false), 1500)
+    const silenceTimer = setTimeout(() => classify(false), 2000)
   }
 
   private updateAutoCompatibility(wallpaperPath: string, status: CompatibilityStatus, errors: string[]): void {
