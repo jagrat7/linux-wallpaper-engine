@@ -32,7 +32,7 @@ Then, on any distro, proceed to:
 
 ```bash
 bun install
-bun start
+bun dev
 ```
 
 ### Building Packages
@@ -58,7 +58,7 @@ Now, every time you cd into the repo, you should be in the devshell with all the
 nix develop
 
 # you can also pass commands without entering the devshell
-nix develop -c bun start
+nix develop -c bun dev
 ```
 
 In the devshell, you can run the make targets to package for other platforms. To build specifically for Nix, you'll have to build the flake output package:

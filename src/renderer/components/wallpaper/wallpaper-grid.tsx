@@ -22,6 +22,7 @@ export function WallpaperGrid() {
         rawWallpapers,
         wallpapers: transformedWallpapers,
         isLoading,
+        isFetching,
         error,
         refetch,
         compatibilityMap,
@@ -103,7 +104,7 @@ export function WallpaperGrid() {
     if (error) {
         return (
             <div className="flex flex-col h-full">
-                <GridHeader onRefresh={handleRefresh} isLoading={isLoading} />
+                <GridHeader onRefresh={handleRefresh} isLoading={isFetching} />
                 <motion.div
                     className="flex flex-col items-center justify-center py-20 text-destructive"
                     initial={{ opacity: 0, y: 12 }}
@@ -124,7 +125,7 @@ export function WallpaperGrid() {
 
     return (
         <div className="flex flex-col h-full">
-            <GridHeader onRefresh={handleRefresh} isLoading={isLoading} />
+            <GridHeader onRefresh={handleRefresh} isLoading={isFetching} />
 
             <div className="flex items-start gap-6 flex-1">
                 <div

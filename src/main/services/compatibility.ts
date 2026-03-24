@@ -10,6 +10,7 @@ import {
   COMPAT_IGNORE_PATTERNS,
 } from '../../shared/constants'
 import { storeService } from './store'
+import { invalidationService } from './invalidation'
 
 class CompatibilityService {
   private static instance: CompatibilityService | null = null
@@ -62,31 +63,28 @@ class CompatibilityService {
     if (overrides.compatibility) return
 
     let stderrData = ''
-    let exited = false
+
+    const classify = (exitedEarly: boolean) => {
+      const { status, errors } = this.parseStderrToStatus(stderrData, exitedEarly)
+      this.updateAutoCompatibility(wallpaperPath, status, errors)
+    }
 
     if (proc.stderr) {
       proc.stderr.on('data', (chunk: Buffer) => {
         stderrData += chunk.toString()
+        classify(false)
       })
     }
 
     proc.on('exit', (code) => {
-      exited = true
+      clearTimeout(silenceTimer)
       if (code !== null && code !== 0) {
-        const { status, errors } = this.parseStderrToStatus(stderrData, true)
-        this.updateAutoCompatibility(wallpaperPath, status, errors)
+        classify(true)
       }
     })
 
-    setTimeout(() => {
-      if (exited) return
-      const { status, errors } = this.parseStderrToStatus(stderrData, false)
-      this.updateAutoCompatibility(wallpaperPath, status, errors)
-      if (proc.stderr) {
-        proc.stderr.removeAllListeners('data')
-        proc.stderr.destroy()
-      }
-    }, 3000)
+    // No stderr at all → classify as perfect
+    const silenceTimer = setTimeout(() => classify(false), 2000)
   }
 
   private updateAutoCompatibility(wallpaperPath: string, status: CompatibilityStatus, errors: string[]): void {
@@ -100,6 +98,7 @@ class CompatibilityService {
       lastTested: Date.now(),
     }
     this.overridesStore.set('overrides', all)
+    invalidationService.emit('wallpaper.getCompatibilityMap')
   }
 
   setCompatibility(wallpaperPath: string, status: CompatibilityStatus): void {
