@@ -283,7 +283,7 @@ class WallpaperService {
           debounce = setTimeout(() => {
             this.invalidateCache()
             invalidationService.emit('wallpaper.getWallpapers')
-          }, 1500)
+          }, 500)
         })
         watcher.on('error', () => watcher.close())
         this.fsWatchers.push(watcher)
