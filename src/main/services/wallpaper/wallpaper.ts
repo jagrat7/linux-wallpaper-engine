@@ -8,6 +8,7 @@ import { settingsService } from '../settings'
 import { storeService, type ActivePlaylistInfo } from '../store'
 import { hostSpawn, hostExecAsync, isFlatpak } from '../flatpak'
 import { STEAM_PATHS, CACHE_TTL, type WallpaperOverrides, type Wallpaper, type ApplyWallpaperOptions } from '../../../shared/constants'
+import { invalidationService } from '../invalidation'
 import { CompatibilityService } from '../compatibility'
 import { parseImageHeader } from './wallpaper.utils'
 
@@ -32,7 +33,6 @@ class WallpaperService {
   private debugLogs: Map<string, string[]> = new Map()
   private debugCommands: Map<string, string> = new Map()
   private fsWatchers: fsSync.FSWatcher[] = []
-  private watchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   private constructor() {
     this.restoreActiveWallpapers()
@@ -275,12 +275,14 @@ class WallpaperService {
 
   private startWatchers(dirs: string[]): void {
     this.stopWatchers()
+    let debounce: ReturnType<typeof setTimeout>
     for (const dir of dirs) {
       try {
         const watcher = fsSync.watch(dir, { recursive: false }, () => {
-          if (this.watchDebounceTimer) clearTimeout(this.watchDebounceTimer)
-          this.watchDebounceTimer = setTimeout(() => {
+          clearTimeout(debounce)
+          debounce = setTimeout(() => {
             this.invalidateCache()
+            invalidationService.emit('wallpaper.getWallpapers')
           }, 1500)
         })
         watcher.on('error', () => watcher.close())
@@ -292,10 +294,6 @@ class WallpaperService {
   }
 
   stopWatchers(): void {
-    if (this.watchDebounceTimer) {
-      clearTimeout(this.watchDebounceTimer)
-      this.watchDebounceTimer = null
-    }
     for (const watcher of this.fsWatchers) {
       watcher.close()
     }

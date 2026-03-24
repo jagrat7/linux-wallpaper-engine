@@ -10,6 +10,7 @@ import {
   COMPAT_IGNORE_PATTERNS,
 } from '../../shared/constants'
 import { storeService } from './store'
+import { invalidationService } from './invalidation'
 
 class CompatibilityService {
   private static instance: CompatibilityService | null = null
@@ -100,6 +101,7 @@ class CompatibilityService {
       lastTested: Date.now(),
     }
     this.overridesStore.set('overrides', all)
+    invalidationService.emit('wallpaper.getCompatibilityMap')
   }
 
   setCompatibility(wallpaperPath: string, status: CompatibilityStatus): void {
