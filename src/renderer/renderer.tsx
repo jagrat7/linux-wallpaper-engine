@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider, createRouter, createHashHistory } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { trpc, queryClient, trpcClient } from './lib/trpc'
+import { useInvalidation } from './hooks/use-invalidation'
 import './styles/global.css'
 
 const hashHistory = createHashHistory()
@@ -22,6 +23,11 @@ declare module '@tanstack/react-router' {
   }
 }
 
+function App() {
+  useInvalidation()
+  return <RouterProvider router={router} />
+}
+
 const rootElement = document.getElementById('app')
 if (rootElement && !rootElement.innerHTML) {
   const root = createRoot(rootElement)
@@ -29,7 +35,7 @@ if (rootElement && !rootElement.innerHTML) {
     <StrictMode>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
+          <App />
         </QueryClientProvider>
       </trpc.Provider>
     </StrictMode>,

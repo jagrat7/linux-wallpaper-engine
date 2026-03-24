@@ -1,5 +1,6 @@
 import { inferRouterInputs, inferRouterOutputs } from '@trpc/server'
 import { trpc } from './trpc'
+import { invalidationRouter } from './routes/invalidation'
 import { wallpaperRouter } from './routes/wallpaper'
 import { displayRouter } from './routes/display'
 import { settingsRouter } from './routes/settings'
@@ -8,6 +9,7 @@ import { playlistRouter } from './routes/playlist'
 
 export const appRouter = trpc.router({
   health: trpc.procedure.query(() => ({ status: 'ok' })),
+  invalidation: invalidationRouter,
   wallpaper: wallpaperRouter,
   display: displayRouter,
   settings: settingsRouter,
