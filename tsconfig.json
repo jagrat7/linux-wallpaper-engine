@@ -1,5 +1,5 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.*.config.ts", "vite.*.config.mts", "forge.config.ts", "forge.env.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.*.config.ts", "vite.*.config.mts", "vitest.config.mts", "forge.config.ts", "forge.env.d.ts"],
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",

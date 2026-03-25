@@ -16,6 +16,7 @@
     "publish": "source .env && electron-forge publish",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern demo-video .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest",
     "check": "bun run lint && bun run typecheck",
     "postinstall": "bun2nix -o distro/nix/bun.nix"
   },
@@ -58,7 +59,8 @@
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.7.2",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vitest": "^4.1.1"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
