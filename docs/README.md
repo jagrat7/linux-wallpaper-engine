@@ -33,7 +33,7 @@ Verify the installation:
 linux-wallpaperengine --help
 ```
 
-Test if it is working on your system by applying a wallpaper with the cli in your terminal. For example (you will need to find your own path to the wallpaper file and the screen name):
+Test if it is working on your system by applying a wallpaper with the cli. For example (you will need to find your own path to the wallpaper file and the screen name):
 ```bash
 linux-wallpaperengine --screen-root DP-2 --bg /home/$USER/.local/share/Steam/steamapps/workshop/content/431960/<wallpaper_id>
 ```
