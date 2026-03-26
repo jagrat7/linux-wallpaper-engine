@@ -16,7 +16,8 @@
     "publish": "source .env && electron-forge publish",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern demo-video .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:w": "vitest",
     "check": "bun run lint && bun run typecheck",
     "postinstall": "bun2nix -o distro/nix/bun.nix"
   },

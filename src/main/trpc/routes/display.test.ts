@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { displayRouter } from './display'
+import { trpc } from '../trpc'
+
 
 // --- Mocks ---------------------------------------------------------------
 
@@ -15,8 +18,6 @@ vi.mock('../../services/display', () => ({
 }))
 
 // Import router after mocks
-import { displayRouter } from './display'
-import { trpc } from '../trpc'
 
 // --- Helpers -------------------------------------------------------------
 
