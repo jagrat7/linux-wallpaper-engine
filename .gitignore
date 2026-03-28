@@ -115,3 +115,6 @@ docs/testing.md
 
 # CocoIndex Code (ccc)
 /.cocoindex_code/
+
+/.agents/
+/.windsurf/
