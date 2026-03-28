@@ -416,6 +416,7 @@ class WallpaperService implements IWallpaperService {
         scaling: baseOptions.scaling && baseOptions.scaling !== 'default' ? baseOptions.scaling : settings.defaultScaling,
         disableMouse: settings.disableMouse,
         disableParallax: settings.disableParallax,
+        disableParticles: settings.disableParticles,
         noFullscreenPause: !settings.pauseOnFullscreen,
       }
 
@@ -501,7 +502,9 @@ class WallpaperService implements IWallpaperService {
       : options.noAudioProcessing
     const disableMouse = overrides.disableMouse ?? options.disableMouse
     const disableParallax = overrides.disableParallax ?? options.disableParallax
+    const disableParticles = overrides.disableParticles ?? options.disableParticles
     const scaling = overrides.scaling ?? options.scaling
+    const customProperties = overrides.customProperties ?? []
 
     if (options.silent) {
       args.push('--silent')
@@ -514,8 +517,12 @@ class WallpaperService implements IWallpaperService {
     if (options.fps) args.push('--fps', options.fps.toString())
     if (disableMouse) args.push('--disable-mouse')
     if (disableParallax) args.push('--disable-parallax')
+    if (disableParticles) args.push('--disable-particles')
     if (options.noFullscreenPause) args.push('--no-fullscreen-pause')
     if (scaling && scaling !== 'default') args.push('--scaling', scaling)
+    for (const prop of customProperties) {
+      args.push('--set-property', prop)
+    }
 
     return args
   }

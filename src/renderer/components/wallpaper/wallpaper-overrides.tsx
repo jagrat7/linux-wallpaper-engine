@@ -77,6 +77,7 @@ export function WallpaperOverrides({ wallpaper }: WallpaperOverridesProps) {
             scaling: settings.defaultScaling,
             disableMouse: settings.disableMouse,
             disableParallax: settings.disableParallax,
+            disableParticles: settings.disableParticles,
         }
         return map[key]
     }
@@ -173,6 +174,39 @@ export function WallpaperOverrides({ wallpaper }: WallpaperOverridesProps) {
                             onCheckedChange={(checked) => updateOverride("disableParallax", checked)}
                         />
                     </SettingRow>
+
+                    {/* Disable particles */}
+                    <SettingRow
+                        label="Disable particles"
+                        changed={getValue("disableParticles") !== undefined}
+                        onClear={() => clearOverride("disableParticles")}
+                    >
+                        <Switch
+                            checked={getValue("disableParticles") ?? (getGlobalValue("disableParticles") as boolean | undefined) ?? false}
+                            onCheckedChange={(checked) => updateOverride("disableParticles", checked)}
+                        />
+                    </SettingRow>
+
+                    {/* Custom properties */}
+                    <SettingRow
+                        label="Custom properties"
+                        changed={getValue("customProperties") !== undefined && (getValue("customProperties") as string[] | undefined)?.length !== 0}
+                        onClear={() => clearOverride("customProperties")}
+                    >
+                        <textarea
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            rows={3}
+                            placeholder={"key=value\nkey2=value2"}
+                            value={(getValue("customProperties") ?? []).join("\n")}
+                            onChange={(e) => {
+                                const lines = e.target.value.split("\n").filter((l) => l.trim() !== "")
+                                updateOverride("customProperties", lines.length > 0 ? lines : undefined)
+                            }}
+                        />
+                    </SettingRow>
+                    <p className="px-1 text-xs text-muted-foreground">
+                        One property per line using key=value format. Passed as --set-property flags.
+                    </p>
 
                     {hasOverrides && (
                         <Button

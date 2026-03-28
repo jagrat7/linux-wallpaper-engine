@@ -52,6 +52,7 @@ export const wallpaperRouter = trpc.router({
         noAudioProcessing: z.boolean().optional(),
         disableMouse: z.boolean().optional(),
         disableParallax: z.boolean().optional(),
+        disableParticles: z.boolean().optional(),
         noFullscreenPause: z.boolean().optional(),
         windowed: z
           .object({
@@ -77,6 +78,7 @@ export const wallpaperRouter = trpc.router({
         noAudioProcessing: input.noAudioProcessing ?? !settings.audioProcessing,
         disableMouse: input.disableMouse ?? settings.disableMouse,
         disableParallax: input.disableParallax ?? settings.disableParallax,
+        disableParticles: input.disableParticles ?? settings.disableParticles,
         noFullscreenPause: input.noFullscreenPause ?? !settings.pauseOnFullscreen,
         windowed: input.windowed,
       }
@@ -120,6 +122,8 @@ export const wallpaperRouter = trpc.router({
           scaling: z.enum(['default', 'stretch', 'fit', 'fill']).optional(),
           disableMouse: z.boolean().optional(),
           disableParallax: z.boolean().optional(),
+          disableParticles: z.boolean().optional(),
+          customProperties: z.array(z.string()).optional(),
         }),
       }),
     )

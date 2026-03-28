@@ -273,6 +273,12 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("disableParallax", checked)}
                         />
                     </SettingRow>
+                    <SettingRow label="Disable particles">
+                        <Switch
+                            checked={settings.disableParticles}
+                            onCheckedChange={(checked) => updateSetting("disableParticles", checked)}
+                        />
+                    </SettingRow>
                 </SettingsSection>
 
                 {/* Appearance Section */}

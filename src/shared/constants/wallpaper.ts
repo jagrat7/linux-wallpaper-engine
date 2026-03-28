@@ -46,6 +46,7 @@ export interface ApplyWallpaperOptions {
   noAudioProcessing?: boolean
   disableMouse?: boolean
   disableParallax?: boolean
+  disableParticles?: boolean
   noFullscreenPause?: boolean
   windowed?: { x: number; y: number; width: number; height: number }
 }
@@ -57,6 +58,8 @@ export interface WallpaperOverrides {
   scaling?: ScalingOption
   disableMouse?: boolean
   disableParallax?: boolean
+  disableParticles?: boolean
+  customProperties?: string[]
   compatibility?: CompatibilityStatus
   autoErrors?: string[]
   lastTested?: number
