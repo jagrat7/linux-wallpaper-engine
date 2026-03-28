@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { trpc } from '../trpc'
 import { playlistService } from '../../services/playlists/playlist'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
+import { settingsService } from '../../services/settings'
 import { displayService } from '../../services/display'
 import { hostSpawn } from '../../services/flatpak'
 import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants/playlist'
@@ -101,17 +102,23 @@ export const playlistRouter = trpc.router({
       // Stop existing wallpaper on this screen first
       await wallpaperService.stop(targetScreen)
 
-      // Build command args for playlist mode
+      // Build command args for playlist mode with user settings
+      const settings = await settingsService.loadSettings()
+      const settingsArgs = settingsService.settingsToArgs(settings)
       const args: string[] = []
       if (targetScreen) {
         args.push('--screen-root', targetScreen)
       }
       args.push('--playlist', input.playlistName)
+      args.push(...settingsArgs)
 
       try {
+        const debugMode = settingsService.getSetting('debugMode')
         const proc = hostSpawn('linux-wallpaperengine', args, {
           detached: true,
-          stdio: ['ignore', 'ignore', 'ignore'],
+          stdio: debugMode
+            ? ['ignore', 'pipe', 'pipe']
+            : ['ignore', 'ignore', 'pipe'],
         })
 
         const screenKey = targetScreen ?? 'default'
@@ -119,6 +126,7 @@ export const playlistRouter = trpc.router({
           kind: 'register',
           screen: screenKey,
           proc,
+          args,
           options: {
             backgroundId: playlist.items[0],
             screen: targetScreen,

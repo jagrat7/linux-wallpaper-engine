@@ -230,4 +230,4 @@ class CompatibilityService {
   }
 }
 
-export { CompatibilityService }
+export const compatibilityService = CompatibilityService.getInstance()

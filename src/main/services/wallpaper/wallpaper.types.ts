@@ -1,4 +1,3 @@
-import type { ChildProcess } from 'node:child_process'
 import type {
   ApplyWallpaperOptions,
   WallpaperOverrides,
@@ -43,5 +42,5 @@ export type ServiceAction =
 
 export type ApplyTarget =
   | { kind: 'wallpaper'; options: ApplyWallpaperOptions }
-  | { kind: 'register'; screen: string; proc: ChildProcess; options: ApplyWallpaperOptions }
+  | { kind: 'register'; screen: string; proc: import('node:child_process').ChildProcess; args: string[]; options: ApplyWallpaperOptions }
   | { kind: 'reapply' }

@@ -4,7 +4,7 @@ import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 import type { DebugInfo } from '../../services/wallpaper/wallpaper.types'
 import { settingsService } from '../../services/settings'
-import { CompatibilityService } from '../../services/compatibility'
+import { compatibilityService } from '../../services/compatibility'
 
 export const wallpaperRouter = trpc.router({
   // Check if linux-wallpaperengine is installed
@@ -145,29 +145,29 @@ export const wallpaperRouter = trpc.router({
       }),
     )
     .mutation(({ input }) => {
-      CompatibilityService.getInstance().setCompatibility(input.path, input.status)
+      compatibilityService.setCompatibility(input.path, input.status)
       return { success: true }
     }),
 
   // Get compatibility map for all wallpapers
   getCompatibilityMap: trpc.procedure.query(() => {
-    return CompatibilityService.getInstance().getCompatibilityMap()
+    return compatibilityService.getCompatibilityMap()
   }),
 
   // Start bulk compatibility scan
   scanAll: trpc.procedure.mutation(async () => {
     const { wallpapers } = await wallpaperService.query()
-    return CompatibilityService.getInstance().scanAll(wallpapers)
+    return compatibilityService.scanAll(wallpapers)
   }),
 
   // Get scan progress (for polling)
   getScanProgress: trpc.procedure.query(() => {
-    return CompatibilityService.getInstance().getScanProgress()
+    return compatibilityService.getScanProgress()
   }),
 
   // Get scan results report (joined with wallpaper titles)
   getScanReport: trpc.procedure.query(async () => {
-    const report = CompatibilityService.getInstance().getScanReport()
+    const report = compatibilityService.getScanReport()
     const { wallpapers } = await wallpaperService.query()
     const titleMap = new Map(wallpapers.map(w => [w.path, w.title]))
     return report.map(entry => ({
@@ -178,7 +178,7 @@ export const wallpaperRouter = trpc.router({
 
   // Abort running scan
   abortScan: trpc.procedure.mutation(() => {
-    CompatibilityService.getInstance().abortScan()
+    compatibilityService.abortScan()
     return { success: true }
   }),
 

@@ -9,7 +9,7 @@ import { hostSpawn, hostExecAsync, isFlatpak } from '../flatpak'
 import { STEAM_PATHS, CACHE_TTL } from '../../../shared/constants/app'
 import type { WallpaperOverrides, Wallpaper, ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
-import { CompatibilityService } from '../compatibility'
+import { compatibilityService } from '../compatibility'
 import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
@@ -57,10 +57,9 @@ class WallpaperService implements IWallpaperService {
     switch (target.kind) {
       case 'wallpaper':
         return this.applyWallpaper(target.options)
-      case 'register': {
-        this.registerProcess(target.screen, target.proc, target.options)
+      case 'register':
+        this.registerProcess(target.screen, target.proc, target.args, target.options)
         return { success: true }
-      }
       case 'reapply':
         return this.reapplyAll()
     }
@@ -382,18 +381,20 @@ class WallpaperService implements IWallpaperService {
         : ['ignore', 'ignore', 'pipe'],
     })
     proc.unref()
-    CompatibilityService.getInstance().monitorProcess(proc, backgroundId)
+    compatibilityService.monitorProcess(proc, backgroundId)
     return proc
   }
 
-  private registerProcess(screen: string, proc: import('node:child_process').ChildProcess, options: ApplyWallpaperOptions): void {
+  private registerProcess(screen: string, proc: import('node:child_process').ChildProcess, args: string[], options: ApplyWallpaperOptions): void {
     const screenKey = screen ?? 'default'
     const existing = this.state.getProcess(screenKey)
     if (existing) {
       this.state.release(screenKey)
     }
     proc.unref()
+    compatibilityService.monitorProcess(proc, options.backgroundId)
     this.state.register([screenKey], proc, options)
+    this.captureDebugLogs(proc, screenKey, args)
   }
 
   // ── Private: reapply ───────────────────────────────────────────────────
