@@ -1,6 +1,9 @@
-import * as fs from "node:fs/promises";
+import * as fs from "node:fs/promises"
+import * as path from "node:path"
+import type { WallpaperType } from '../../../shared/constants/wallpaper'
+import { hostExecAsync } from '../flatpak'
 
-type ImageType = "jpeg" | "png" | "bmp";
+type ImageType = "jpeg" | "png" | "bmp"
 
 const IMAGE_HEADERS_IDENTIFIERS = {
   jpeg: 0xffd8,
@@ -64,12 +67,95 @@ export async function parseImageHeader(imagePath: string) {
 function matchHeader(buffer: Buffer, imageType: ImageType) {
   switch (imageType) {
     case "jpeg":
-      return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType];
+      return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
 
     case "png":
-      return buffer.readUInt32BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType];
+      return buffer.readUInt32BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
 
     case "bmp":
-      return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType];
+      return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
   }
+}
+
+export function expandPath(p: string): string {
+  if (p.startsWith('~')) {
+    return path.join(process.env.HOME ?? '', p.slice(1))
+  }
+  return p
+}
+
+export function parseWallpaperType(rawType?: string): WallpaperType {
+  if (!rawType) return 'scene'
+  const typeMap: Record<string, WallpaperType> = {
+    scene: 'scene',
+    video: 'video',
+    web: 'web',
+    application: 'application',
+  }
+  return typeMap[rawType.toLowerCase()] ?? 'scene'
+}
+
+const PREVIEW_CANDIDATES = ['preview.jpg', 'preview.png', 'preview.gif']
+
+export async function resolveThumbnail(backgroundId: string): Promise<string> {
+  try {
+    const projectPath = path.join(backgroundId, 'project.json')
+    const projectData = await fs.readFile(projectPath, 'utf-8')
+    const project = JSON.parse(projectData)
+    if (project.preview) {
+      return path.join(backgroundId, project.preview)
+    }
+  } catch {
+    // Fallback: try common preview filenames
+    for (const candidate of PREVIEW_CANDIDATES) {
+      const candidatePath = path.join(backgroundId, candidate)
+      try {
+        await fs.access(candidatePath)
+        return candidatePath
+      } catch { /* continue */ }
+    }
+  }
+  return ''
+}
+
+export async function detectResolution(wallpaperPath: string): Promise<{ width: number, height: number }> {
+  try {
+    const files = await fs.readdir(wallpaperPath)
+
+    // Look for video files first
+    const videoFile = files.find(f => {
+      const file = f.toLowerCase()
+      return file.endsWith('.mp4') || file.endsWith('.webm') || file.endsWith('.avi') || file.endsWith('.mkv')
+    })
+
+    if (videoFile) {
+      const videoPath = path.join(wallpaperPath, videoFile)
+      const { stdout } = await hostExecAsync(`ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`)
+      const [w, h] = stdout.trim().split(',')
+      if (w && h) {
+        return { width: parseInt(w, 10), height: parseInt(h, 10) }
+      }
+    } else {
+      // Look for image files (excluding preview thumbnails)
+      const imageFile = files.find(f => {
+        const file = f.toLowerCase()
+        return (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.bmp')) &&
+          !file.includes('preview')
+      })
+
+      if (imageFile) {
+        const imagePath = path.join(wallpaperPath, imageFile)
+        const { stdout } = await hostExecAsync(`file "${imagePath}"`)
+        const match = stdout.match(/(\d+)\s*x\s*(\d+)/)
+        if (match) {
+          return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) }
+        }
+        return parseImageHeader(imagePath)
+      }
+    }
+  } catch {
+    // Keep 0x0 if detection fails
+  }
+
+  return { width: 0, height: 0 }
 }

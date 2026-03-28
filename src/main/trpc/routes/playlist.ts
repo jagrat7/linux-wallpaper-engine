@@ -1,10 +1,11 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
-import { playlistService } from '../../services/playlist'
+import { playlistService } from '../../services/playlists/playlist'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
+import { settingsService } from '../../services/settings'
 import { displayService } from '../../services/display'
 import { hostSpawn } from '../../services/flatpak'
-import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants'
+import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants/playlist'
 
 const playlistSettingsSchema = z.object({
   delay: z.number().min(1),
@@ -62,9 +63,10 @@ export const playlistRouter = trpc.router({
 
   // Stop the currently active playlist
   stop: trpc.procedure.mutation(async () => {
-    const active = wallpaperService.getActivePlaylist()
+    const active = playlistService.getActivePlaylist()
     if (!active) return { success: true }
-    await wallpaperService.stopWallpaper(active.screen)
+    await wallpaperService.stop(active.screen)
+    playlistService.clearActivePlaylist()
     return { success: true }
   }),
 
@@ -98,33 +100,40 @@ export const playlistRouter = trpc.router({
       }
 
       // Stop existing wallpaper on this screen first
-      await wallpaperService.stopWallpaper(targetScreen)
+      await wallpaperService.stop(targetScreen)
 
-      // Build command args for playlist mode
+      // Build command args for playlist mode with user settings
+      const settings = await settingsService.loadSettings()
+      const settingsArgs = settingsService.settingsToArgs(settings)
       const args: string[] = []
       if (targetScreen) {
         args.push('--screen-root', targetScreen)
       }
       args.push('--playlist', input.playlistName)
+      args.push(...settingsArgs)
 
       try {
-        // Spawn linux-wallpaperengine with --playlist flag
-        // This makes it handle rotation automatically
+        const debugMode = settingsService.getSetting('debugMode')
         const proc = hostSpawn('linux-wallpaperengine', args, {
           detached: true,
-          stdio: ['ignore', 'ignore', 'ignore'],
+          stdio: debugMode
+            ? ['ignore', 'pipe', 'pipe']
+            : ['ignore', 'ignore', 'pipe'],
         })
 
-        // Register the process with wallpaper service for proper tracking
-        // (stop, restore, status bar)
         const screenKey = targetScreen ?? 'default'
-        wallpaperService.registerProcess(screenKey, proc, {
-          backgroundId: playlist.items[0],
-          screen: targetScreen,
+        await wallpaperService.apply({
+          kind: 'register',
+          screen: screenKey,
+          proc,
+          args,
+          options: {
+            backgroundId: playlist.items[0],
+            screen: targetScreen,
+          },
         })
 
-        // Track which playlist is active
-        wallpaperService.setActivePlaylist(input.playlistName, screenKey)
+        playlistService.setActivePlaylist(input.playlistName, screenKey)
 
         return { success: true }
       } catch (error) {
@@ -137,6 +146,6 @@ export const playlistRouter = trpc.router({
 
   // Get currently active playlist info
   active: trpc.procedure.query(() => {
-    return wallpaperService.getActivePlaylist()
+    return playlistService.getActivePlaylist()
   }),
 })

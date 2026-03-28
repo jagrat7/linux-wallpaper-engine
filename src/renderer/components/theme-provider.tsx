@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants'
+import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants/theme'
 
 // Derive type from constants - single source of truth
 type ThemeMode = ThemeOption

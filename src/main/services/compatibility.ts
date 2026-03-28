@@ -1,14 +1,14 @@
 import type { ChildProcess } from 'node:child_process'
 import { hostSpawn } from './flatpak'
+import type { WallpaperOverrides } from '../../shared/constants/wallpaper'
 import {
-  type WallpaperOverrides,
   type CompatibilityStatus,
   type ScanProgress,
   DEFAULT_SCAN_PROGRESS,
   BROKEN_PATTERNS,
   MINOR_PATTERNS,
   COMPAT_IGNORE_PATTERNS,
-} from '../../shared/constants'
+} from '../../shared/constants/compatibility'
 import { storeService } from './store'
 import { invalidationService } from './invalidation'
 
@@ -230,4 +230,4 @@ class CompatibilityService {
   }
 }
 
-export { CompatibilityService }
+export const compatibilityService = CompatibilityService.getInstance()

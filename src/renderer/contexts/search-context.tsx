@@ -1,12 +1,9 @@
 import { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from "react"
 import { useDebounce } from "@uidotdev/usehooks"
 import { trpc } from "@/lib/trpc"
-import type {
-  CompatibilityStatus,
-  WallpaperFilterType,
-  SortBy,
-  SortOrder,
-} from "../../shared/constants"
+import type { CompatibilityStatus } from "../../shared/constants/compatibility"
+import type { WallpaperFilterType } from "../../shared/constants/wallpaper"
+import type { SortBy, SortOrder } from "../../shared/constants/sort"
 
 export type { WallpaperFilterType, SortBy, SortOrder }
 // TODO: - Convert to a hook, provider is not longer needed

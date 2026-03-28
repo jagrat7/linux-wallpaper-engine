@@ -1,7 +1,7 @@
 import { X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import type { Wallpaper } from "../../../shared/constants"
+import type { Wallpaper } from "../../../shared/constants/wallpaper"
 
 interface SelectedChipsProps {
     wallpapers: Wallpaper[]

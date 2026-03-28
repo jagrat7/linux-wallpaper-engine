@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { useSort } from "@/contexts/search-context"
-import { SORT_OPTIONS } from "../../../shared/constants"
+import { SORT_OPTIONS } from "../../../shared/constants/sort"
 
 export function SortDropdown() {
     const { sortBy, setSortBy, sortOrder, setSortOrder } = useSort()
@@ -46,7 +46,7 @@ export function SortDropdown() {
                     <DropdownMenuItem
                         key={option.value}
                         onClick={() => setSortBy(option.value)}
-                        className="flex items-center justify-between rounded-lg text-sm transition-colors"
+                        className="flex items-center justify-between rounded-lg text-xs transition-colors"
                     >
                         {option.label}
                         {sortBy === option.value && <Check className="size-3.5 text-primary" />}
@@ -55,7 +55,7 @@ export function SortDropdown() {
                 <DropdownMenuSeparator className="bg-border/50" />
                 <DropdownMenuItem
                     onClick={toggleSortOrder}
-                    className="flex items-center gap-2 rounded-lg text-sm"
+                    className="flex items-center gap-2 rounded-lg text-xs"
                 >
                     <ArrowUpDown className="size-3.5" />
                     {sortOrder === "asc" ? "Ascending" : "Descending"}

@@ -2,7 +2,8 @@ import { memo } from "react"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { WallpaperThumbnail } from "./wallpaper-thumbnail"
-import { COMPATIBILITY_CONFIG, type CompatibilityStatus, type Wallpaper } from "../../../shared/constants"
+import { COMPATIBILITY_CONFIG, type CompatibilityStatus } from "../../../shared/constants/compatibility"
+import type { Wallpaper } from "../../../shared/constants/wallpaper"
 
 export type { Wallpaper }
 

@@ -1,7 +1,9 @@
 import { trpc } from "@/lib/trpc"
 import { useDebouncedSearchQuery } from "@/contexts/search-context"
 import { useMemo } from "react"
-import type { Wallpaper, CompatibilityStatus, WallpaperFilterType, SortBy, SortOrder } from "../../shared/constants"
+import type { Wallpaper, WallpaperFilterType } from "../../shared/constants/wallpaper"
+import type { CompatibilityStatus } from "../../shared/constants/compatibility"
+import type { SortBy, SortOrder } from "../../shared/constants/sort"
 
 export interface FilterSortOptions {
     filterType: WallpaperFilterType[]

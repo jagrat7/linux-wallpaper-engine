@@ -3,10 +3,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus, Shuffle, Loader2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { trpc } from "@/lib/trpc"
-import { type Playlist } from "../../../shared/constants"
+import type { Playlist } from "../../../shared/constants/playlist"
 import { PlaylistRow } from "@/components/playlist/playlist-row"
 import { PageHeader } from "@/components/page-header"
 import { Input } from "@/components/ui/input"
+import { DebugLogDialog } from "@/components/wallpaper/debug-log-dialog"
 
 export const Route = createFileRoute("/playlists/")({
     component: PlaylistsPage,
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/playlists/")({
 function PlaylistsPage() {
     const navigate = useNavigate()
     const [applyingPlaylist, setApplyingPlaylist] = useState<string | null>(null)
+    const [debugScreen, setDebugScreen] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState("")
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const searchInputRef = useRef<HTMLInputElement>(null)
@@ -41,6 +43,7 @@ function PlaylistsPage() {
         return () => window.removeEventListener("keydown", onKeyDown)
     }, [])
 
+    const { data: settings } = trpc.settings.get.useQuery()
     const { data: playlists = [], isLoading, refetch } = trpc.playlist.list.useQuery()
     const { data: wallpapers = [] } = trpc.wallpaper.getWallpapers.useQuery({})
     const { data: activePlaylist } = trpc.playlist.active.useQuery(undefined, {
@@ -55,11 +58,17 @@ function PlaylistsPage() {
     const handleApply = async (playlistName: string, screen?: string) => {
         setApplyingPlaylist(playlistName)
         try {
-            await applyMutation.mutateAsync({ playlistName, screen })
+            const result = await applyMutation.mutateAsync({ playlistName, screen })
             await Promise.all([
                 utils.playlist.active.invalidate(),
                 utils.playlist.list.invalidate(),
             ])
+
+            if (settings?.debugMode && result.success) {
+                const displays = utils.display.list.getData()
+                const primary = displays?.find(d => d.primary) ?? displays?.[0]
+                setDebugScreen(screen ?? primary?.name ?? 'default')
+            }
         } finally {
             setApplyingPlaylist(null)
         }
@@ -188,6 +197,13 @@ function PlaylistsPage() {
                 </div>
             )}
 
+            {debugScreen && (
+                <DebugLogDialog
+                    open={!!debugScreen}
+                    onClose={() => setDebugScreen(null)}
+                    screen={debugScreen}
+                />
+            )}
         </div>
     )
 }

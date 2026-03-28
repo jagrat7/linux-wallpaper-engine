@@ -14,7 +14,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { X, ScanSearch, AlertTriangle, XCircle, CheckCircle2, HelpCircle, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { COMPATIBILITY_CONFIG, type AppSettings, type CompatibilityStatus } from "../../../shared/constants"
+import { COMPATIBILITY_CONFIG, type CompatibilityStatus } from "../../../shared/constants/compatibility"
+import type { AppSettings } from "../../../shared/constants/app"
 import { ScanReportTable } from "./scan-report-table"
 
 

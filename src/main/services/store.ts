@@ -1,10 +1,6 @@
 import Store from 'electron-store'
-import {
-  DEFAULT_SETTINGS,
-  type AppSettings,
-  type ApplyWallpaperOptions,
-  type WallpaperOverrides,
-} from '../../shared/constants'
+import { DEFAULT_SETTINGS, type AppSettings } from '../../shared/constants/app'
+import type { ApplyWallpaperOptions, WallpaperOverrides } from '../../shared/constants/wallpaper'
 
 // Store schemas
 export interface ActivePlaylistInfo {

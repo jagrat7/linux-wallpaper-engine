@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, type AppSettings } from '../../shared/constants'
+import { DEFAULT_SETTINGS, type AppSettings } from '../../shared/constants/app'
 import { storeService } from './store'
 
 export type { AppSettings }

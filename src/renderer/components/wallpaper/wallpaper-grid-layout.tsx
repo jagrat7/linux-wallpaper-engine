@@ -3,8 +3,8 @@ import { motion } from "framer-motion"
 import { FolderOpen, type LucideIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { WallpaperCard } from "./wallpaper-card"
-import type { Wallpaper } from "../../../shared/constants"
-import type { CompatibilityStatus } from "../../../shared/constants"
+import type { Wallpaper } from "../../../shared/constants/wallpaper"
+import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
 
 const SKELETON_COUNT = 12
 const DEFAULT_GRID_COLS = "grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"

@@ -15,7 +15,8 @@ import {
     CarouselItem,
     CarouselButtons,
 } from "@/components/ui/carousel"
-import { type Playlist, type Wallpaper } from "../../../shared/constants"
+import type { Playlist } from "../../../shared/constants/playlist"
+import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import { ApplyButton } from "@/components/wallpaper/apply-button"
 
 interface PlaylistRowProps {
