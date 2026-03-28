@@ -33,6 +33,7 @@ interface WallpaperDetailsProps {
 
 export function WallpaperDetails({ wallpaper, onClose }: WallpaperDetailsProps) {
     const [isApplying, setIsApplying] = useState(false)
+    const [applyError, setApplyError] = useState<string | null>(null)
     const [debugScreen, setDebugScreen] = useState<string | null>(null)
     const applyMutation = trpc.wallpaper.setWallpaper.useMutation()
     const stopMutation = trpc.wallpaper.stopWalpaper.useMutation()
@@ -51,15 +52,22 @@ export function WallpaperDetails({ wallpaper, onClose }: WallpaperDetailsProps) 
     const handleApply = async (screen?: string) => {
         if (!wallpaper.path && !wallpaper.id) return
         setIsApplying(true)
+        setApplyError(null)
         try {
             const result = await applyMutation.mutateAsync({
-                backgroundId: wallpaper.path || wallpaper.id,
+                backgroundId: wallpaper.path ?? wallpaper.id,
                 screen,
             })
+
+            if (!result.success) {
+                setApplyError(result.error ?? "Failed to apply wallpaper")
+                return
+            }
+
             await utils.wallpaper.getActiveWallpaper.invalidate()
             await utils.playlist.active.invalidate()
 
-            if (settings?.debugMode && result.success) {
+            if (settings?.debugMode) {
                 // Determine the screen key used by the backend
                 const displays = utils.display.list.getData()
                 const primary = displays?.find(d => d.primary) ?? displays?.[0]
@@ -110,6 +118,7 @@ export function WallpaperDetails({ wallpaper, onClose }: WallpaperDetailsProps) 
                         onStop={handleStop}
                         isApplying={isApplying}
                         isActive={isActive}
+                        error={applyError}
                         className="w-full"
                     />
                 </div>

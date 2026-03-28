@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Monitor, Loader2, ChevronDown, Square } from "lucide-react"
+import { Monitor, Loader2, ChevronDown, Square, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
@@ -16,6 +16,7 @@ interface ApplyButtonProps {
     onStop?: (screen?: string) => Promise<void>
     isApplying: boolean
     isActive?: boolean
+    error?: string | null
     label?: string
     applyingLabel?: string
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm"
@@ -27,11 +28,13 @@ export function ApplyButton({
     onStop,
     isApplying,
     isActive = false,
+    error,
     label = "Apply",
     applyingLabel = "Applying...",
     size = "default",
     className,
 }: ApplyButtonProps) {
+    const hasError = !!error && !isApplying
     const { data: displays } = trpc.display.list.useQuery()
 
     return (
@@ -39,33 +42,38 @@ export function ApplyButton({
             <div className="flex">
                 <Button
                     size={size}
-                    variant={isActive ? "outline" : "default"}
+                    variant={isActive ? "outline" : hasError ? "outline" : "default"}
                     className={cn(
                         "gap-2 rounded-r-none flex-1",
-                        isActive && "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        isActive && "text-destructive hover:bg-destructive/10 hover:text-destructive",
+                        hasError && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
                     )}
                     onClick={() => isActive && onStop ? onStop() : onApply()}
                     disabled={isApplying}
                 >
                     {isApplying ? (
                         <Loader2 className="size-4 animate-spin" />
+                    ) : hasError ? (
+                        <AlertCircle className="size-4" />
                     ) : isActive ? (
                         <Square className="size-4" />
                     ) : (
                         <Monitor className="size-4" />
                     )}
-                    {isApplying ? applyingLabel : isActive ? "Stop" : label}
+                    {isApplying ? applyingLabel : hasError ? "Failed" : isActive ? "Stop" : label}
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
                             size={size}
-                            variant={isActive ? "outline" : "default"}
+                            variant={isActive ? "outline" : hasError ? "outline" : "default"}
                             className={cn(
                                 "rounded-l-none border-l px-2",
                                 isActive
                                     ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                    : "border-primary-foreground/20"
+                                    : hasError
+                                        ? "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        : "border-primary-foreground/20"
                             )}
                             disabled={isApplying}
                         >
@@ -97,6 +105,9 @@ export function ApplyButton({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+            {hasError && (
+                <p className="mt-1.5 text-xs text-destructive">{error}</p>
+            )}
         </div>
     )
 }
