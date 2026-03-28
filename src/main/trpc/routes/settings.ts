@@ -4,6 +4,9 @@ import { settingsService, type AppSettings } from '../../services/settings'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { THEME_OPTIONS, type ThemeOption } from '../../../shared/constants/theme'
 import { SCALING_OPTIONS, type ScalingOption } from '../../../shared/constants/display'
+import { FILTER_TYPE_OPTIONS, type WallpaperFilterType } from '../../../shared/constants/wallpaper'
+import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from '../../../shared/constants/compatibility'
+import { SORT_OPTIONS, type SortBy, SORT_ORDER_OPTIONS, type SortOrder } from '../../../shared/constants/sort'
 import { isFlatpak, setFlatpakBypass } from '../../services/flatpak'
 import { setAutostart } from '../../services/autostart'
 
@@ -52,12 +55,12 @@ const settingsSchema = z.object({
   flatpakBypass: z.boolean().optional(),
 
   // Persisted filter & sort preferences
-  filterType: z.array(z.enum(['all', 'scene', 'video', 'web', 'application'])).optional(),
+  filterType: z.array(z.enum(FILTER_TYPE_OPTIONS.map(o => o.value) as [WallpaperFilterType, ...WallpaperFilterType[]])).optional(),
   filterTags: z.array(z.string()).optional(),
   filterResolution: z.array(z.string()).optional(),
-  filterCompatibility: z.array(z.enum(['unknown', 'broken', 'major', 'minor', 'perfect'])).optional(),
-  sortBy: z.enum(['name', 'size', 'recent', 'date']).optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
+  filterCompatibility: z.array(z.enum(COMPATIBILITY_OPTIONS.map(o => o.value) as [CompatibilityStatus, ...CompatibilityStatus[]])).optional(),
+  sortBy: z.enum(SORT_OPTIONS.map(o => o.value) as [SortBy, ...SortBy[]]).optional(),
+  sortOrder: z.enum(SORT_ORDER_OPTIONS.map(o => o.value) as [SortOrder, ...SortOrder[]]).optional(),
 })
 
 export const settingsRouter = trpc.router({

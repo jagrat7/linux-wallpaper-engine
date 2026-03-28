@@ -1,18 +1,21 @@
 import type { CompatibilityStatus } from './compatibility'
 import type { ScalingOption } from './display'
 
-// Wallpaper type labels for display
-export const WALLPAPER_TYPE_LABELS = {
-  scene: "Scene",
-  video: "Video",
-  web: "Web",
-  application: "Application",
-} as const
+// Single source of truth for wallpaper filter/type options
+export const FILTER_TYPE_OPTIONS = [
+  { label: 'All', value: 'all' },
+  { label: 'Scene', value: 'scene' },
+  { label: 'Video', value: 'video' },
+  { label: 'Web', value: 'web' },
+  { label: 'Application', value: 'application' },
+] as const
+export type WallpaperFilterType = typeof FILTER_TYPE_OPTIONS[number]['value']
+export type WallpaperType = Exclude<WallpaperFilterType, 'all'>
 
-export type WallpaperType = keyof typeof WALLPAPER_TYPE_LABELS
-
-// Filter type
-export type WallpaperFilterType = 'all' | WallpaperType
+// Wallpaper type labels for display (derived from FILTER_TYPE_OPTIONS)
+export const WALLPAPER_TYPE_LABELS = Object.fromEntries(
+  FILTER_TYPE_OPTIONS.filter(o => o.value !== 'all').map(o => [o.value, o.label])
+) as Record<WallpaperType, string>
 
 // Wallpaper data shape returned by scanning
 export interface Wallpaper {

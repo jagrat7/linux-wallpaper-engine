@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils"
 import { useFilter, type WallpaperFilterType } from "@/contexts/search-context"
 import { FilterSection } from "./filter-section"
 import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from "../../../shared/constants/compatibility"
-import { WALLPAPER_TYPE_LABELS } from "../../../shared/constants/wallpaper"
+import { FILTER_TYPE_OPTIONS } from "../../../shared/constants/wallpaper"
 
-const TYPE_ITEMS: { key: WallpaperFilterType; label: string }[] = [
-    ...Object.entries(WALLPAPER_TYPE_LABELS).map(([key, label]) => ({ key: key as WallpaperFilterType, label })),
-]
+const TYPE_ITEMS = FILTER_TYPE_OPTIONS
+    .filter(o => o.value !== 'all')
+    .map(o => ({ key: o.value, label: o.label }))
 
 const COMPAT_ITEMS = COMPATIBILITY_OPTIONS.map((opt) => ({
     key: opt.value,
@@ -93,27 +93,16 @@ export function FiltersDropdown() {
                     )}
                 </div>
 
-                <FilterSection
-                    label="Type"
-                    items={TYPE_ITEMS}
-                    selected={filterType}
-                    onToggle={(key) => toggleFilterType(key as WallpaperFilterType)}
-                    multi
-                    badge={filterType.length > 0 ? (
-                        <span className="text-primary">{filterType.length} selected</span>
-                    ) : undefined}
-                />
 
-
-                {availableResolutions.length > 0 && (
+                {availableTags.length > 0 && (
                     <FilterSection
-                        label="Resolution"
-                        items={availableResolutions.map((res) => ({ key: res, label: res }))}
-                        selected={filterResolution}
-                        onToggle={toggleResolution}
+                        label="Tags"
+                        items={availableTags.map((tag) => ({ key: tag, label: tag }))}
+                        selected={filterTags}
+                        onToggle={toggleTag}
                         multi
-                        badge={filterResolution.length > 0 ? (
-                            <span className="text-primary">{filterResolution.length} selected</span>
+                        badge={filterTags.length > 0 ? (
+                            <span className="text-primary">{filterTags.length} selected</span>
                         ) : undefined}
                     />
                 )}
@@ -129,21 +118,32 @@ export function FiltersDropdown() {
                     ) : undefined}
                 />
 
-
-
-
-                {availableTags.length > 0 && (
+                {availableResolutions.length > 0 && (
                     <FilterSection
-                        label="Tags"
-                        items={availableTags.map((tag) => ({ key: tag, label: tag }))}
-                        selected={filterTags}
-                        onToggle={toggleTag}
+                        label="Resolution"
+                        items={availableResolutions.map((res) => ({ key: res, label: res }))}
+                        selected={filterResolution}
+                        onToggle={toggleResolution}
                         multi
-                        badge={filterTags.length > 0 ? (
-                            <span className="text-primary">{filterTags.length} selected</span>
+                        badge={filterResolution.length > 0 ? (
+                            <span className="text-primary">{filterResolution.length} selected</span>
                         ) : undefined}
                     />
                 )}
+
+
+
+
+                <FilterSection
+                    label="Type"
+                    items={TYPE_ITEMS}
+                    selected={filterType}
+                    onToggle={(key) => toggleFilterType(key as WallpaperFilterType)}
+                    multi
+                    badge={filterType.length > 0 ? (
+                        <span className="text-primary">{filterType.length} selected</span>
+                    ) : undefined}
+                />
             </DropdownMenuContent>
         </DropdownMenu>
     )
