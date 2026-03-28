@@ -3,44 +3,36 @@ import { storeService } from './store'
 
 export type { AppSettings }
 
-class SettingsService {
-  private static instance: SettingsService | null = null
-  private store = storeService.settings
+const store = storeService.settings
 
-  static getInstance(): SettingsService {
-    if (!SettingsService.instance) {
-      SettingsService.instance = new SettingsService()
-    }
-    return SettingsService.instance
-  }
-
+export const settingsService = {
   async loadSettings(): Promise<AppSettings> {
-    return this.store.store
-  }
+    return store.store
+  },
 
   async saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
     for (const [key, value] of Object.entries(settings)) {
-      this.store.set(key as keyof AppSettings, value)
+      store.set(key as keyof AppSettings, value)
     }
-    return this.store.store
-  }
+    return store.store
+  },
 
   async resetSettings(): Promise<AppSettings> {
-    this.store.clear()
-    return this.store.store
-  }
+    store.clear()
+    return store.store
+  },
 
   getDefaultSettings(): AppSettings {
     return { ...DEFAULT_SETTINGS }
-  }
+  },
 
   getSetting<K extends keyof AppSettings>(key: K): AppSettings[K] {
-    return this.store.get(key)
-  }
+    return store.get(key)
+  },
 
   setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
-    this.store.set(key, value)
-  }
+    store.set(key, value)
+  },
 
   settingsToArgs(settings: AppSettings): string[] {
     const args: string[] = []
@@ -89,8 +81,5 @@ class SettingsService {
     }
 
     return args
-  }
+  },
 }
-
-// Export singleton instance
-export const settingsService = SettingsService.getInstance()

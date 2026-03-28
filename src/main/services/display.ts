@@ -13,19 +13,7 @@ export interface Display {
   connected: boolean
 }
 
-class DisplayService {
-  private static instance: DisplayService | null = null
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private constructor() { }
-
-  static getInstance(): DisplayService {
-    if (!DisplayService.instance) {
-      DisplayService.instance = new DisplayService()
-    }
-    return DisplayService.instance
-  }
-
+export const displayService = {
   async detectDisplays(): Promise<Display[]> {
     const displays: Display[] = []
 
@@ -174,7 +162,7 @@ class DisplayService {
         connected: true,
       },
     ]
-  }
+  },
 
   async getDisplaySession(): Promise<'x11' | 'wayland' | 'unknown'> {
     const sessionType = process.env.XDG_SESSION_TYPE?.toLowerCase()
@@ -187,14 +175,11 @@ class DisplayService {
     if (process.env.DISPLAY) return 'x11'
 
     return 'unknown'
-  }
+  },
 
   async getMaxRefreshRate(): Promise<number> {
-    const displays = await this.detectDisplays()
+    const displays = await displayService.detectDisplays()
     const maxRate = Math.max(...displays.map(d => d.refreshRate))
     return maxRate
-  }
+  },
 }
-
-// Export singleton instance
-export const displayService = DisplayService.getInstance()
