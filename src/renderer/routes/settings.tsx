@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router"
 import {
-    Gauge,
+    Settings,
     Volume2,
     Monitor,
     Palette,
     RotateCcw,
     Loader2,
     ScanSearch,
+    ChevronDown,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -27,7 +28,8 @@ import { getFpsOptions } from "@/lib/utils"
 import { CompatibilityScanRow } from "@/components/settings/compatibility-scan-row"
 import { LoadingButton } from "@/components/loading-button"
 import { PageHeader } from "@/components/page-header"
-import { lazy, Suspense } from "react"
+import { lazy, Suspense, useState } from "react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 // Dev-only flag to show onboarding test button
 const DEV_SHOW_ONBOARDING_TEST = false
@@ -58,6 +60,8 @@ function SettingsPage() {
 
     const { data: flatpakData } = trpc.settings.isFlatpak.useQuery()
     const isFlatpakEnv = flatpakData?.isFlatpak ?? false
+
+    const [startupTrayOpen, setStartupTrayOpen] = useState(false)
 
     // Get max refresh rate from displays
     const { data: maxRefreshData } = trpc.display.maxRefreshRate.useQuery()
@@ -109,66 +113,59 @@ function SettingsPage() {
             />
 
             <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
-                {/* Performance Section */}
+                {/* General Section */}
                 <SettingsSection
                     id="onboarding-performance"
-                    icon={Gauge}
-                    title="Performance"
-                    description="FPS limits and app management"
+                    icon={Settings}
+                    title="General"
+                    description="App behavior and startup"
                 >
-                    <SettingRow label="Maximum FPS">
-                        <Select
-                            value={String(settings.fps)}
-                            onValueChange={(value) => updateSetting("fps", Number(value))}
-                        >
-                            <SelectTrigger className="w-28">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {getFpsOptions(maxRefreshData?.maxRefreshRate ?? 60, settings.fps).map((fps) => (
-                                    <SelectItem key={fps} value={String(fps)}>
-                                        {fps} FPS
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </SettingRow>
                     <SettingRow label="Pause on fullscreen apps">
                         <Switch
                             checked={settings.pauseOnFullscreen}
                             onCheckedChange={(checked) => updateSetting("pauseOnFullscreen", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label="Launch on startup">
-                        <Switch
-                            checked={settings.launchOnLogin}
-                            onCheckedChange={(checked) => updateSetting("launchOnLogin", checked)}
-                        />
-                    </SettingRow>
-                    <SettingRow label="Enable system tray">
-                        <Switch
-                            checked={settings.enableSystemTray}
-                            onCheckedChange={(checked) => updateSetting("enableSystemTray", checked)}
-                        />
-                    </SettingRow>
-                    <SettingRow
-                        label="Minimize on startup"
-                        disabled={!settings.launchOnLogin || !settings.enableSystemTray}
-                    >
-                        <Switch
-                            checked={settings.minimizeOnStartup}
-                            onCheckedChange={(checked) => updateSetting("minimizeOnStartup", checked)}
-                        />
-                    </SettingRow>
-                    <SettingRow
-                        label="Minimize on close"
-                        disabled={!settings.enableSystemTray}
-                    >
-                        <Switch
-                            checked={settings.minimizeOnClose}
-                            onCheckedChange={(checked) => updateSetting("minimizeOnClose", checked)}
-                        />
-                    </SettingRow>
+                    <Collapsible open={startupTrayOpen} onOpenChange={setStartupTrayOpen}>
+                        <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-muted/50 transition-colors cursor-pointer">
+                            Startup & Tray
+                            <ChevronDown className={`size-4 text-muted-foreground transition-transform ${startupTrayOpen ? "rotate-180" : ""}`} />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <div className="divide-y divide-border border-t border-border bg-muted/30">
+                                <SettingRow label="Launch on startup">
+                                    <Switch
+                                        checked={settings.launchOnLogin}
+                                        onCheckedChange={(checked) => updateSetting("launchOnLogin", checked)}
+                                    />
+                                </SettingRow>
+                                <SettingRow label="Enable system tray">
+                                    <Switch
+                                        checked={settings.enableSystemTray}
+                                        onCheckedChange={(checked) => updateSetting("enableSystemTray", checked)}
+                                    />
+                                </SettingRow>
+                                <SettingRow
+                                    label="Minimize on startup"
+                                    disabled={!settings.launchOnLogin || !settings.enableSystemTray}
+                                >
+                                    <Switch
+                                        checked={settings.minimizeOnStartup}
+                                        onCheckedChange={(checked) => updateSetting("minimizeOnStartup", checked)}
+                                    />
+                                </SettingRow>
+                                <SettingRow
+                                    label="Minimize on close"
+                                    disabled={!settings.enableSystemTray}
+                                >
+                                    <Switch
+                                        checked={settings.minimizeOnClose}
+                                        onCheckedChange={(checked) => updateSetting("minimizeOnClose", checked)}
+                                    />
+                                </SettingRow>
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
                 </SettingsSection>
 
                 {/* Compatibility Scan Section */}
@@ -244,6 +241,23 @@ function SettingsPage() {
                     title="Display"
                     description="Default display behavior"
                 >
+                    <SettingRow label="Maximum FPS">
+                        <Select
+                            value={String(settings.fps)}
+                            onValueChange={(value) => updateSetting("fps", Number(value))}
+                        >
+                            <SelectTrigger className="w-28">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {getFpsOptions(maxRefreshData?.maxRefreshRate ?? 60, settings.fps).map((fps) => (
+                                    <SelectItem key={fps} value={String(fps)}>
+                                        {fps} FPS
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </SettingRow>
                     <SettingRow label="Default scaling">
                         <Select
                             value={settings.defaultScaling}
