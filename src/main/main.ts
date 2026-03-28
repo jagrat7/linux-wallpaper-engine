@@ -4,8 +4,8 @@ import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
 import { appRouter } from './trpc/router.ts'
 import { settingsService as settings } from './services/settings.ts'
-import { setFlatpakBypass } from './services/flatpak.ts'
-import { setAutostart } from './services/autostart.ts'
+import { setFlatpakBypass } from './utils/host.ts'
+import { setAutostart } from './utils/autostart.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null

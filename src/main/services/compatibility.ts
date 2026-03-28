@@ -1,5 +1,5 @@
 import type { ChildProcess } from 'node:child_process'
-import { hostSpawn } from './flatpak'
+import { hostSpawn } from '../utils/host'
 import type { WallpaperOverrides } from '../../shared/constants/wallpaper'
 import {
   type CompatibilityStatus,

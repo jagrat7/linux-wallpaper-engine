@@ -7,8 +7,8 @@ import { SCALING_OPTIONS, type ScalingOption } from '../../../shared/constants/d
 import { FILTER_TYPE_OPTIONS, type WallpaperFilterType } from '../../../shared/constants/wallpaper'
 import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from '../../../shared/constants/compatibility'
 import { SORT_OPTIONS, type SortBy, SORT_ORDER_OPTIONS, type SortOrder } from '../../../shared/constants/sort'
-import { isFlatpak, setFlatpakBypass } from '../../services/flatpak'
-import { setAutostart } from '../../services/autostart'
+import { isFlatpak, setFlatpakBypass } from '../../utils/host'
+import { setAutostart } from '../../utils/autostart'
 
 // Keys that affect the wallpaper backend process and require reapply
 const BACKEND_KEYS = new Set([

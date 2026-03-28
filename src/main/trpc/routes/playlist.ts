@@ -4,7 +4,7 @@ import { playlistService } from '../../services/playlists/playlist'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { settingsService } from '../../services/settings'
 import { displayService } from '../../services/display'
-import { hostSpawn } from '../../services/flatpak'
+import { hostSpawn } from '../../utils/host'
 import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants/playlist'
 
 const playlistSettingsSchema = z.object({

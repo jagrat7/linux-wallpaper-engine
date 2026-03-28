@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import type { WallpaperType } from '../../../shared/constants/wallpaper'
-import { hostExecAsync } from '../flatpak'
+import { hostExecAsync } from '../../utils/host'
 
 type ImageType = "jpeg" | "png" | "bmp"
 

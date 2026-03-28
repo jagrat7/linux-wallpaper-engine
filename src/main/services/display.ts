@@ -1,4 +1,4 @@
-import { hostExecAsync } from './flatpak'
+import { hostExecAsync } from '../utils/host'
 
 export interface Display {
   id: string

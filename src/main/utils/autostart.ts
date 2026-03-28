@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { isFlatpak, getFlatpakID } from './flatpak'
+import { isFlatpak, getFlatpakID } from './host'
 
 const BINARY_NAME = 'linux-wallpaper-engine';
 
