@@ -85,7 +85,7 @@ export const settingsRouter = trpc.router({
       // Only reapply wallpapers if backend-relevant settings changed
       const needsReapply = Object.keys(input).some(key => BACKEND_KEYS.has(key))
       if (needsReapply) {
-        await wallpaperService.reapplyActiveWallpapers()
+        await wallpaperService.apply({ kind: 'reapply' })
       }
 
       return updated
@@ -103,7 +103,7 @@ export const settingsRouter = trpc.router({
     })
 
     // Reapply active wallpapers with default settings
-    await wallpaperService.reapplyActiveWallpapers()
+    await wallpaperService.apply({ kind: 'reapply' })
 
     return reset
   }),

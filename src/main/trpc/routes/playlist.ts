@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
-import { playlistService } from '../../services/playlist'
+import { playlistService } from '../../services/playlists/playlist'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { displayService } from '../../services/display'
 import { hostSpawn } from '../../services/flatpak'
@@ -62,9 +62,10 @@ export const playlistRouter = trpc.router({
 
   // Stop the currently active playlist
   stop: trpc.procedure.mutation(async () => {
-    const active = wallpaperService.getActivePlaylist()
+    const active = playlistService.getActivePlaylist()
     if (!active) return { success: true }
-    await wallpaperService.stopWallpaper(active.screen)
+    await wallpaperService.stop(active.screen)
+    playlistService.clearActivePlaylist()
     return { success: true }
   }),
 
@@ -98,7 +99,7 @@ export const playlistRouter = trpc.router({
       }
 
       // Stop existing wallpaper on this screen first
-      await wallpaperService.stopWallpaper(targetScreen)
+      await wallpaperService.stop(targetScreen)
 
       // Build command args for playlist mode
       const args: string[] = []
@@ -108,23 +109,23 @@ export const playlistRouter = trpc.router({
       args.push('--playlist', input.playlistName)
 
       try {
-        // Spawn linux-wallpaperengine with --playlist flag
-        // This makes it handle rotation automatically
         const proc = hostSpawn('linux-wallpaperengine', args, {
           detached: true,
           stdio: ['ignore', 'ignore', 'ignore'],
         })
 
-        // Register the process with wallpaper service for proper tracking
-        // (stop, restore, status bar)
         const screenKey = targetScreen ?? 'default'
-        wallpaperService.registerProcess(screenKey, proc, {
-          backgroundId: playlist.items[0],
-          screen: targetScreen,
+        await wallpaperService.apply({
+          kind: 'register',
+          screen: screenKey,
+          proc,
+          options: {
+            backgroundId: playlist.items[0],
+            screen: targetScreen,
+          },
         })
 
-        // Track which playlist is active
-        wallpaperService.setActivePlaylist(input.playlistName, screenKey)
+        playlistService.setActivePlaylist(input.playlistName, screenKey)
 
         return { success: true }
       } catch (error) {
@@ -137,6 +138,6 @@ export const playlistRouter = trpc.router({
 
   // Get currently active playlist info
   active: trpc.procedure.query(() => {
-    return wallpaperService.getActivePlaylist()
+    return playlistService.getActivePlaylist()
   }),
 })

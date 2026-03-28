@@ -14,7 +14,7 @@ const {
     getDefaultSettings: vi.fn(),
   },
   mockWallpaperService: {
-    reapplyActiveWallpapers: vi.fn(),
+    apply: vi.fn(),
   },
   mockIsFlatpak: vi.fn(),
   mockSetFlatpakBypass: vi.fn(),
@@ -74,7 +74,7 @@ describe('settingsRouter', () => {
     it('should save settings and return updated state', async () => {
       const updated = makeSettings({ fps: 120 })
       mockSettingsService.saveSettings.mockResolvedValue(updated)
-      mockWallpaperService.reapplyActiveWallpapers.mockResolvedValue(undefined)
+      mockWallpaperService.apply.mockResolvedValue({ success: true })
 
       const result = await caller.update({ fps: 120 })
 
@@ -90,7 +90,7 @@ describe('settingsRouter', () => {
 
       it.each(BACKEND_KEYS)('should reapply wallpapers when %s changes', async (key) => {
         mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
-        mockWallpaperService.reapplyActiveWallpapers.mockResolvedValue(undefined)
+        mockWallpaperService.apply.mockResolvedValue({ success: true })
 
         const input: Record<string, unknown> = {}
         // Set a valid value for each key type
@@ -106,7 +106,7 @@ describe('settingsRouter', () => {
 
         await caller.update(input as never)
 
-        expect(mockWallpaperService.reapplyActiveWallpapers).toHaveBeenCalled()
+        expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'reapply' })
       })
 
       const NON_BACKEND_KEYS = ['theme', 'launchOnLogin', 'enableSystemTray', 'minimizeOnClose'] as const
@@ -123,7 +123,7 @@ describe('settingsRouter', () => {
 
         await caller.update(input as never)
 
-        expect(mockWallpaperService.reapplyActiveWallpapers).not.toHaveBeenCalled()
+        expect(mockWallpaperService.apply).not.toHaveBeenCalled()
       })
     })
 
@@ -169,12 +169,12 @@ describe('settingsRouter', () => {
       mockSettingsService.loadSettings.mockResolvedValue(current)
       mockSettingsService.resetSettings.mockResolvedValue(resetResult)
       mockSettingsService.saveSettings.mockResolvedValue(resetResult)
-      mockWallpaperService.reapplyActiveWallpapers.mockResolvedValue(undefined)
+      mockWallpaperService.apply.mockResolvedValue({ success: true })
 
       await caller.reset()
 
       expect(mockSettingsService.resetSettings).toHaveBeenCalled()
-      expect(mockWallpaperService.reapplyActiveWallpapers).toHaveBeenCalled()
+      expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'reapply' })
     })
 
     it('should preserve onboardingComplete after reset', async () => {
@@ -182,7 +182,7 @@ describe('settingsRouter', () => {
       mockSettingsService.loadSettings.mockResolvedValue(current)
       mockSettingsService.resetSettings.mockResolvedValue(makeSettings())
       mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
-      mockWallpaperService.reapplyActiveWallpapers.mockResolvedValue(undefined)
+      mockWallpaperService.apply.mockResolvedValue({ success: true })
 
       await caller.reset()
 
@@ -197,7 +197,7 @@ describe('settingsRouter', () => {
       mockSettingsService.loadSettings.mockResolvedValue(current)
       mockSettingsService.resetSettings.mockResolvedValue(makeSettings())
       mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
-      mockWallpaperService.reapplyActiveWallpapers.mockResolvedValue(undefined)
+      mockWallpaperService.apply.mockResolvedValue({ success: true })
 
       await caller.reset()
 

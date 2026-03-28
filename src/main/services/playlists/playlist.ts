@@ -1,11 +1,22 @@
 import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
-import { STEAM_PATHS } from '../../shared/constants/app'
-import type { Playlist, SteamConfig } from '../../shared/constants/playlist'
+import type { Playlist } from '../../../shared/constants/playlist'
+import { storeService, type ActivePlaylistInfo } from '../store'
+import { invalidationService } from '../invalidation'
+import { findSteamConfigPath, ensureSteamConfigPath, readSteamConfig, writeSteamConfig } from './playlist.utils'
 
 class PlaylistService {
   private static instance: PlaylistService | null = null
   private configPath: string | null = null
+  private playlistStore = storeService.activeWallpapers
+
+  private constructor() {
+    // When a wallpaper is applied directly, clear the active playlist
+    invalidationService.subscribe((key) => {
+      if (key === 'wallpaper.applied') {
+        this.clearActivePlaylist()
+      }
+    })
+  }
 
   static getInstance(): PlaylistService {
     if (!PlaylistService.instance) {
@@ -14,14 +25,7 @@ class PlaylistService {
     return PlaylistService.instance
   }
 
-  private expandPath(p: string): string {
-    if (p.startsWith('~')) {
-      return path.join(process.env.HOME ?? '', p.slice(1))
-    }
-    return p
-  }
-
-  async findConfigPath(): Promise<string | null> {
+  private async getConfigPath(): Promise<string> {
     if (this.configPath) {
       try {
         await fs.access(this.configPath)
@@ -31,92 +35,20 @@ class PlaylistService {
       }
     }
 
-    for (const basePath of STEAM_PATHS) {
-      const expanded = this.expandPath(basePath)
-      const configPath = path.join(expanded, 'steamapps/common/wallpaper_engine/config.json')
-      try {
-        await fs.access(configPath)
-        this.configPath = configPath
-        return configPath
-      } catch {
-        // Continue searching
-      }
+    const found = await findSteamConfigPath()
+    if (found) {
+      this.configPath = found
+      return found
     }
 
-    return null
-  }
-
-  private async ensureConfigExists(): Promise<string> {
-    const configPath = await this.findConfigPath()
-    if (configPath) return configPath
-
-    // Create a new config in the first available Steam path
-    for (const basePath of STEAM_PATHS) {
-      const expanded = this.expandPath(basePath)
-      const configDir = path.join(expanded, 'steamapps/common/wallpaper_engine')
-      const configPath = path.join(configDir, 'config.json')
-
-      try {
-        await fs.mkdir(configDir, { recursive: true })
-        const defaultConfig: SteamConfig = {
-          steamuser: {
-            general: { playlists: [] },
-            wallpaperconfig: { selectedwallpapers: {} },
-          },
-        }
-        await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2))
-        this.configPath = configPath
-        return configPath
-      } catch {
-        // Continue to next path
-      }
-    }
-
-    throw new Error('Could not find or create Wallpaper Engine config.json')
-  }
-
-  private async readConfig(): Promise<SteamConfig> {
-    const configPath = await this.ensureConfigExists()
-    const defaultConfig: SteamConfig = {
-      steamuser: {
-        general: { playlists: [] },
-        wallpaperconfig: { selectedwallpapers: {} },
-      },
-    }
-    try {
-      const content = await fs.readFile(configPath, 'utf-8')
-      const parsed = JSON.parse(content)
-      // The real Wallpaper Engine config.json may exist but lack the keys we
-      // need (e.g. on a fresh install where playlists were never used).
-      // Normalise the structure so callers can always assume it is present.
-      parsed.steamuser ??= defaultConfig.steamuser
-      parsed.steamuser.general ??= { playlists: [] }
-      parsed.steamuser.general.playlists ??= []
-      return parsed
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return defaultConfig
-      }
-
-      throw error
-    }
-  }
-
-  private async writeConfig(config: SteamConfig): Promise<void> {
-    const configPath = await this.ensureConfigExists()
-
-    // Create backup before writing
-    try {
-      await fs.copyFile(configPath, `${configPath}.backup`)
-    } catch {
-      // Ignore backup errors
-    }
-
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2))
+    const created = await ensureSteamConfigPath()
+    this.configPath = created
+    return created
   }
 
   async getPlaylists(): Promise<Playlist[]> {
-    const config = await this.readConfig()
+    const configPath = await this.getConfigPath()
+    const config = await readSteamConfig(configPath)
     return config.steamuser?.general?.playlists ?? []
   }
 
@@ -127,18 +59,17 @@ class PlaylistService {
 
   async createPlaylist(playlist: Playlist): Promise<{ success: boolean; error?: string }> {
     try {
-      const config = await this.readConfig()
+      const configPath = await this.getConfigPath()
+      const config = await readSteamConfig(configPath)
 
       if (!config.steamuser.general.playlists) {
         config.steamuser.general.playlists = []
       }
 
-      // Check for duplicate name
       if (config.steamuser.general.playlists.some(p => p.name === playlist.name)) {
         return { success: false, error: 'A playlist with this name already exists' }
       }
 
-      // Validate items exist
       for (const itemPath of playlist.items) {
         try {
           await fs.access(itemPath)
@@ -148,7 +79,7 @@ class PlaylistService {
       }
 
       config.steamuser.general.playlists.push({ ...playlist, updatedAt: Date.now() })
-      await this.writeConfig(config)
+      await writeSteamConfig(configPath, config)
 
       return { success: true }
     } catch (error) {
@@ -158,7 +89,8 @@ class PlaylistService {
 
   async updatePlaylist(name: string, playlist: Playlist): Promise<{ success: boolean; error?: string }> {
     try {
-      const config = await this.readConfig()
+      const configPath = await this.getConfigPath()
+      const config = await readSteamConfig(configPath)
 
       if (!config.steamuser.general.playlists) {
         return { success: false, error: 'No playlists exist' }
@@ -169,14 +101,12 @@ class PlaylistService {
         return { success: false, error: 'Playlist not found' }
       }
 
-      // If renaming, check for duplicate
       if (name !== playlist.name) {
         if (config.steamuser.general.playlists.some(p => p.name === playlist.name)) {
           return { success: false, error: 'A playlist with this name already exists' }
         }
       }
 
-      // Validate items exist
       for (const itemPath of playlist.items) {
         try {
           await fs.access(itemPath)
@@ -186,7 +116,7 @@ class PlaylistService {
       }
 
       config.steamuser.general.playlists[index] = { ...playlist, updatedAt: Date.now() }
-      await this.writeConfig(config)
+      await writeSteamConfig(configPath, config)
 
       return { success: true }
     } catch (error) {
@@ -196,7 +126,8 @@ class PlaylistService {
 
   async deletePlaylist(name: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const config = await this.readConfig()
+      const configPath = await this.getConfigPath()
+      const config = await readSteamConfig(configPath)
 
       if (!config.steamuser.general.playlists) {
         return { success: false, error: 'No playlists exist' }
@@ -208,7 +139,7 @@ class PlaylistService {
       }
 
       config.steamuser.general.playlists.splice(index, 1)
-      await this.writeConfig(config)
+      await writeSteamConfig(configPath, config)
 
       return { success: true }
     } catch (error) {
@@ -219,15 +150,30 @@ class PlaylistService {
   /** Lightweight timestamp update — skips item-path validation so it can't silently fail. */
   async stampLastApplied(name: string): Promise<void> {
     try {
-      const config = await this.readConfig()
+      const configPath = await this.getConfigPath()
+      const config = await readSteamConfig(configPath)
       const playlist = config.steamuser?.general?.playlists?.find(p => p.name === name)
       if (!playlist) return
 
       playlist.lastAppliedAt = Date.now()
-      await this.writeConfig(config)
+      await writeSteamConfig(configPath, config)
     } catch {
       // Best-effort — don't block the apply flow
     }
+  }
+
+  // ── Active playlist state ──────────────────────────────────────────────
+
+  getActivePlaylist(): ActivePlaylistInfo | null {
+    return this.playlistStore.get('activePlaylist')
+  }
+
+  setActivePlaylist(name: string, screen: string): void {
+    this.playlistStore.set('activePlaylist', { name, screen })
+  }
+
+  clearActivePlaylist(): void {
+    this.playlistStore.set('activePlaylist', null)
   }
 }
 
