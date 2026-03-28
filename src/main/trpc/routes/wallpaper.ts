@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
-import { type ApplyWallpaperOptions } from '../../../shared/constants'
+import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 import { settingsService } from '../../services/settings'
 import { CompatibilityService } from '../../services/compatibility'
 

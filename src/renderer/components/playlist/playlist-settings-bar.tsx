@@ -7,7 +7,7 @@ import {
     PLAYLIST_TIME_UNIT_OPTIONS,
     type PlaylistOrder,
     type PlaylistTimeUnit,
-} from "../../../shared/constants"
+} from "../../../shared/constants/playlist"
 import { cn } from "@/lib/utils"
 import type { PlaylistEditorReturn } from "@/hooks/use-playlist-editor"
 

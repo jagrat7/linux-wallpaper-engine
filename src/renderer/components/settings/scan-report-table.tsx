@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table"
 import { AlertTriangle, XCircle, CheckCircle2, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { COMPATIBILITY_CONFIG, type CompatibilityStatus } from "../../../shared/constants"
+import { COMPATIBILITY_CONFIG, type CompatibilityStatus } from "../../../shared/constants/compatibility"
 
 const STATUS_ICONS: Record<CompatibilityStatus, typeof CheckCircle2> = {
     perfect: CheckCircle2,

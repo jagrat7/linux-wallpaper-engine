@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { BASE_FPS_OPTIONS, type PlaylistTimeUnit } from "../../shared/constants"
+import { BASE_FPS_OPTIONS } from "../../shared/constants/display"
+import type { PlaylistTimeUnit } from "../../shared/constants/playlist"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

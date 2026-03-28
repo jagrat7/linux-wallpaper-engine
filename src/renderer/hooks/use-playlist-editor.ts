@@ -8,8 +8,8 @@ import {
     DEFAULT_PLAYLIST_SETTINGS,
     type Playlist,
     type PlaylistTimeUnit,
-    type Wallpaper,
-} from "../../shared/constants"
+} from "../../shared/constants/playlist"
+import type { Wallpaper } from "../../shared/constants/wallpaper"
 import { delayToMinutes, minutesToDelay } from "@/lib/utils"
 import { trpc } from "@/lib/trpc"
 

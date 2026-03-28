@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { useSort } from "@/contexts/search-context"
-import { SORT_OPTIONS } from "../../../shared/constants"
+import { SORT_OPTIONS } from "../../../shared/constants/sort"
 
 export function SortDropdown() {
     const { sortBy, setSortBy, sortOrder, setSortOrder } = useSort()

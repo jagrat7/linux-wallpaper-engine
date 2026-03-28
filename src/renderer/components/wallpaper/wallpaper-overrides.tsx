@@ -12,7 +12,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SettingRow } from "@/components/settings/setting-row"
 import { type Wallpaper } from "./wallpaper-card"
 import { trpc } from "@/lib/trpc"
-import { type WallpaperOverrides, SCALING_OPTIONS } from "../../../shared/constants"
+import type { WallpaperOverrides } from "../../../shared/constants/wallpaper"
+import { SCALING_OPTIONS } from "../../../shared/constants/display"
 
 interface WallpaperOverridesProps {
     wallpaper: Wallpaper

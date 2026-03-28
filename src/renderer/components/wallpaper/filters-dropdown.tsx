@@ -9,7 +9,8 @@ import {
 import { cn } from "@/lib/utils"
 import { useFilter, type WallpaperFilterType } from "@/contexts/search-context"
 import { FilterSection } from "./filter-section"
-import { COMPATIBILITY_OPTIONS, WALLPAPER_TYPE_LABELS, type CompatibilityStatus } from "../../../shared/constants"
+import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from "../../../shared/constants/compatibility"
+import { WALLPAPER_TYPE_LABELS } from "../../../shared/constants/wallpaper"
 
 const TYPE_ITEMS: { key: WallpaperFilterType; label: string }[] = [
     ...Object.entries(WALLPAPER_TYPE_LABELS).map(([key, label]) => ({ key: key as WallpaperFilterType, label })),

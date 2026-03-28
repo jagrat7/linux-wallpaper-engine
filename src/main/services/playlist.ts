@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import { STEAM_PATHS, type Playlist, type SteamConfig } from '../../shared/constants'
+import { STEAM_PATHS } from '../../shared/constants/app'
+import type { Playlist, SteamConfig } from '../../shared/constants/playlist'
 
 class PlaylistService {
   private static instance: PlaylistService | null = null

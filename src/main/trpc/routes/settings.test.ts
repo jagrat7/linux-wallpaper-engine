@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/constants'
+import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/constants/app'
 
 // --- Mocks ---------------------------------------------------------------
 

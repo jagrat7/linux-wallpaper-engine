@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { DEFAULT_SETTINGS, type Wallpaper, type WallpaperOverrides } from '../../../shared/constants'
+import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
+import type { Wallpaper, WallpaperOverrides } from '../../../shared/constants/wallpaper'
 
 // --- Mocks ---------------------------------------------------------------
 
