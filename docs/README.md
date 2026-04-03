@@ -41,10 +41,6 @@ linux-wallpaperengine --screen-root DP-2 --bg /home/$USER/.local/share/Steam/ste
 You might need to create a symlink to make the binary accessible in your `$PATH`:
 
 ```bash
-# If installed to /opt (common)
-sudo ln -sf /opt/linux-wallpaperengine/linux-wallpaperengine /usr/local/bin/linux-wallpaperengine
-
-# Or from a custom build directory
 sudo ln -sf /path/to/your/build/linux-wallpaperengine /usr/local/bin/linux-wallpaperengine
 ```
 
