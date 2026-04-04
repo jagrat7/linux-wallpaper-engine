@@ -24,7 +24,7 @@ const overrides = settingsService.getSetting('displayNameOverrides')
 overrides[input.displayId] = input.name
 settingsService.setSetting('displayNameOverrides', overrides)
 ```
-**Issue**: Direct mutation of the settings object. If `displayNameOverrides` is `undefined` or `null`, this will throw a runtime error.
+**Issue**: Direct mutation of the settings object. If `displayNameOverrides` is `undefined` or `null`, this will throw a runtime erro
 
 **Fix**: Ensure we always work with a valid object:
 ```typescript
