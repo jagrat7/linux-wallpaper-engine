@@ -1,4 +1,8 @@
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
 import { hostExecAsync } from '../utils/host'
+import { settingsService } from './settings'
+
 
 export interface Display {
   id: string
@@ -11,6 +15,7 @@ export interface Display {
   refreshRate: number
   primary: boolean
   connected: boolean
+  degraded: boolean
 }
 
 export const displayService = {
@@ -53,12 +58,13 @@ export const displayService = {
             refreshRate,
             primary: !!primaryStr,
             connected: true,
+            degraded: false,
           })
         }
       }
 
       if (displays.length > 0) {
-        return displays
+        return this.applyNameOverrides(displays)
       }
     } catch {
       // xrandr not available or failed, try Wayland
@@ -90,11 +96,18 @@ export const displayService = {
             refreshRate: 60, // Default for Wayland
             primary: displays.length === 0, // First one is primary
             connected: true,
+            degraded: false,
           }
         }
 
-        // Position line: "Position: 0,0"
         if (currentDisplay) {
+          // Refresh rate line: "    1920x1080 px, 144.000 Hz (preferred, current)"
+          const rateMatch = line.match(/([\d.]+)\s*Hz.*current/)
+          if (rateMatch) {
+            currentDisplay.refreshRate = Math.round(parseFloat(rateMatch[1]))
+          }
+
+          // Position line: "  Position: 0,0"
           const posMatch = line.match(/Position:\s*(\d+),(\d+)/)
           if (posMatch) {
             currentDisplay.x = parseInt(posMatch[1], 10)
@@ -108,7 +121,7 @@ export const displayService = {
       }
 
       if (displays.length > 0) {
-        return displays
+        return this.applyNameOverrides(displays)
       }
     } catch {
       // wlr-randr not available or failed
@@ -136,18 +149,76 @@ export const displayService = {
             refreshRate: 60, // Default for gnome-randr
             primary: displays.length === 0,
             connected: true,
+            degraded: false,
           })
         }
       }
 
       if (displays.length > 0) {
-        return displays
+        return this.applyNameOverrides(displays)
       }
     } catch {
       // gnome-randr not available
     }
 
-    // Fallback: return a default display
+    // Fallback: parse /sys/class/drm/ for connector names (kernel-level, no dependencies)
+    // sysfs modes file doesn't include refresh rate, so use the user's setting if available
+    try {
+      const drmPath = '/sys/class/drm'
+      const entries = await fs.readdir(drmPath)
+      const connectorPattern = /^card\d+-(.+)$/
+      const fallbackRefreshRate = settingsService.getSetting('maxRefreshRate')
+        ?? settingsService.getSetting('fps')
+
+      for (const entry of entries) {
+        const match = entry.match(connectorPattern)
+        if (!match) continue
+
+        const connectorName = match[1]
+        // Skip virtual connectors
+        if (connectorName.startsWith('Writeback')) continue
+
+        const entryPath = path.join(drmPath, entry)
+        const status = (await fs.readFile(path.join(entryPath, 'status'), 'utf-8')).trim()
+        if (status !== 'connected') continue
+
+        let width = 1920
+        let height = 1080
+        try {
+          const modes = (await fs.readFile(path.join(entryPath, 'modes'), 'utf-8')).trim()
+          const firstMode = modes.split('\n')[0]
+          const modeMatch = firstMode?.match(/(\d+)x(\d+)/)
+          if (modeMatch) {
+            width = parseInt(modeMatch[1], 10)
+            height = parseInt(modeMatch[2], 10)
+          }
+        } catch { /* modes file may not exist */ }
+
+        displays.push({
+          id: connectorName,
+          name: connectorName,
+          resolution: `${width}x${height}`,
+          width,
+          height,
+          x: 0,
+          y: 0,
+          refreshRate: fallbackRefreshRate,
+          primary: displays.length === 0,
+          connected: true,
+          degraded: true,
+        })
+      }
+
+      if (displays.length > 0) {
+        return this.applyNameOverrides(displays)
+      }
+    } catch {
+      // /sys/class/drm not accessible
+    }
+
+    // Last resort fallback
+    const fallbackFps = settingsService.getSetting('maxRefreshRate')
+      ?? settingsService.getSetting('fps')
     return [
       {
         id: 'default',
@@ -157,11 +228,20 @@ export const displayService = {
         height: 1080,
         x: 0,
         y: 0,
-        refreshRate: 60,
+        refreshRate: fallbackFps,
         primary: true,
         connected: true,
+        degraded: true,
       },
     ]
+  },
+
+  applyNameOverrides(displays: Display[]): Display[] {
+    const overrides = settingsService.getSetting('displayNameOverrides')
+    return displays.map(d => {
+      const override = overrides[d.id]
+      return override ? { ...d, name: override } : d
+    })
   },
 
   async getDisplaySession(): Promise<'x11' | 'wayland' | 'unknown'> {

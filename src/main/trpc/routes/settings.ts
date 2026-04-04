@@ -31,6 +31,7 @@ const settingsSchema = z.object({
   defaultScaling: z.enum(SCALING_OPTIONS.map(o => o.value) as [ScalingOption, ...ScalingOption[]]).optional(),
   disableMouse: z.boolean().optional(),
   disableParallax: z.boolean().optional(),
+  displayNameOverrides: z.record(z.string(), z.string()).optional(),
 
   // Paths
   assetsDir: z.string().nullable().optional(),

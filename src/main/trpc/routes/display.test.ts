@@ -5,16 +5,24 @@ import { trpc } from '../trpc'
 
 // --- Mocks ---------------------------------------------------------------
 
-const { mockDisplayService } = vi.hoisted(() => ({
+const { mockDisplayService, mockSettingsService } = vi.hoisted(() => ({
   mockDisplayService: {
     detectDisplays: vi.fn(),
     getDisplaySession: vi.fn(),
     getMaxRefreshRate: vi.fn(),
   },
+  mockSettingsService: {
+    getSetting: vi.fn().mockReturnValue({}),
+    setSetting: vi.fn(),
+  },
 }))
 
 vi.mock('../../services/display', () => ({
   displayService: mockDisplayService,
+}))
+
+vi.mock('../../services/settings', () => ({
+  settingsService: mockSettingsService,
 }))
 
 // Import router after mocks
