@@ -125,16 +125,22 @@ Then simply consume the package:
 ## ✨ Features
 
 - **Wallpaper Gallery** — Browse all your Steam Workshop wallpapers in a responsive, animated grid with thumbnails. You can add filters and sorts to make it easier to find the wallpapers you want.
+  - **Per-wallpaper Settings** — Save settings for each wallpaper individually.
+  - **Filtering, Sorting, and Searching**
+
 ![Wallpaper Gallery](grid.png)
+
 
 <br />
 
-- **Playlists (NEW!)** —  You can create and apply playlists to group wallpapers together and apply them to your monitors.
+- **Playlists (NEW!)** — You can create and apply playlists to group wallpapers together and apply them to your monitors.
+
 ![Playlist Support](playlists.png)
 
 <br />
 
-- **Compatibility/Errors tracking** —  You can manually tag the wallpapers as compatible or not from the settings or run the compatibility scanner to bulk-tag them, it's not 100% accurate but it will get you close. You can filter out wallpapers with errors or compatibility issues so you don't see them in the gallery.
+- **Compatibility/Errors tracking** — You can manually tag the wallpapers as compatible or not from the settings or run the compatibility scanner to bulk-tag them, it's not 100% accurate but it will get you close. You can filter out wallpapers with errors or compatibility issues so you don't see them in the gallery.
+
 ![Compatibility Tag](comp-tag.png)
 ![Compatibility Scanner](comp-scan.png)
 
