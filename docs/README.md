@@ -33,16 +33,18 @@ Verify the installation:
 linux-wallpaperengine --help
 ```
 
+If you installed via build from source, you need to create a symlink (or copy) to make the binary accessible:
+
+```bash
+sudo ln -sf /path/to/your/build/linux-wallpaperengine /usr/local/bin/linux-wallpaperengine
+```
+
 Test if it is working on your system by applying a wallpaper with the cli. For example (you will need to find your own path to the wallpaper file and the screen name):
 ```bash
 linux-wallpaperengine --screen-root DP-2 --bg /home/$USER/.local/share/Steam/steamapps/workshop/content/431960/<wallpaper_id>
 ```
 
-If you installed via build from source, you need to create a symlink (or copy) to make the binary accessible in your `$PATH`:
 
-```bash
-sudo ln -sf /path/to/your/build/linux-wallpaperengine /usr/local/bin/linux-wallpaperengine
-```
 
 ### 3. Linux Wallpaper Engine UI
 
