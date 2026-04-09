@@ -1,9 +1,14 @@
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import type { IWorkshopService } from './workshop.interface'
-import type { WorkshopItem, WorkshopStatus } from './workshop.types'
+import type { WorkshopItem, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
 
 type SteamworksModule = typeof import('steamworks.js')
 type SteamClient = ReturnType<SteamworksModule['init']>
+
+const FIRST_PAGE = 1
+const UGC_QUERY_TYPE_RANKED_BY_TREND = 3
+const UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH = 11
+const UGC_TYPE_ITEMS_READY_TO_USE = 2
 
 class WorkshopService implements IWorkshopService {
   private static instance: WorkshopService | null = null
@@ -20,45 +25,47 @@ class WorkshopService implements IWorkshopService {
     return WorkshopService.instance
   }
 
-  async query(search?: string): Promise<WorkshopItem[]> {
+  async query(options?: WorkshopQueryOptions): Promise<WorkshopQueryResult> {
     const client = await this.getClient()
+    const page = Math.max(options?.page ?? FIRST_PAGE, FIRST_PAGE)
+    const search = options?.search?.trim()
 
     if (!client) {
-      return []
+      return this.emptyQueryResult(page)
     }
 
-    const subscribedItems = client.workshop.getSubscribedItems()
+    const result = await client.workshop.getAllItems(
+      page,
+      search ? UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH : UGC_QUERY_TYPE_RANKED_BY_TREND,
+      UGC_TYPE_ITEMS_READY_TO_USE,
+      WALLPAPER_ENGINE_APP_ID,
+      WALLPAPER_ENGINE_APP_ID,
+      {
+        searchText: search || undefined,
+        rankedByTrendDays: search ? undefined : 30,
+        includeAdditionalPreviews: false,
+        includeLongDescription: false,
+        includeMetadata: true,
+      },
+    )
 
-    if (subscribedItems.length === 0) {
-      return []
-    }
-
-    const result = await client.workshop.getItems(subscribedItems, {
-      includeLongDescription: false,
-      includeMetadata: true,
-    })
-
-    const normalizedSearch = search?.trim().toLowerCase()
-
-    return result.items
+    const items = result.items
       .filter((item): item is NonNullable<(typeof result.items)[number]> => item != null)
-      .map(item => ({
+      .map((item): WorkshopItem => ({
         id: item.publishedFileId.toString(),
         title: item.title,
         author: item.owner.steamId32,
         tags: item.tags,
         previewUrl: item.previewUrl ?? undefined,
       }))
-      .filter(item => {
-        if (!normalizedSearch) {
-          return true
-        }
 
-        return item.title.toLowerCase().includes(normalizedSearch) ||
-          item.author.toLowerCase().includes(normalizedSearch) ||
-          item.tags.some(tag => tag.toLowerCase().includes(normalizedSearch))
-      })
-      .sort((left, right) => left.title.localeCompare(right.title, undefined, { sensitivity: 'base' }))
+    return {
+      items,
+      page,
+      totalResults: result.totalResults,
+      returnedResults: result.returnedResults,
+      hasNextPage: (page * result.returnedResults) < result.totalResults,
+    }
   }
 
   async subscribe(workshopId: string): Promise<boolean> {
@@ -111,6 +118,16 @@ class WorkshopService implements IWorkshopService {
       path: installInfo.folder,
       sizeOnDisk: this.toSafeNumber(installInfo.sizeOnDisk),
       updatedAt: installInfo.timestamp,
+    }
+  }
+
+  private emptyQueryResult(page: number): WorkshopQueryResult {
+    return {
+      items: [],
+      page,
+      totalResults: 0,
+      returnedResults: 0,
+      hasNextPage: false,
     }
   }
 

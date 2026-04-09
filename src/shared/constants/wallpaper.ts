@@ -12,6 +12,13 @@ export const FILTER_TYPE_OPTIONS = [
 export type WallpaperFilterType = typeof FILTER_TYPE_OPTIONS[number]['value']
 export type WallpaperType = Exclude<WallpaperFilterType, 'all'>
 
+export const AGE_RATING_OPTIONS = [
+  { label: 'G - All ages', value: 'g' },
+  { label: 'PG13 - Parental guidance', value: 'pg13' },
+  { label: 'R - Mature', value: 'r' },
+] as const
+export type AgeRating = typeof AGE_RATING_OPTIONS[number]['value']
+
 // Wallpaper type labels for display (derived from FILTER_TYPE_OPTIONS)
 export const WALLPAPER_TYPE_LABELS = Object.fromEntries(
   FILTER_TYPE_OPTIONS.filter(o => o.value !== 'all').map(o => [o.value, o.label])

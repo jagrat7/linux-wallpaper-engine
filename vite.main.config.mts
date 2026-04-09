@@ -9,4 +9,9 @@ export default defineConfig({
       '~': path.resolve(__dirname, './src/main'),
     },
   },
+  build: {
+    rollupOptions: {
+      external: ['steamworks.js'],
+    },
+  },
 })

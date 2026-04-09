@@ -3,6 +3,7 @@ import type { ScalingOption } from './display'
 import type { SortBy, SortOrder } from './sort'
 import type { ThemeOption } from './theme'
 import type { WallpaperFilterType } from './wallpaper'
+import packageJson from '../../../package.json'
 
 export interface AppSettings {
   // Performance settings (backend supported)
@@ -103,7 +104,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 // App info
 export const APP_NAME = 'Linux Wallpaper Engine'
-export const APP_VERSION = '1.0.0'
+export const APP_VERSION = packageJson.version
 export const WALLPAPER_ENGINE_APP_ID = 431960
 
 // Steam paths to search for wallpapers
