@@ -3825,6 +3825,10 @@
     url = "https://registry.npmjs.org/std-env/-/std-env-4.0.0.tgz";
     hash = "sha512-zUMPtQ/HBY3/50VbpkupYHbRroTRZJPRLvreamgErJVys0ceuzMkD44J/QjqhHjOzK42GQ3QZIeFG1OYfOtKqQ==";
   };
+  "steamworks.js@0.4.0" = fetchurl {
+    url = "https://registry.npmjs.org/steamworks.js/-/steamworks.js-0.4.0.tgz";
+    hash = "sha512-O5TTRs7ucCRql4IA/kYUIQYeghTsXqf3rAm81sC22RDId264LQYqQjuaMEUSqL60I5LdULiGu0W2/A+ZDcKBKA==";
+  };
   "stop-iteration-iterator@1.1.0" = fetchurl {
     url = "https://registry.npmjs.org/stop-iteration-iterator/-/stop-iteration-iterator-1.1.0.tgz";
     hash = "sha512-eLoXW/DHyl62zxY4SCaIgnRhuMr6ri4juEYARS8E6sCEqzKpOiE521Ucofdx+KnDZl5xmvGYaaKCk5FEOxJCoQ==";

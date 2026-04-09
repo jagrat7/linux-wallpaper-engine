@@ -104,6 +104,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 // App info
 export const APP_NAME = 'Linux Wallpaper Engine'
 export const APP_VERSION = '1.0.0'
+export const WALLPAPER_ENGINE_APP_ID = 431960
 
 // Steam paths to search for wallpapers
 export const STEAM_PATHS = [

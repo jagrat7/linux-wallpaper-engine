@@ -6,7 +6,7 @@ import { displayService } from '../display'
 import { settingsService } from '../settings'
 import { storeService } from '../store'
 import { hostSpawn, hostExecAsync, isFlatpak } from '../../utils/host'
-import { STEAM_PATHS, CACHE_TTL } from '../../../shared/constants/app'
+import { STEAM_PATHS, CACHE_TTL, WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import type { WallpaperOverrides, Wallpaper, ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
@@ -181,7 +181,7 @@ class WallpaperService implements IWallpaperService {
     for (const basePath of STEAM_PATHS) {
       const expanded = expandPath(basePath)
 
-      const workshopPath = path.join(expanded, 'steamapps/workshop/content/431960')
+      const workshopPath = path.join(expanded, 'steamapps/workshop/content', String(WALLPAPER_ENGINE_APP_ID))
       try {
         await fs.access(workshopPath)
         workshopDirs.add(workshopPath)
@@ -196,7 +196,7 @@ class WallpaperService implements IWallpaperService {
 
     const snapPaths = await glob(expandPath('~/snap/steam/*/.local/share/Steam'))
     for (const snapPath of snapPaths) {
-      const workshopPath = path.join(snapPath, 'steamapps/workshop/content/431960')
+      const workshopPath = path.join(snapPath, 'steamapps/workshop/content', String(WALLPAPER_ENGINE_APP_ID))
       try {
         await fs.access(workshopPath)
         workshopDirs.add(workshopPath)
