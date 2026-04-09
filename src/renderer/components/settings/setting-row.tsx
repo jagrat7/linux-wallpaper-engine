@@ -3,7 +3,7 @@ import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SettingRowProps {
-    label: string
+    label: React.ReactNode
     children: React.ReactNode
     disabled?: boolean
     changed?: boolean
