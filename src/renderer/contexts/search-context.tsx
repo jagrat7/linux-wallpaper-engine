@@ -1,22 +1,28 @@
-import { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from "react"
+import { useCallback, useEffect, useMemo, type ReactNode } from "react"
+import { useAtom, useSetAtom } from "jotai"
 import { useDebounce } from "@uidotdev/usehooks"
 import { trpc } from "@/lib/trpc"
+import {
+  availableResolutionsAtom,
+  availableTagsAtom,
+  filterCompatibilityAtom,
+  filterResolutionAtom,
+  filterTagsAtom,
+  filterTypeAtom,
+  searchQueryAtom,
+  sortByAtom,
+  sortOrderAtom,
+} from "@/contexts/atoms/search-atoms"
 import type { CompatibilityStatus } from "../../shared/constants/compatibility"
 import type { WallpaperFilterType } from "../../shared/constants/wallpaper"
 import type { SortBy, SortOrder } from "../../shared/constants/sort"
 
 export type { WallpaperFilterType, SortBy, SortOrder }
-// TODO: - Convert to a hook, provider is not longer needed
-// --- Search query context (search input only) ---
 
 interface SearchQueryContextType {
   searchQuery: string
   setSearchQuery: (query: string) => void
 }
-
-const SearchQueryContext = createContext<SearchQueryContextType | undefined>(undefined)
-
-// --- Sort context ---
 
 interface SortContextType {
   sortBy: SortBy
@@ -24,10 +30,6 @@ interface SortContextType {
   sortOrder: SortOrder
   setSortOrder: (order: SortOrder) => void
 }
-
-const SortContext = createContext<SortContextType | undefined>(undefined)
-
-// --- Filter context ---
 
 interface FilterContextType {
   filterType: WallpaperFilterType[]
@@ -48,187 +50,171 @@ interface FilterContextType {
   toggleFilterCompatibility: (status: CompatibilityStatus) => void
 }
 
-const FilterContext = createContext<FilterContextType | undefined>(undefined)
-
 // --- Combined provider ---
 
 export function SearchProvider({ children }: { children: ReactNode }) {
   const { data: settings } = trpc.settings.get.useQuery()
-  const updateSettings = trpc.settings.update.useMutation()
 
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filterType, setFilterType] = useState<WallpaperFilterType[]>([])
-  const [filterTags, setFilterTags] = useState<string[]>([])
-  const [availableTags, setAvailableTags] = useState<string[]>([])
-  const [filterResolution, setFilterResolution] = useState<string[]>([])
-  const [availableResolutions, setAvailableResolutions] = useState<string[]>([])
-  const [sortBy, setSortBy] = useState<SortBy>("name")
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc")
-  const [filterCompatibility, setFilterCompatibility] = useState<CompatibilityStatus[]>([])
-  const [initialized, setInitialized] = useState(false)
+  const setFilterType = useSetAtom(filterTypeAtom)
+  const setFilterTags = useSetAtom(filterTagsAtom)
+  const setFilterResolution = useSetAtom(filterResolutionAtom)
+  const setFilterCompatibility = useSetAtom(filterCompatibilityAtom)
+  const setSortBy = useSetAtom(sortByAtom)
+  const setSortOrder = useSetAtom(sortOrderAtom)
 
   // Load persisted preferences on mount
   useEffect(() => {
-    if (settings && !initialized) {
+    if (settings) {
       setFilterType(settings.filterType ?? [])
       setFilterTags(settings.filterTags)
       setFilterResolution(settings.filterResolution)
       setFilterCompatibility(settings.filterCompatibility)
       setSortBy(settings.sortBy)
       setSortOrder(settings.sortOrder)
-      setInitialized(true)
     }
-  }, [settings, initialized])
+  }, [settings, setFilterCompatibility, setFilterResolution, setFilterTags, setFilterType, setSortBy, setSortOrder])
 
-  // Persist filter/sort changes
-  const persist = useCallback((partial: Record<string, unknown>) => {
-    updateSettings.mutate(partial)
-  }, [updateSettings])
-
-  // --- Search query handlers ---
-
-  const searchQueryValue = useMemo(() => ({
-    searchQuery,
-    setSearchQuery,
-  }), [searchQuery])
-
-  // --- Sort handlers ---
-
-  const handleSetSortBy = useCallback((sort: SortBy) => {
-    setSortBy(sort)
-    persist({ sortBy: sort })
-  }, [persist])
-
-  const handleSetSortOrder = useCallback((order: SortOrder) => {
-    setSortOrder(order)
-    persist({ sortOrder: order })
-  }, [persist])
-
-  const sortValue = useMemo(() => ({
-    sortBy,
-    setSortBy: handleSetSortBy,
-    sortOrder,
-    setSortOrder: handleSetSortOrder,
-  }), [sortBy, sortOrder, handleSetSortBy, handleSetSortOrder])
-
-  // --- Filter handlers ---
-
-  const handleSetFilterType = useCallback((types: WallpaperFilterType[]) => {
-    setFilterType(types)
-    persist({ filterType: types })
-  }, [persist])
-
-  const handleToggleFilterType = useCallback((type: WallpaperFilterType) => {
-    setFilterType(prev => {
-      const next = prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-      persist({ filterType: next })
-      return next
-    })
-  }, [persist])
-
-  const handleSetFilterTags = useCallback((tags: string[]) => {
-    setFilterTags(tags)
-    persist({ filterTags: tags })
-  }, [persist])
-
-  const handleToggleTag = useCallback((tag: string) => {
-    setFilterTags(prev => {
-      const next = prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-      persist({ filterTags: next })
-      return next
-    })
-  }, [persist])
-
-  const handleSetFilterResolution = useCallback((resolutions: string[]) => {
-    setFilterResolution(resolutions)
-    persist({ filterResolution: resolutions })
-  }, [persist])
-
-  const handleToggleResolution = useCallback((res: string) => {
-    setFilterResolution(prev => {
-      const next = prev.includes(res)
-        ? prev.filter(r => r !== res)
-        : [...prev, res]
-      persist({ filterResolution: next })
-      return next
-    })
-    
-  }, [persist])
-
-  const handleSetFilterCompatibility = useCallback((statuses: CompatibilityStatus[]) => {
-    setFilterCompatibility(statuses)
-    persist({ filterCompatibility: statuses })
-  }, [persist])
-
-  const handleToggleFilterCompatibility = useCallback((status: CompatibilityStatus) => {
-    setFilterCompatibility(prev => {
-      const next = prev.includes(status)
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
-      persist({ filterCompatibility: next })
-      return next
-    })
-  }, [persist])
-
-  const filterValue = useMemo(() => ({
-    filterType,
-    setFilterType: handleSetFilterType,
-    toggleFilterType: handleToggleFilterType,
-    filterTags,
-    setFilterTags: handleSetFilterTags,
-    toggleTag: handleToggleTag,
-    availableTags,
-    setAvailableTags,
-    filterResolution,
-    setFilterResolution: handleSetFilterResolution,
-    toggleResolution: handleToggleResolution,
-    availableResolutions,
-    setAvailableResolutions,
-    filterCompatibility,
-    setFilterCompatibility: handleSetFilterCompatibility,
-    toggleFilterCompatibility: handleToggleFilterCompatibility,
-  }), [filterType, filterTags,filterResolution, availableTags,availableResolutions,filterResolution, filterCompatibility, handleSetFilterType, handleToggleFilterType, handleSetFilterTags,handleSetFilterResolution, handleToggleTag,handleToggleResolution, handleSetFilterCompatibility, handleToggleFilterCompatibility])
-
-  
-  return (
-    <SearchQueryContext.Provider value={searchQueryValue}>
-      <SortContext.Provider value={sortValue}>
-        <FilterContext.Provider value={filterValue}>
-          {children}
-        </FilterContext.Provider>
-      </SortContext.Provider>
-    </SearchQueryContext.Provider>
-  )
+  return children
 }
 
 // --- Hooks ---
 
 export function useSearchQuery() {
-  const context = useContext(SearchQueryContext)
-  if (!context) {
-    throw new Error("useSearchQuery must be used within SearchProvider")
-  }
-  return context
+  const [searchQuery, setSearchQuery] = useAtom(searchQueryAtom)
+
+  return useMemo<SearchQueryContextType>(() => ({
+    searchQuery,
+    setSearchQuery,
+  }), [searchQuery, setSearchQuery])
 }
 
 export function useSort() {
-  const context = useContext(SortContext)
-  if (!context) {
-    throw new Error("useSort must be used within SearchProvider")
-  }
-  return context
+  const [sortBy, setSortByValue] = useAtom(sortByAtom)
+  const [sortOrder, setSortOrderValue] = useAtom(sortOrderAtom)
+  const updateSettings = trpc.settings.update.useMutation()
+
+  const setSortBy = useCallback((sort: SortBy) => {
+    setSortByValue(sort)
+    updateSettings.mutate({ sortBy: sort })
+  }, [setSortByValue, updateSettings])
+
+  const setSortOrder = useCallback((order: SortOrder) => {
+    setSortOrderValue(order)
+    updateSettings.mutate({ sortOrder: order })
+  }, [setSortOrderValue, updateSettings])
+
+  return useMemo<SortContextType>(() => ({
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+  }), [sortBy, setSortBy, sortOrder, setSortOrder])
 }
 
 export function useFilter() {
-  const context = useContext(FilterContext)
-  if (!context) {
-    throw new Error("useFilter must be used within SearchProvider")
-  }
-  return context
+  const [filterType, setFilterTypeValue] = useAtom(filterTypeAtom)
+  const [filterTags, setFilterTagsValue] = useAtom(filterTagsAtom)
+  const [availableTags, setAvailableTags] = useAtom(availableTagsAtom)
+  const [filterResolution, setFilterResolutionValue] = useAtom(filterResolutionAtom)
+  const [availableResolutions, setAvailableResolutions] = useAtom(availableResolutionsAtom)
+  const [filterCompatibility, setFilterCompatibilityValue] = useAtom(filterCompatibilityAtom)
+  const updateSettings = trpc.settings.update.useMutation()
+
+  const setFilterType = useCallback((types: WallpaperFilterType[]) => {
+    setFilterTypeValue(types)
+    updateSettings.mutate({ filterType: types })
+  }, [setFilterTypeValue, updateSettings])
+
+  const toggleFilterType = useCallback((type: WallpaperFilterType) => {
+    setFilterTypeValue(prev => {
+      const next = prev.includes(type)
+        ? prev.filter(item => item !== type)
+        : [...prev, type]
+      updateSettings.mutate({ filterType: next })
+      return next
+    })
+  }, [setFilterTypeValue, updateSettings])
+
+  const setFilterTags = useCallback((tags: string[]) => {
+    setFilterTagsValue(tags)
+    updateSettings.mutate({ filterTags: tags })
+  }, [setFilterTagsValue, updateSettings])
+
+  const toggleTag = useCallback((tag: string) => {
+    setFilterTagsValue(prev => {
+      const next = prev.includes(tag)
+        ? prev.filter(item => item !== tag)
+        : [...prev, tag]
+      updateSettings.mutate({ filterTags: next })
+      return next
+    })
+  }, [setFilterTagsValue, updateSettings])
+
+  const setFilterResolution = useCallback((resolutions: string[]) => {
+    setFilterResolutionValue(resolutions)
+    updateSettings.mutate({ filterResolution: resolutions })
+  }, [setFilterResolutionValue, updateSettings])
+
+  const toggleResolution = useCallback((resolution: string) => {
+    setFilterResolutionValue(prev => {
+      const next = prev.includes(resolution)
+        ? prev.filter(item => item !== resolution)
+        : [...prev, resolution]
+      updateSettings.mutate({ filterResolution: next })
+      return next
+    })
+  }, [setFilterResolutionValue, updateSettings])
+
+  const setFilterCompatibility = useCallback((statuses: CompatibilityStatus[]) => {
+    setFilterCompatibilityValue(statuses)
+    updateSettings.mutate({ filterCompatibility: statuses })
+  }, [setFilterCompatibilityValue, updateSettings])
+
+  const toggleFilterCompatibility = useCallback((status: CompatibilityStatus) => {
+    setFilterCompatibilityValue(prev => {
+      const next = prev.includes(status)
+        ? prev.filter(item => item !== status)
+        : [...prev, status]
+      updateSettings.mutate({ filterCompatibility: next })
+      return next
+    })
+  }, [setFilterCompatibilityValue, updateSettings])
+
+  return useMemo<FilterContextType>(() => ({
+    filterType,
+    setFilterType,
+    toggleFilterType,
+    filterTags,
+    setFilterTags,
+    toggleTag,
+    availableTags,
+    setAvailableTags,
+    filterResolution,
+    setFilterResolution,
+    toggleResolution,
+    availableResolutions,
+    setAvailableResolutions,
+    filterCompatibility,
+    setFilterCompatibility,
+    toggleFilterCompatibility,
+  }), [
+    availableResolutions,
+    availableTags,
+    filterCompatibility,
+    filterResolution,
+    filterTags,
+    filterType,
+    setAvailableResolutions,
+    setAvailableTags,
+    setFilterCompatibility,
+    setFilterResolution,
+    setFilterTags,
+    setFilterType,
+    toggleFilterCompatibility,
+    toggleResolution,
+    toggleTag,
+    toggleFilterType,
+  ])
 }
 
 // Convenience hook that combines all three (for WallpaperGrid)

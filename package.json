@@ -85,6 +85,7 @@
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.34.0",
     "glob": "^13.0.0",
+    "jotai": "^2.19.1",
     "lucide-react": "^0.562.0",
     "onborda-rrd": "^1.0.1",
     "radix-ui": "^1.4.3",

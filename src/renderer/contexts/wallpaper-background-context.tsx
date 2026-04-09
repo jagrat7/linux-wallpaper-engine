@@ -1,18 +1,19 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react"
+import { useMemo, type ReactNode } from "react"
+import { useAtom } from "jotai"
 import { trpc } from "@/lib/trpc"
+import { selectedWallpaperBackgroundUrlAtom } from "@/contexts/atoms/wallpaper-background-atoms"
 
 interface WallpaperBackgroundState {
   backgroundUrl: string | null
   setSelectedUrl: (url: string | null) => void
 }
 
-const WallpaperBackgroundContext = createContext<WallpaperBackgroundState>({
-  backgroundUrl: null,
-  setSelectedUrl: () => null,
-})
-
 export function WallpaperBackgroundProvider({ children }: { children: ReactNode }) {
-  const [selectedUrl, setSelectedUrl] = useState<string | null>(null)
+  return children
+}
+
+export function useWallpaperBackground(): WallpaperBackgroundState {
+  const [selectedUrl, setSelectedUrl] = useAtom(selectedWallpaperBackgroundUrlAtom)
 
   const { data: activeWallpapers } = trpc.wallpaper.getActiveWallpaper.useQuery(undefined, {
     refetchInterval: 5000,
@@ -25,11 +26,8 @@ export function WallpaperBackgroundProvider({ children }: { children: ReactNode 
 
   const backgroundUrl = useMemo(() => selectedUrl ?? activeUrl, [selectedUrl, activeUrl])
 
-  return (
-    <WallpaperBackgroundContext.Provider value={{ backgroundUrl, setSelectedUrl }}>
-      {children}
-    </WallpaperBackgroundContext.Provider>
-  )
+  return useMemo(() => ({
+    backgroundUrl,
+    setSelectedUrl,
+  }), [backgroundUrl, setSelectedUrl])
 }
-
-export const useWallpaperBackground = () => useContext(WallpaperBackgroundContext)
