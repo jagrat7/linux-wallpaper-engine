@@ -4,7 +4,7 @@ import { settingsService, type AppSettings } from '../../services/settings'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { THEME_OPTIONS, type ThemeOption } from '../../../shared/constants/theme'
 import { SCALING_OPTIONS, type ScalingOption } from '../../../shared/constants/display'
-import { FILTER_TYPE_OPTIONS, type WallpaperFilterType } from '../../../shared/constants/wallpaper'
+import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS, type AgeRating, type WallpaperFilterType } from '../../../shared/constants/wallpaper'
 import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from '../../../shared/constants/compatibility'
 import { SORT_OPTIONS, type SortBy, SORT_ORDER_OPTIONS, type SortOrder } from '../../../shared/constants/sort'
 import { isFlatpak, setFlatpakBypass } from '../../utils/host'
@@ -56,6 +56,7 @@ const settingsSchema = z.object({
 
   // Persisted filter & sort preferences
   filterType: z.array(z.enum(FILTER_TYPE_OPTIONS.map(o => o.value) as [WallpaperFilterType, ...WallpaperFilterType[]])).optional(),
+  filterAgeRating: z.array(z.enum(AGE_RATING_OPTIONS.map(o => o.value) as [AgeRating, ...AgeRating[]])).optional(),
   filterTags: z.array(z.string()).optional(),
   filterResolution: z.array(z.string()).optional(),
   filterCompatibility: z.array(z.enum(COMPATIBILITY_OPTIONS.map(o => o.value) as [CompatibilityStatus, ...CompatibilityStatus[]])).optional(),

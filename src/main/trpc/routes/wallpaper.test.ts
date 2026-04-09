@@ -51,6 +51,7 @@ const makeWallpaper = (overrides: Partial<Wallpaper> = {}): Wallpaper => ({
   id: '123',
   title: 'Test Wallpaper',
   author: 'Test Author',
+  ageRating: 'g',
   type: 'scene',
   thumbnail: '/path/thumb.jpg',
   resolution: { width: 1920, height: 1080 },

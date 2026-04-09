@@ -2,7 +2,7 @@ import type { CompatibilityStatus } from './compatibility'
 import type { ScalingOption } from './display'
 import type { SortBy, SortOrder } from './sort'
 import type { ThemeOption } from './theme'
-import type { WallpaperFilterType } from './wallpaper'
+import type { AgeRating, WallpaperFilterType } from './wallpaper'
 import packageJson from '../../../package.json'
 
 export interface AppSettings {
@@ -46,6 +46,7 @@ export interface AppSettings {
 
   // Persisted filter & sort preferences
   filterType: WallpaperFilterType[]
+  filterAgeRating: AgeRating[]
   filterTags: string[]
   filterResolution: string[]
 
@@ -95,6 +96,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   // Filters & sort
   filterType: [],
+  filterAgeRating: ['g'],
   filterTags: [],
   filterResolution: [],
   filterCompatibility: [],

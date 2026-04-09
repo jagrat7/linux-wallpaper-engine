@@ -4,8 +4,8 @@ import {
     List,
     Monitor,
     Settings,
-    Store,
 } from "lucide-react"
+import { SteamIcon } from "@/components/icons/steam"
 import logoImage from "../../../../assets/transparent-logo.png"
 import {
     Sidebar as SidebarPrimitive,
@@ -23,7 +23,7 @@ import { useTheme } from "../theme-provider"
 
 const navItems = [
     { to: "/", icon: Download, label: "Installed" },
-    { to: "/workshop", icon: Store, label: "Workshop" },
+    { to: "/workshop", icon: SteamIcon, label: "Workshop" },
     { to: "/playlists", icon: List, label: "Playlists" },
     { to: "/displays", icon: Monitor, label: "Displays" },
     { to: "/settings", icon: Settings, label: "Settings" },

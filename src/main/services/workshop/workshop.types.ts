@@ -1,4 +1,6 @@
 
+import type { AgeRating, WallpaperType } from '../../../shared/constants/wallpaper'
+
 export interface WorkshopStatus {
   path: string
   sizeOnDisk: number
@@ -14,6 +16,8 @@ export interface WorkshopItem {
   id: string
   title: string
   author: string
+  ageRating?: AgeRating
+  type: WallpaperType
   tags: string[]
   previewUrl?: string
 }

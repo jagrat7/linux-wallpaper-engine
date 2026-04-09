@@ -18,7 +18,7 @@ interface PlaylistEditorGridProps {
 }
 
 export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
-    const { searchQuery, filterType, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility } = useSearch()
+    const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility } = useSearch()
     const {
         wallpapers: transformedWallpapers,
         isLoading,
@@ -32,6 +32,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
     const filteredWallpapers = useMemo(() =>
         filterAndSortWallpapers(transformedWallpapers, {
             filterType,
+            filterAgeRating,
             filterTags,
             filterResolution,
             filterCompatibility,
@@ -39,7 +40,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
             sortOrder,
             compatibilityMap,
         }),
-        [transformedWallpapers, filterType, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
+        [transformedWallpapers, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
 
     // Derive selected wallpaper objects for the chips list
     const selectedWallpaperData = useMemo(

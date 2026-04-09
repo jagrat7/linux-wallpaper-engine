@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc"
 import {
   availableResolutionsAtom,
   availableTagsAtom,
+  filterAgeRatingAtom,
   filterCompatibilityAtom,
   filterResolutionAtom,
   filterTagsAtom,
@@ -14,10 +15,10 @@ import {
   sortOrderAtom,
 } from "@/contexts/atoms/search-atoms"
 import type { CompatibilityStatus } from "../../shared/constants/compatibility"
-import type { WallpaperFilterType } from "../../shared/constants/wallpaper"
+import type { AgeRating, WallpaperFilterType } from "../../shared/constants/wallpaper"
 import type { SortBy, SortOrder } from "../../shared/constants/sort"
 
-export type { WallpaperFilterType, SortBy, SortOrder }
+export type { AgeRating, WallpaperFilterType, SortBy, SortOrder }
 
 interface SearchQueryContextType {
   searchQuery: string
@@ -35,6 +36,9 @@ interface FilterContextType {
   filterType: WallpaperFilterType[]
   setFilterType: (types: WallpaperFilterType[]) => void
   toggleFilterType: (type: WallpaperFilterType) => void
+  filterAgeRating: AgeRating[]
+  setFilterAgeRating: (ratings: AgeRating[]) => void
+  toggleFilterAgeRating: (rating: AgeRating) => void
   filterTags: string[]
   setFilterTags: (tags: string[]) => void
   toggleTag: (tag: string) => void
@@ -56,6 +60,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const { data: settings } = trpc.settings.get.useQuery()
 
   const setFilterType = useSetAtom(filterTypeAtom)
+  const setFilterAgeRating = useSetAtom(filterAgeRatingAtom)
   const setFilterTags = useSetAtom(filterTagsAtom)
   const setFilterResolution = useSetAtom(filterResolutionAtom)
   const setFilterCompatibility = useSetAtom(filterCompatibilityAtom)
@@ -66,13 +71,14 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (settings) {
       setFilterType(settings.filterType ?? [])
+      setFilterAgeRating(settings.filterAgeRating ?? [])
       setFilterTags(settings.filterTags)
       setFilterResolution(settings.filterResolution)
       setFilterCompatibility(settings.filterCompatibility)
       setSortBy(settings.sortBy)
       setSortOrder(settings.sortOrder)
     }
-  }, [settings, setFilterCompatibility, setFilterResolution, setFilterTags, setFilterType, setSortBy, setSortOrder])
+  }, [settings, setFilterAgeRating, setFilterCompatibility, setFilterResolution, setFilterTags, setFilterType, setSortBy, setSortOrder])
 
   return children
 }
@@ -113,6 +119,7 @@ export function useSort() {
 
 export function useFilter() {
   const [filterType, setFilterTypeValue] = useAtom(filterTypeAtom)
+  const [filterAgeRating, setFilterAgeRatingValue] = useAtom(filterAgeRatingAtom)
   const [filterTags, setFilterTagsValue] = useAtom(filterTagsAtom)
   const [availableTags, setAvailableTags] = useAtom(availableTagsAtom)
   const [filterResolution, setFilterResolutionValue] = useAtom(filterResolutionAtom)
@@ -134,6 +141,21 @@ export function useFilter() {
       return next
     })
   }, [setFilterTypeValue, updateSettings])
+
+  const setFilterAgeRating = useCallback((ratings: AgeRating[]) => {
+    setFilterAgeRatingValue(ratings)
+    updateSettings.mutate({ filterAgeRating: ratings })
+  }, [setFilterAgeRatingValue, updateSettings])
+
+  const toggleFilterAgeRating = useCallback((rating: AgeRating) => {
+    setFilterAgeRatingValue(prev => {
+      const next = prev.includes(rating)
+        ? prev.filter(item => item !== rating)
+        : [...prev, rating]
+      updateSettings.mutate({ filterAgeRating: next })
+      return next
+    })
+  }, [setFilterAgeRatingValue, updateSettings])
 
   const setFilterTags = useCallback((tags: string[]) => {
     setFilterTagsValue(tags)
@@ -184,6 +206,9 @@ export function useFilter() {
     filterType,
     setFilterType,
     toggleFilterType,
+    filterAgeRating,
+    setFilterAgeRating,
+    toggleFilterAgeRating,
     filterTags,
     setFilterTags,
     toggleTag,
@@ -200,16 +225,19 @@ export function useFilter() {
   }), [
     availableResolutions,
     availableTags,
+    filterAgeRating,
     filterCompatibility,
     filterResolution,
     filterTags,
     filterType,
+    setFilterAgeRating,
     setAvailableResolutions,
     setAvailableTags,
     setFilterCompatibility,
     setFilterResolution,
     setFilterTags,
     setFilterType,
+    toggleFilterAgeRating,
     toggleFilterCompatibility,
     toggleResolution,
     toggleTag,

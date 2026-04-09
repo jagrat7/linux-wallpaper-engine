@@ -15,7 +15,7 @@ const WallpaperDetails = lazy(() => import("./wallpaper-details").then(m => ({ d
 export function WallpaperGrid() {
     const [selectedWallpaper, setSelectedWallpaper] = useState<Wallpaper | null>(null)
     const [detailsVisible, setDetailsVisible] = useState(false)
-    const { searchQuery, filterType, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useSearch()
+    const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useSearch()
     const { setSelectedUrl } = useWallpaperBackground()
 
     const {
@@ -37,6 +37,7 @@ export function WallpaperGrid() {
     const wallpapers: Wallpaper[] = useMemo(() =>
         filterAndSortWallpapers(transformedWallpapers, {
             filterType,
+            filterAgeRating,
             filterTags,
             filterResolution,
             filterCompatibility,
@@ -44,7 +45,7 @@ export function WallpaperGrid() {
             sortOrder,
             compatibilityMap,
         }),
-        [transformedWallpapers, filterType, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
+        [transformedWallpapers, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
 
     // Sync selected wallpaper thumbnail as blurred page background
     useEffect(() => {
