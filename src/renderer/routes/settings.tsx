@@ -29,7 +29,8 @@ import { CompatibilityScanRow } from "@/components/settings/compatibility-scan-r
 import { LoadingButton } from "@/components/loading-button"
 import { PageHeader } from "@/components/page-header"
 import { lazy, Suspense, useState } from "react"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
 
 // Dev-only flag to show onboarding test button
 const DEV_SHOW_ONBOARDING_TEST = false
@@ -126,25 +127,21 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("pauseOnFullscreen", checked)}
                         />
                     </SettingRow>
+                    <SettingRow label="Launch on startup">
+                        <Switch
+                            checked={settings.launchOnLogin}
+                            onCheckedChange={(checked) => updateSetting("launchOnLogin", checked)}
+                        />
+                    </SettingRow>
+                    <SettingRow label={<span className="inline-flex items-center gap-1">Enable system tray <Button variant="ghost" size="icon" onClick={() => setStartupTrayOpen((o) => !o)} className="size-6 text-muted-foreground hover:text-foreground" title="Advanced tray options"><ChevronDown className={`size-3.5 transition-transform ${startupTrayOpen ? "rotate-180" : ""}`} /></Button></span>}>
+                        <Switch
+                            checked={settings.enableSystemTray}
+                            onCheckedChange={(checked) => updateSetting("enableSystemTray", checked)}
+                        />
+                    </SettingRow>
                     <Collapsible open={startupTrayOpen} onOpenChange={setStartupTrayOpen}>
-                        <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-muted/50 transition-colors cursor-pointer">
-                            Startup & Tray
-                            <ChevronDown className={`size-4 text-muted-foreground transition-transform ${startupTrayOpen ? "rotate-180" : ""}`} />
-                        </CollapsibleTrigger>
                         <CollapsibleContent>
                             <div className="divide-y divide-border border-t border-border bg-muted/30">
-                                <SettingRow label="Launch on startup">
-                                    <Switch
-                                        checked={settings.launchOnLogin}
-                                        onCheckedChange={(checked) => updateSetting("launchOnLogin", checked)}
-                                    />
-                                </SettingRow>
-                                <SettingRow label="Enable system tray">
-                                    <Switch
-                                        checked={settings.enableSystemTray}
-                                        onCheckedChange={(checked) => updateSetting("enableSystemTray", checked)}
-                                    />
-                                </SettingRow>
                                 <SettingRow
                                     label="Minimize on startup"
                                     disabled={!settings.launchOnLogin || !settings.enableSystemTray}
