@@ -108,8 +108,8 @@ function DisplaysPage() {
                                         <Plus className="size-8 text-muted-foreground/50" />
                                     </div>
                                 )}
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                                    <p className="text-xs font-medium text-white">{monitor.id}</p>
+                                <div className="absolute inset-x-0 top-0 p-2">
+                                    <p className="text-xs font-medium text-primary/90 glass rounded-md px-2 py-1 w-fit">{monitor.id}</p>
                                 </div>
                             </div>
                         ))
