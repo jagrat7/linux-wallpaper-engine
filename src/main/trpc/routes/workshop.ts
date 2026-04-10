@@ -14,6 +14,11 @@ export const workshopRouter = trpc.router({
       return workshopService.query(input)
     }),
 
+  discover: trpc.procedure
+    .query(async () => {
+      return workshopService.discover()
+    }),
+
   subscribe: trpc.procedure
     .input(z.object({ workshopId: z.string() }))
     .mutation(async ({ input }) => {

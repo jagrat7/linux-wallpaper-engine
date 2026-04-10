@@ -1,21 +1,78 @@
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { settingsService } from '../settings'
 import type { IWorkshopService } from './workshop.interface'
-import type { WorkshopItem, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
+import type { WorkshopDiscoverResult, WorkshopItem, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
 import { AGE_RATINGS } from '../../../shared/constants/wallpaper'
 import { matchesWallpaperTypeFilter, parseWorkshopAgeRating, parseWorkshopId, parseWorkshopType, toSafeNumber, toWorkshopResolutionTag } from './workshop.utils'
 
 type SteamworksModule = typeof import('steamworks.js')
 type SteamClient = ReturnType<SteamworksModule['init']>
+type SteamWorkshopPage = Awaited<ReturnType<SteamClient['workshop']['getAllItems']>>
 
 // Steam Workshop pagination starts at page 1.
 const FIRST_PAGE = 1
+// Discover sections use the first page because they are curated previews, not full paginated feeds.
+const DISCOVER_PAGE = 1
+// Each discover section stays compact so the default page can load several categories in parallel.
+const DISCOVER_SECTION_LIMIT = 12
+// Steam's publication date query is useful for a "new" discover rail.
+const UGC_QUERY_TYPE_RANKED_BY_PUBLICATION_DATE = 1
 // Default browse mode uses Steam's trending ranking query.
 const UGC_QUERY_TYPE_RANKED_BY_TREND = 3
 // Search mode uses Steam's text-search ranking query.
 const UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH = 11
 // Restrict results to Workshop items that are ready to be used by the app.
 const UGC_TYPE_ITEMS_READY_TO_USE = 2
+
+type DiscoverSectionConfig = {
+    id: string
+    title: string
+    queryType: number
+    requiredTags?: string[]
+    rankedByTrendDays?: number
+}
+
+const DISCOVER_SECTION_CONFIGS: DiscoverSectionConfig[] = [
+    {
+        id: 'trending',
+        title: 'Trending',
+        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
+        rankedByTrendDays: 30,
+    },
+    {
+        id: 'new',
+        title: 'New',
+        queryType: UGC_QUERY_TYPE_RANKED_BY_PUBLICATION_DATE,
+    },
+    {
+        id: 'scenes',
+        title: 'Scenes',
+        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
+        requiredTags: ['Scene'],
+        rankedByTrendDays: 30,
+    },
+    {
+        id: 'videos',
+        title: 'Videos',
+        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
+        requiredTags: ['Video'],
+        rankedByTrendDays: 30,
+    },
+    {
+        id: 'web',
+        title: 'Web',
+        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
+        requiredTags: ['Web'],
+        rankedByTrendDays: 30,
+    },
+    {
+        id: 'applications',
+        title: 'Applications',
+        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
+        requiredTags: ['Application'],
+        rankedByTrendDays: 30,
+    },
+]
 
 class WorkshopService implements IWorkshopService {
     private static instance: WorkshopService | null = null
@@ -64,18 +121,7 @@ class WorkshopService implements IWorkshopService {
         )
 
         // Normalize the raw Steam items into the app's WorkshopItem shape, then apply type filtering.
-        const items = result.items
-            .filter((item): item is NonNullable<(typeof result.items)[number]> => item != null)
-            .map((item): WorkshopItem => ({
-                id: item.publishedFileId.toString(),
-                title: item.title,
-                author: item.owner.steamId64.toString(),
-                ageRating: parseWorkshopAgeRating(item.tags),
-                type: parseWorkshopType(item.tags),
-                tags: item.tags,
-                previewUrl: item.previewUrl ?? undefined,
-            }))
-            .filter(item => matchesWallpaperTypeFilter(item.type, settings.filterType))
+        const items = this.mapWorkshopItems(result, settings)
 
         return {
             items,
@@ -83,6 +129,47 @@ class WorkshopService implements IWorkshopService {
             totalResults: result.totalResults,
             returnedResults: result.returnedResults,
             hasNextPage: (page * result.returnedResults) < result.totalResults,
+        }
+    }
+
+    async discover(): Promise<WorkshopDiscoverResult> {
+        const client = await this.getClient()
+        const settings = await settingsService.loadSettings()
+
+        // Return an empty discover payload when Steam is unavailable so the renderer can render fallback UI.
+        if (!client) {
+            return { sections: [] }
+        }
+
+        // Build each discover rail from a small curated Workshop query while preserving the shared app filters.
+        const sections = await Promise.all(
+            DISCOVER_SECTION_CONFIGS.map(async (sectionConfig) => {
+                const result = await client.workshop.getAllItems(
+                    DISCOVER_PAGE,
+                    sectionConfig.queryType,
+                    UGC_TYPE_ITEMS_READY_TO_USE,
+                    WALLPAPER_ENGINE_APP_ID,
+                    WALLPAPER_ENGINE_APP_ID,
+                    {
+                        matchAnyTag: false,
+                        requiredTags: this.buildRequiredTags(settings, sectionConfig.requiredTags),
+                        rankedByTrendDays: sectionConfig.rankedByTrendDays,
+                        includeAdditionalPreviews: false,
+                        includeLongDescription: false,
+                        includeMetadata: true,
+                    },
+                )
+
+                return {
+                    id: sectionConfig.id,
+                    title: sectionConfig.title,
+                    items: this.mapWorkshopItems(result, settings).slice(0, DISCOVER_SECTION_LIMIT),
+                }
+            }),
+        )
+
+        return {
+            sections: sections.filter(section => section.items.length > 0),
         }
     }
 
@@ -146,7 +233,7 @@ class WorkshopService implements IWorkshopService {
         }
     }
 
-    private buildRequiredTags(settings: Awaited<ReturnType<typeof settingsService.loadSettings>>): string[] {
+    private buildRequiredTags(settings: Awaited<ReturnType<typeof settingsService.loadSettings>>, baseTags: string[] = []): string[] {
         const customTags = settings.filterTags.map(tag => tag.trim()).filter(Boolean)
         const ageRatingTags = settings.filterAgeRating
             .map(value => AGE_RATINGS[value]?.workshopTag)
@@ -156,7 +243,22 @@ class WorkshopService implements IWorkshopService {
             .filter((value): value is string => value != null)
 
         // Deduplicate all tag sources before sending them to Steam.
-        return Array.from(new Set([...customTags, ...ageRatingTags, ...resolutionTags]))
+        return Array.from(new Set([...baseTags, ...customTags, ...ageRatingTags, ...resolutionTags]))
+    }
+
+    private mapWorkshopItems(result: SteamWorkshopPage, settings: Awaited<ReturnType<typeof settingsService.loadSettings>>): WorkshopItem[] {
+        return result.items
+            .filter((item): item is NonNullable<(typeof result.items)[number]> => item != null)
+            .map((item): WorkshopItem => ({
+                id: item.publishedFileId.toString(),
+                title: item.title,
+                author: item.owner.steamId64.toString(),
+                ageRating: parseWorkshopAgeRating(item.tags),
+                type: parseWorkshopType(item.tags),
+                tags: item.tags,
+                previewUrl: item.previewUrl ?? undefined,
+            }))
+            .filter(item => matchesWallpaperTypeFilter(item.type, settings.filterType))
     }
 
     private emptyQueryResult(page: number): WorkshopQueryResult {

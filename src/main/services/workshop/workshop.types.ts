@@ -22,6 +22,16 @@ export interface WorkshopItem {
   previewUrl?: string
 }
 
+export interface WorkshopDiscoverSection {
+  id: string
+  title: string
+  items: WorkshopItem[]
+}
+
+export interface WorkshopDiscoverResult {
+  sections: WorkshopDiscoverSection[]
+}
+
 export interface WorkshopQueryResult {
   items: WorkshopItem[]
   page: number

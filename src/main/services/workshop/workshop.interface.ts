@@ -1,4 +1,4 @@
-import type { WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
+import type { WorkshopDiscoverResult, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
 
 export interface IWorkshopService {
   /**
@@ -8,6 +8,13 @@ export interface IWorkshopService {
    * @returns A paginated Workshop query result.
    */
   query(options?: WorkshopQueryOptions): Promise<WorkshopQueryResult>
+
+  /**
+   * Loads curated Workshop sections for the default discover experience.
+   *
+   * @returns A discover payload containing curated Workshop sections.
+   */
+  discover(): Promise<WorkshopDiscoverResult>
 
   /**
    * Subscribes the current Steam user to a Workshop item by its published file id.
