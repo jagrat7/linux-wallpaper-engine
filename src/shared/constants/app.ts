@@ -2,6 +2,7 @@ import type { CompatibilityStatus } from './compatibility'
 import type { ScalingOption } from './display'
 import type { SortBy, SortOrder } from './sort'
 import type { ThemeOption } from './theme'
+import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS } from './workshop'
 import type { AgeRating, WallpaperFilterType } from './wallpaper'
 import packageJson from '../../../package.json'
 
@@ -49,6 +50,7 @@ export interface AppSettings {
   filterAgeRating: AgeRating[]
   filterTags: string[]
   filterResolution: string[]
+  favoriteDiscoverSectionIds: string[]
 
   filterCompatibility: CompatibilityStatus[]
   sortBy: SortBy
@@ -99,6 +101,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   filterAgeRating: ['g'],
   filterTags: [],
   filterResolution: [],
+  favoriteDiscoverSectionIds: DEFAULT_FAVORITE_DISCOVER_SECTION_IDS,
   filterCompatibility: [],
   sortBy: 'name',
   sortOrder: 'asc',

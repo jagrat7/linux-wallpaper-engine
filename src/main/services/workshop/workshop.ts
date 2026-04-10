@@ -1,78 +1,14 @@
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { settingsService } from '../settings'
 import type { IWorkshopService } from './workshop.interface'
-import type { WorkshopDiscoverResult, WorkshopItem, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
+import type { DiscoverSectionConfig, WorkshopDiscoverResult, WorkshopItem, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
 import { AGE_RATINGS } from '../../../shared/constants/wallpaper'
 import { matchesWallpaperTypeFilter, parseWorkshopAgeRating, parseWorkshopId, parseWorkshopType, toSafeNumber, toWorkshopResolutionTag } from './workshop.utils'
+import { FIRST_PAGE, DISCOVER_PAGE, DISCOVER_SECTION_LIMIT, UGC_QUERY_TYPE_RANKED_BY_TREND, UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH, UGC_TYPE_ITEMS_READY_TO_USE, CURATED_DISCOVER_SECTION_CONFIGS, PINNED_DISCOVER_SECTION_CONFIGS } from '../../../shared/constants/workshop'
 
 type SteamworksModule = typeof import('steamworks.js')
 type SteamClient = ReturnType<SteamworksModule['init']>
 type SteamWorkshopPage = Awaited<ReturnType<SteamClient['workshop']['getAllItems']>>
-
-// Steam Workshop pagination starts at page 1.
-const FIRST_PAGE = 1
-// Discover sections use the first page because they are curated previews, not full paginated feeds.
-const DISCOVER_PAGE = 1
-// Each discover section stays compact so the default page can load several categories in parallel.
-const DISCOVER_SECTION_LIMIT = 12
-// Steam's publication date query is useful for a "new" discover rail.
-const UGC_QUERY_TYPE_RANKED_BY_PUBLICATION_DATE = 1
-// Default browse mode uses Steam's trending ranking query.
-const UGC_QUERY_TYPE_RANKED_BY_TREND = 3
-// Search mode uses Steam's text-search ranking query.
-const UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH = 11
-// Restrict results to Workshop items that are ready to be used by the app.
-const UGC_TYPE_ITEMS_READY_TO_USE = 2
-
-type DiscoverSectionConfig = {
-    id: string
-    title: string
-    queryType: number
-    requiredTags?: string[]
-    rankedByTrendDays?: number
-}
-
-const DISCOVER_SECTION_CONFIGS: DiscoverSectionConfig[] = [
-    {
-        id: 'trending',
-        title: 'Trending',
-        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
-        rankedByTrendDays: 30,
-    },
-    {
-        id: 'new',
-        title: 'New',
-        queryType: UGC_QUERY_TYPE_RANKED_BY_PUBLICATION_DATE,
-    },
-    {
-        id: 'scenes',
-        title: 'Scenes',
-        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
-        requiredTags: ['Scene'],
-        rankedByTrendDays: 30,
-    },
-    {
-        id: 'videos',
-        title: 'Videos',
-        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
-        requiredTags: ['Video'],
-        rankedByTrendDays: 30,
-    },
-    {
-        id: 'web',
-        title: 'Web',
-        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
-        requiredTags: ['Web'],
-        rankedByTrendDays: 30,
-    },
-    {
-        id: 'applications',
-        title: 'Applications',
-        queryType: UGC_QUERY_TYPE_RANKED_BY_TREND,
-        requiredTags: ['Application'],
-        rankedByTrendDays: 30,
-    },
-]
 
 class WorkshopService implements IWorkshopService {
     private static instance: WorkshopService | null = null
@@ -135,6 +71,10 @@ class WorkshopService implements IWorkshopService {
     async discover(): Promise<WorkshopDiscoverResult> {
         const client = await this.getClient()
         const settings = await settingsService.loadSettings()
+        const sectionConfigs = [
+            ...PINNED_DISCOVER_SECTION_CONFIGS,
+            ...this.shuffleDiscoverSectionConfigs(CURATED_DISCOVER_SECTION_CONFIGS),
+        ]
 
         // Return an empty discover payload when Steam is unavailable so the renderer can render fallback UI.
         if (!client) {
@@ -143,7 +83,7 @@ class WorkshopService implements IWorkshopService {
 
         // Build each discover rail from a small curated Workshop query while preserving the shared app filters.
         const sections = await Promise.all(
-            DISCOVER_SECTION_CONFIGS.map(async (sectionConfig) => {
+            sectionConfigs.map(async (sectionConfig) => {
                 const result = await client.workshop.getAllItems(
                     DISCOVER_PAGE,
                     sectionConfig.queryType,
@@ -242,6 +182,20 @@ class WorkshopService implements IWorkshopService {
 
         // Deduplicate all tag sources before sending them to Steam.
         return Array.from(new Set([...baseTags, ...customTags, ...ageRatingTags, ...resolutionTags]))
+    }
+
+    private shuffleDiscoverSectionConfigs(sectionConfigs: DiscoverSectionConfig[]): DiscoverSectionConfig[] {
+        const shuffledConfigs = [...sectionConfigs]
+
+        for (let index = shuffledConfigs.length - 1; index > 0; index -= 1) {
+            const swapIndex = Math.floor(Math.random() * (index + 1))
+            const currentConfig = shuffledConfigs[index]
+
+            shuffledConfigs[index] = shuffledConfigs[swapIndex]
+            shuffledConfigs[swapIndex] = currentConfig
+        }
+
+        return shuffledConfigs
     }
 
     private async resolveWorkshopContext(workshopId: string): Promise<{ client: SteamClient; itemId: bigint } | null> {

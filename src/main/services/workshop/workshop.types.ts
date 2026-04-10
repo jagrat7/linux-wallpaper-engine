@@ -13,6 +13,14 @@ export interface WorkshopStatus {
   download: WorkshopDownloadProgress | null
 }
 
+export interface DiscoverSectionConfig {
+  id: string
+  title: string
+  queryType: number
+  requiredTags?: string[]
+  rankedByTrendDays?: number
+}
+
 export interface WorkshopQueryOptions {
   search?: string
   page?: number

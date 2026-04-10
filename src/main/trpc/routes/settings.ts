@@ -59,6 +59,7 @@ const settingsSchema = z.object({
   filterAgeRating: z.array(z.enum(AGE_RATING_OPTIONS.map(o => o.value) as [AgeRating, ...AgeRating[]])).optional(),
   filterTags: z.array(z.string()).optional(),
   filterResolution: z.array(z.string()).optional(),
+  favoriteDiscoverSectionIds: z.array(z.string()).optional(),
   filterCompatibility: z.array(z.enum(COMPATIBILITY_OPTIONS.map(o => o.value) as [CompatibilityStatus, ...CompatibilityStatus[]])).optional(),
   sortBy: z.enum(SORT_OPTIONS.map(o => o.value) as [SortBy, ...SortBy[]]).optional(),
   sortOrder: z.enum(SORT_ORDER_OPTIONS.map(o => o.value) as [SortOrder, ...SortOrder[]]).optional(),
