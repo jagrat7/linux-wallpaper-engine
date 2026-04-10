@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useState, useMemo, useCallback, useRef, useEffect, lazy, Suspense } from "react"
+import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from "react"
 import { useIntersectionObserver } from "@uidotdev/usehooks"
 import { motion, AnimatePresence } from "framer-motion"
 import { Store } from "lucide-react"
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/page-header"
 import { useDebouncedSearchQuery, useFilter } from "@/contexts/search-context"
+import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { trpc } from "@/lib/trpc"
 import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS } from "../../shared/constants/workshop"
@@ -48,7 +49,7 @@ function toWallpaper(item: WorkshopItem): Wallpaper {
 }
 
 function WorkshopPage() {
-  const [selectedWallpaper, setSelectedWallpaper] = useState<Wallpaper | null>(null)
+  const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
   const [detailsVisible, setDetailsVisible] = useState(false)
   const [page, setPage] = useState(1)
   const [visibleSectionCount, setVisibleSectionCount] = useState(DISCOVER_SECTION_BATCH_SIZE)
@@ -162,16 +163,6 @@ function WorkshopPage() {
     setCanLoadMoreSections(false)
     setVisibleSectionCount((currentCount) => Math.min(currentCount + DISCOVER_SECTION_BATCH_SIZE, discoverSections.length))
   }, [canLoadMoreSections, discoverSections.length, hasMoreDiscoverSections, hasSearchQuery, loadMoreEntry?.isIntersecting])
-
-  const lastClickTime = useRef(0)
-  const THROTTLE_MS = 150
-
-  const toggleWallpaper = useCallback((w: Wallpaper) => {
-    const now = Date.now()
-    if (now - lastClickTime.current < THROTTLE_MS) return
-    lastClickTime.current = now
-    setSelectedWallpaper(prev => prev?.id === w.id ? null : w)
-  }, [])
 
   const toggleFavoriteSection = useCallback((sectionId: string) => {
     setFavoriteDiscoverSectionIds((currentFavoriteSectionIds) => {

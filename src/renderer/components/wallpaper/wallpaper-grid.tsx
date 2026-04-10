@@ -7,13 +7,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useSearch } from "@/contexts/search-context"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
-import { useState, useMemo, useEffect, useCallback, useRef, lazy, Suspense } from "react"
+import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
+import { useState, useMemo, useEffect, lazy, Suspense } from "react"
 
 const WallpaperDetails = lazy(() => import("./wallpaper-details").then(m => ({ default: m.WallpaperDetails })))
 
 // TODO: Fix wallpaper details size so that is consistent width with a column
 export function WallpaperGrid() {
-    const [selectedWallpaper, setSelectedWallpaper] = useState<Wallpaper | null>(null)
+    const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
     const [detailsVisible, setDetailsVisible] = useState(false)
     const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useSearch()
     const { setSelectedUrl } = useWallpaperBackground()
@@ -28,10 +29,6 @@ export function WallpaperGrid() {
         compatibilityMap,
         appSettings,
     } = useWallpapers()
-
-    // Throttle wallpaper selection to prevent UI freezing from rapid clicks
-    const lastClickTime = useRef(0)
-    const THROTTLE_MS = 150
 
     // Filter and sort wallpapers
     const wallpapers: Wallpaper[] = useMemo(() =>
@@ -87,15 +84,6 @@ export function WallpaperGrid() {
 
     }, [rawWallpapers, setAvailableTags, setAvailableResolutions])
 
-
-    const toggleWallpaper = useCallback((w: Wallpaper) => {
-        const now = Date.now()
-        if (now - lastClickTime.current < THROTTLE_MS) {
-            return // Ignore rapid clicks
-        }
-        lastClickTime.current = now
-        setSelectedWallpaper(prev => prev?.id === w.id ? null : w)
-    }, [])
 
     const handleRefresh = () => {
         refetch()
