@@ -174,17 +174,15 @@ class WorkshopService implements IWorkshopService {
     }
 
     async subscribe(workshopId: string): Promise<boolean> {
-        // Get the Steam client instance and validate the workshop ID.
-        const client = await this.getClient()
-        const itemId = parseWorkshopId(workshopId)
+        const workshopContext = await this.resolveWorkshopContext(workshopId)
 
-        // Reject invalid ids early before calling into Steam.
-        if (!client || itemId == null) {
+        if (!workshopContext) {
             return false
         }
 
         try {
-            await client.workshop.subscribe(itemId)
+            await workshopContext.client.workshop.subscribe(workshopContext.itemId)
+            workshopContext.client.workshop.download(workshopContext.itemId, true)
             return true
         } catch {
             return false
@@ -192,17 +190,14 @@ class WorkshopService implements IWorkshopService {
     }
 
     async unsubscribe(workshopId: string): Promise<boolean> {
-        // Get the Steam client instance and validate the workshop ID.
-        const client = await this.getClient()
-        const itemId = parseWorkshopId(workshopId)
+        const workshopContext = await this.resolveWorkshopContext(workshopId)
 
-        // Reject invalid ids early before calling into Steam.
-        if (!client || itemId == null) {
+        if (!workshopContext) {
             return false
         }
 
         try {
-            await client.workshop.unsubscribe(itemId)
+            await workshopContext.client.workshop.unsubscribe(workshopContext.itemId)
             return true
         } catch {
             return false
@@ -210,26 +205,29 @@ class WorkshopService implements IWorkshopService {
     }
 
     async status(workshopId: string): Promise<WorkshopStatus | null> {
-        // Get the Steam client instance and validate the workshop ID.
-        const client = await this.getClient()
-        const itemId = parseWorkshopId(workshopId)
+        const workshopContext = await this.resolveWorkshopContext(workshopId)
 
-        // Status only exists for valid ids backed by an initialized Steam client.
-        if (!client || itemId == null) {
+        if (!workshopContext) {
             return null
         }
 
-        const installInfo = client.workshop.installInfo(itemId)
+        const downloadInfo = workshopContext.client.workshop.downloadInfo(workshopContext.itemId)
+        const installInfo = workshopContext.client.workshop.installInfo(workshopContext.itemId)
 
-        // A missing install record means the item is not currently available on disk.
-        if (!installInfo) {
+        if (!downloadInfo && !installInfo) {
             return null
         }
 
         return {
-            path: installInfo.folder,
-            sizeOnDisk: toSafeNumber(installInfo.sizeOnDisk),
-            updatedAt: installInfo.timestamp,
+            path: installInfo?.folder ?? null,
+            sizeOnDisk: installInfo ? toSafeNumber(installInfo.sizeOnDisk) : null,
+            updatedAt: installInfo?.timestamp ?? null,
+            download: downloadInfo
+                ? {
+                    current: toSafeNumber(downloadInfo.current),
+                    total: toSafeNumber(downloadInfo.total),
+                }
+                : null,
         }
     }
 
@@ -244,6 +242,17 @@ class WorkshopService implements IWorkshopService {
 
         // Deduplicate all tag sources before sending them to Steam.
         return Array.from(new Set([...baseTags, ...customTags, ...ageRatingTags, ...resolutionTags]))
+    }
+
+    private async resolveWorkshopContext(workshopId: string): Promise<{ client: SteamClient; itemId: bigint } | null> {
+        const client = await this.getClient()
+        const itemId = parseWorkshopId(workshopId)
+
+        if (!client || itemId == null) {
+            return null
+        }
+
+        return { client, itemId }
     }
 
     private mapWorkshopItems(result: SteamWorkshopPage, settings: Awaited<ReturnType<typeof settingsService.loadSettings>>): WorkshopItem[] {

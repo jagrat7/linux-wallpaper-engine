@@ -4,16 +4,17 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Store } from "lucide-react"
 import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layout"
 import { SearchInput } from "@/components/wallpaper/search"
+import { WorkshopFiltersDropdown } from "@/components/workshop/workshop-filters-dropdown"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/page-header"
-import { useDebouncedSearchQuery } from "@/contexts/search-context"
+import { useDebouncedSearchQuery, useFilter } from "@/contexts/search-context"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { trpc } from "@/lib/trpc"
 import type { Wallpaper } from "../../shared/constants/wallpaper"
 import type { RouterOutputs } from "../../main/trpc/router"
 
-const WallpaperDetails = lazy(() => import("@/components/wallpaper/wallpaper-details").then(m => ({ default: m.WallpaperDetails })))
+const WorkshopWallpaperDetails = lazy(() => import("@/components/workshop/workshop-wallpaper-details").then(m => ({ default: m.WorkshopWallpaperDetails })))
 
 export const Route = createFileRoute("/workshop")({
   component: WorkshopPage,
@@ -45,11 +46,15 @@ function WorkshopPage() {
   const [detailsVisible, setDetailsVisible] = useState(false)
   const [page, setPage] = useState(1)
   const { debouncedSearchQuery } = useDebouncedSearchQuery()
+  const { filterType, filterAgeRating, filterTags, filterResolution } = useFilter()
   const { setSelectedUrl } = useWallpaperBackground()
+  const utils = trpc.useUtils()
 
+  // Reset page and refetch when search or filters change
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearchQuery])
+    utils.workshop.getItems.invalidate()
+  }, [debouncedSearchQuery, filterType, filterAgeRating, filterTags, filterResolution, utils])
 
   // Sync selected wallpaper thumbnail as blurred page background
   useEffect(() => {
@@ -88,6 +93,7 @@ function WorkshopPage() {
       >
         <div className="flex items-center gap-3 max-w-xl mx-auto py-1.5">
           <SearchInput placeholder="Search workshop..." className="flex-1" />
+          <WorkshopFiltersDropdown />
         </div>
       </PageHeader>
 
@@ -149,7 +155,7 @@ function WorkshopPage() {
               onAnimationStart={() => setDetailsVisible(true)}
             >
               <Suspense fallback={<Skeleton className="w-80 h-96 rounded-xl" />}>
-                <WallpaperDetails
+                <WorkshopWallpaperDetails
                   wallpaper={selectedWallpaper}
                   onClose={() => setSelectedWallpaper(null)}
                 />

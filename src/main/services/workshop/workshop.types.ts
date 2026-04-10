@@ -1,10 +1,16 @@
 
 import type { AgeRating, WallpaperType } from '../../../shared/constants/wallpaper'
 
+export interface WorkshopDownloadProgress {
+  current: number
+  total: number
+}
+
 export interface WorkshopStatus {
-  path: string
-  sizeOnDisk: number
-  updatedAt: number
+  path: string | null
+  sizeOnDisk: number | null
+  updatedAt: number | null
+  download: WorkshopDownloadProgress | null
 }
 
 export interface WorkshopQueryOptions {

@@ -33,10 +33,10 @@ export interface IWorkshopService {
   unsubscribe(workshopId: string): Promise<boolean>
 
   /**
-   * Returns local installation status for a Workshop item when it is available on disk.
+   * Returns the current Workshop item status, including local install info and active download progress when available.
    *
    * @param workshopId The published Workshop file id.
-   * @returns The local install status, or `null` when the item is unavailable.
+   * @returns The current Workshop status, or `null` when the item is unavailable.
    */
   status(workshopId: string): Promise<WorkshopStatus | null>
 }
