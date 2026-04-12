@@ -54,10 +54,10 @@ export function WorkshopDiscoverSection({
             onClick={handleFavoriteClick}
             aria-pressed={isFavorite}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-            className="hover:bg-transparent bg-transparent self-center"
+            className="hover:bg-transparent bg-transparent"
             title={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
-            <Star className={cn("flex items-center", isFavorite ? "fill-muted-foreground text-muted-foreground hover:fill-primary hover:text-primary" : "text-muted-foreground")} />
+            <Star className={cn(isFavorite ? "fill-muted-foreground text-muted-foreground" : "text-muted-foreground")} />
           </Button>
         </div>
         <FadeDivider />

@@ -7,7 +7,7 @@ import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layou
 import { SearchInput } from "@/components/wallpaper/search"
 import { WorkshopDiscoverSection } from "@/components/workshop/workshop-discover-section"
 import { WorkshopFiltersDropdown } from "@/components/workshop/workshop-filters-dropdown"
-import { Button } from "@/components/ui/button"
+import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink, PaginationEllipsis, getPaginationRange } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/page-header"
 import { useDebouncedSearchQuery, useFilter } from "@/contexts/search-context"
@@ -210,32 +210,63 @@ function WorkshopPage() {
                 emptySubMessage="Try a different search term"
               />
 
-              {data && (
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-sm text-muted-foreground">
-                    Page {data.page} · {data.returnedResults} of {data.totalResults} items
-                  </p>
+              {data && data.returnedResults > 0 && (() => {
+                const { nearbyPages, totalPages, showFirstPage, showLastPage, showStartEllipsis, showEndEllipsis } = getPaginationRange(page, data.totalResults, data.returnedResults)
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page <= 1 || isFetching}
-                      onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!data.hasNextPage || isFetching}
-                      onClick={() => setPage(prev => prev + 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
+                return (
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                          aria-disabled={page <= 1 || isFetching}
+                          className={page <= 1 || isFetching ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      {showFirstPage && (
+                        <PaginationItem>
+                          <PaginationLink onClick={() => setPage(1)} className="cursor-pointer">1</PaginationLink>
+                        </PaginationItem>
+                      )}
+                      {showStartEllipsis && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      {nearbyPages.filter(p => p < page).map(p => (
+                        <PaginationItem key={p}>
+                          <PaginationLink onClick={() => setPage(p)} className="cursor-pointer">{p}</PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationLink isActive className="cursor-default">{page}</PaginationLink>
+                      </PaginationItem>
+                      {nearbyPages.filter(p => p > page).map(p => (
+                        <PaginationItem key={p}>
+                          <PaginationLink onClick={() => setPage(p)} className="cursor-pointer">{p}</PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      {showEndEllipsis && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      {showLastPage && (
+                        <PaginationItem>
+                          <PaginationLink onClick={() => setPage(totalPages)} className="cursor-pointer">{totalPages}</PaginationLink>
+                        </PaginationItem>
+                      )}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setPage(prev => prev + 1)}
+                          aria-disabled={!data.hasNextPage || isFetching}
+                          className={!data.hasNextPage || isFetching ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )
+              })()}
             </>
           ) : (
             <div className="space-y-8">
