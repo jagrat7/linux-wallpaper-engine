@@ -1,11 +1,9 @@
 import { motion } from "framer-motion"
 import { Star } from "lucide-react"
 import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layout"
-import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
 import { FadeDivider } from "@/components/ui/fade-divider"
-import type { MouseEvent } from "react"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
-import { cn } from "@/lib/utils"
 
 interface WorkshopDiscoverSectionProps {
   id: string
@@ -28,11 +26,6 @@ export function WorkshopDiscoverSection({
   onFavoriteToggle,
   gridClassName,
 }: WorkshopDiscoverSectionProps) {
-  const handleFavoriteClick = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation()
-    onFavoriteToggle(id)
-  }
-
   return (
     <motion.section
       className="space-y-4"
@@ -41,26 +34,23 @@ export function WorkshopDiscoverSection({
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
           <div className="flex items-baseline gap-3">
             <h2 className="text-xl font-semibold">{title}</h2>
             <span className="text-xs text-muted-foreground">{wallpapers.length} items</span>
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={handleFavoriteClick}
-            aria-pressed={isFavorite}
+          <IconButton
+            icon={Star}
+            size="sm"
+            pressed={isFavorite}
+            onClick={(e) => { e.stopPropagation(); onFavoriteToggle(id) }}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-            className="hover:bg-transparent bg-transparent"
             title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Star className={cn(isFavorite ? "fill-muted-foreground text-muted-foreground" : "text-muted-foreground")} />
-          </Button>
+            className={isFavorite ? "[&>svg]:fill-current" : ""}
+          />
         </div>
-        <FadeDivider />
+        {/* <FadeDivider /> */}
       </div>
 
       <WallpaperGridLayout

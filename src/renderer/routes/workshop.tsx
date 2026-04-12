@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from "react"
+import { useAtom } from "jotai"
 import { useIntersectionObserver } from "@uidotdev/usehooks"
 import { motion, AnimatePresence } from "framer-motion"
-import { Store } from "lucide-react"
+import { Compass, LayoutGrid, Store } from "lucide-react"
+import { IconButton } from "@/components/ui/icon-button"
+import { SortDropdown } from "@/components/wallpaper/sort-dropdown"
 import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layout"
 import { SearchInput } from "@/components/wallpaper/search"
 import { WorkshopDiscoverSection } from "@/components/workshop/workshop-discover-section"
@@ -15,6 +18,7 @@ import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { trpc } from "@/lib/trpc"
 import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS } from "../../shared/constants/workshop"
+import { workshopModeAtom } from "@/contexts/atoms/workshop-atoms"
 import type { Wallpaper } from "../../shared/constants/wallpaper"
 import type { RouterOutputs } from "../../main/trpc/router"
 
@@ -50,6 +54,7 @@ function toWallpaper(item: WorkshopItem): Wallpaper {
 
 function WorkshopPage() {
   const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
+  const [mode, setMode] = useAtom(workshopModeAtom)
   const [detailsVisible, setDetailsVisible] = useState(false)
   const [page, setPage] = useState(1)
   const [visibleSectionCount, setVisibleSectionCount] = useState(DISCOVER_SECTION_BATCH_SIZE)
@@ -88,6 +93,7 @@ function WorkshopPage() {
     },
   })
   const hasSearchQuery = (debouncedSearchQuery?.trim().length ?? 0) > 0
+  const showBrowse = mode === "browse" || hasSearchQuery
   const [loadMoreRef, loadMoreEntry] = useIntersectionObserver({
     threshold: 0,
     rootMargin: "360px 0px",
@@ -115,11 +121,11 @@ function WorkshopPage() {
     search: debouncedSearchQuery || undefined,
     page,
   }, {
-    enabled: hasSearchQuery,
+    enabled: showBrowse,
   })
 
   const { data: discoverData, isLoading: isDiscoverLoading } = trpc.workshop.discover.useQuery(undefined, {
-    enabled: !hasSearchQuery,
+    enabled: !showBrowse,
   })
 
   const wallpapers = useMemo(
@@ -156,13 +162,13 @@ function WorkshopPage() {
       return
     }
 
-    if (hasSearchQuery || !hasMoreDiscoverSections || !canLoadMoreSections) {
+    if (showBrowse || !hasMoreDiscoverSections || !canLoadMoreSections) {
       return
     }
 
     setCanLoadMoreSections(false)
     setVisibleSectionCount((currentCount) => Math.min(currentCount + DISCOVER_SECTION_BATCH_SIZE, discoverSections.length))
-  }, [canLoadMoreSections, discoverSections.length, hasMoreDiscoverSections, hasSearchQuery, loadMoreEntry?.isIntersecting])
+  }, [canLoadMoreSections, discoverSections.length, hasMoreDiscoverSections, showBrowse, loadMoreEntry?.isIntersecting])
 
   const toggleFavoriteSection = useCallback((sectionId: string) => {
     setFavoriteDiscoverSectionIds((currentFavoriteSectionIds) => {
@@ -188,15 +194,38 @@ function WorkshopPage() {
         title="Workshop"
         description="Browse wallpapers from Steam Workshop"
       >
-        <div className="flex items-center gap-3 max-w-xl mx-auto py-1.5">
+        <div className="flex items-center gap-3 max-w-2xl mx-auto pt-1.5">
+          <div className="flex items-center gap-1 shrink-0">
+            <IconButton
+              icon={Compass}
+              size="sm"
+              pressed={!showBrowse}
+              onClick={() => setMode("discover")}
+              title="Discover"
+            />
+            <IconButton
+              icon={LayoutGrid}
+              size="sm"
+              pressed={showBrowse}
+              onClick={() => setMode("browse")}
+              title="Browse"
+            />
+          </div>
           <SearchInput placeholder="Search workshop..." className="flex-1" />
-          <WorkshopFiltersDropdown />
+          <div className="flex items-center gap-1.5">
+            <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
+              <WorkshopFiltersDropdown />
+            </div>
+            <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
+              <SortDropdown />
+            </div>
+          </div>
         </div>
       </PageHeader>
 
       <div className="flex items-start gap-6 flex-1">
         <div className="flex-1 h-fit transition-all duration-300 space-y-4">
-          {hasSearchQuery ? (
+          {showBrowse ? (
             <>
               <WallpaperGridLayout
                 wallpapers={wallpapers}
@@ -269,7 +298,7 @@ function WorkshopPage() {
               })()}
             </>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-10">
               {isDiscoverLoading ? (
                 Array.from({ length: 2 }).map((_, index) => (
                   <div key={index} className="space-y-4">
