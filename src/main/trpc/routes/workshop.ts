@@ -1,39 +1,70 @@
+import { observable } from '@trpc/server/observable'
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
 import { trpc } from '../trpc'
-import { workshopService } from '../../services/workshop/workshop'
+import { workshopService, type WorkshopConnectionEvent } from '../../services/workshop/workshop'
+import { isWorkshopConnectionError } from '../../services/workshop/workshop.errors'
+
+const toTrpcWorkshopError = (error: unknown): never => {
+  if (isWorkshopConnectionError(error)) {
+    throw new TRPCError({
+      code: 'PRECONDITION_FAILED',
+      message: error.message,
+      cause: error,
+    })
+  }
+
+  throw error
+}
+
+const workshopProcedure = trpc.procedure.use(async (options) => {
+  try {
+    return await options.next()
+  } catch (error) {
+    return toTrpcWorkshopError(error)
+  }
+})
 
 export const workshopRouter = trpc.router({
-  getItems: trpc.procedure
+  onConnectionEvent: trpc.procedure.subscription(() => {
+    return observable<WorkshopConnectionEvent>((emit) => {
+      return workshopService.subscribeToConnectionEvents((event) => emit.next(event))
+    })
+  }),
+
+  connectionStatus: trpc.procedure.query(() => workshopService.getConnectionStatus()),
+
+  disconnect: trpc.procedure.mutation(() => {
+    workshopService.disconnect()
+    return true
+  }),
+
+  reconnect: workshopProcedure.mutation(async () => {
+    await workshopService.reconnect()
+    return true
+  }),
+
+  getItems: workshopProcedure
     .input(
       z.object({
         search: z.string().optional(),
         page: z.number().int().min(1).optional(),
       }),
     )
-    .query(async ({ input }) => {
-      return workshopService.query(input)
-    }),
+    .query(({ input }) => workshopService.query(input)),
 
-  discover: trpc.procedure
-    .query(async () => {
-      return workshopService.discover()
-    }),
+  discover: workshopProcedure
+    .query(() => workshopService.discover()),
 
-  subscribe: trpc.procedure
+  subscribe: workshopProcedure
     .input(z.object({ workshopId: z.string() }))
-    .mutation(async ({ input }) => {
-      return workshopService.subscribe(input.workshopId)
-    }),
+    .mutation(({ input }) => workshopService.subscribe(input.workshopId)),
 
-  unsubscribe: trpc.procedure
+  unsubscribe: workshopProcedure
     .input(z.object({ workshopId: z.string() }))
-    .mutation(async ({ input }) => {
-      return workshopService.unsubscribe(input.workshopId)
-    }),
+    .mutation(({ input }) => workshopService.unsubscribe(input.workshopId)),
 
-  status: trpc.procedure
+  status: workshopProcedure
     .input(z.object({ workshopId: z.string() }))
-    .query(async ({ input }) => {
-      return workshopService.status(input.workshopId)
-    }),
+    .query(({ input }) => workshopService.status(input.workshopId)),
 })

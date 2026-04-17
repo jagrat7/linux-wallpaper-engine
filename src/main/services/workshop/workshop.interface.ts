@@ -1,6 +1,25 @@
 import type { WorkshopDiscoverResult, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
 
+export type WorkshopConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'user_disconnected'
+
 export interface IWorkshopService {
+  /**
+   * Returns the current Steam connection status.
+   */
+  getConnectionStatus(): WorkshopConnectionStatus
+
+  /**
+   * Drops the active Steam connection, releasing Workshop API polling so Steam can exit cleanly.
+   * The connection monitor will not auto-recover from this state until `reconnect` is called.
+   */
+  disconnect(): void
+
+  /**
+   * Resets the connection to idle and attempts to initialize the Steam client.
+   * Used to recover from a user-initiated disconnect.
+   */
+  reconnect(): Promise<void>
+
   /**
    * Queries Wallpaper Engine Workshop items with the current app filter settings applied.
    *

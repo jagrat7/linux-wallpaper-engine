@@ -1,9 +1,12 @@
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Star } from "lucide-react"
 import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layout"
 import { IconButton } from "@/components/ui/icon-button"
 import { FadeDivider } from "@/components/ui/fade-divider"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
+
+const INITIAL_VISIBLE_COUNT = 6
 
 interface WorkshopDiscoverSectionProps {
   id: string
@@ -26,6 +29,10 @@ export function WorkshopDiscoverSection({
   onFavoriteToggle,
   gridClassName,
 }: WorkshopDiscoverSectionProps) {
+  const [expanded, setExpanded] = useState(false)
+  const hasMore = wallpapers.length > INITIAL_VISIBLE_COUNT
+  const visibleWallpapers = expanded ? wallpapers : wallpapers.slice(0, INITIAL_VISIBLE_COUNT)
+
   return (
     <motion.section
       className="space-y-4"
@@ -37,7 +44,15 @@ export function WorkshopDiscoverSection({
         <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
           <div className="flex items-baseline gap-3">
             <h2 className="text-xl font-semibold">{title}</h2>
-            <span className="text-xs text-muted-foreground">{wallpapers.length} items</span>
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => setExpanded(prev => !prev)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {expanded ? "Show less" : `See more (${wallpapers.length})`}
+              </button>
+            )}
           </div>
 
           <IconButton
@@ -54,7 +69,7 @@ export function WorkshopDiscoverSection({
       </div>
 
       <WallpaperGridLayout
-        wallpapers={wallpapers}
+        wallpapers={visibleWallpapers}
         isLoading={false}
         showCompatibilityDot={false}
         selectedId={selectedId}

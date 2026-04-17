@@ -2,6 +2,8 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { BASE_FPS_OPTIONS } from "../../shared/constants/display"
 import type { PlaylistTimeUnit } from "../../shared/constants/playlist"
+import { WorkshopItem } from "src/main/services/workshop/workshop.types"
+import { Wallpaper } from "src/shared/constants/wallpaper"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -61,4 +63,24 @@ export function minutesToDelay(minutes: number): { value: number, unit: Playlist
   if (totalMs >= MS_PER_HOUR && totalMs % MS_PER_HOUR === 0) return { value: totalMs / MS_PER_HOUR, unit: "hours" }
   if (totalMs >= MS_PER_MINUTE) return { value: totalMs / MS_PER_MINUTE, unit: "minutes" }
   return { value: Math.round(totalMs / MS_PER_SECOND), unit: "seconds" }
+}
+
+
+export function toWallpaper(item: WorkshopItem): Wallpaper {
+  return {
+    id: item.id,
+    workshopId: item.id,
+    title: item.title,
+    author: item.author,
+    ageRating: item.ageRating,
+    type: item.type,
+    thumbnail: item.previewUrl ?? "",
+    previewUrl: item.previewUrl,
+    resolution: { width: 0, height: 0 },
+    fileSize: 0,
+    dateAdded: 0,
+    tags: item.tags,
+    installed: false,
+    path: "",
+  }
 }

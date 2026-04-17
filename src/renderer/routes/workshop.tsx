@@ -9,7 +9,9 @@ import { SortDropdown } from "@/components/wallpaper/sort-dropdown"
 import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layout"
 import { SearchInput } from "@/components/wallpaper/search"
 import { WorkshopDiscoverSection } from "@/components/workshop/workshop-discover-section"
+import { WorkshopConnectionPrompt } from "@/components/workshop/workshop-connection-prompt"
 import { WorkshopFiltersDropdown } from "@/components/workshop/workshop-filters-dropdown"
+import { WorkshopConnectionButton } from "@/components/workshop/workshop-connection-button"
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink, PaginationEllipsis, getPaginationRange } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/page-header"
@@ -21,6 +23,7 @@ import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS } from "../../shared/constants/wo
 import { workshopModeAtom } from "@/contexts/atoms/workshop-atoms"
 import type { Wallpaper } from "../../shared/constants/wallpaper"
 import type { RouterOutputs } from "../../main/trpc/router"
+import { toWallpaper } from "@/lib/utils"
 
 const WorkshopWallpaperDetails = lazy(() => import("@/components/workshop/workshop-wallpaper-details").then(m => ({ default: m.WorkshopWallpaperDetails })))
 
@@ -33,24 +36,7 @@ const DISCOVER_SECTION_BATCH_SIZE = 4
 type WorkshopItem = RouterOutputs["workshop"]["getItems"]["items"][number]
 type WorkshopDiscoverSectionData = RouterOutputs["workshop"]["discover"]["sections"][number]
 
-function toWallpaper(item: WorkshopItem): Wallpaper {
-  return {
-    id: item.id,
-    workshopId: item.id,
-    title: item.title,
-    author: item.author,
-    ageRating: item.ageRating,
-    type: item.type,
-    thumbnail: item.previewUrl ?? "",
-    previewUrl: item.previewUrl,
-    resolution: { width: 0, height: 0 },
-    fileSize: 0,
-    dateAdded: 0,
-    tags: item.tags,
-    installed: false,
-    path: "",
-  }
-}
+
 
 function WorkshopPage() {
   const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
@@ -117,15 +103,27 @@ function WorkshopPage() {
     setFavoriteDiscoverSectionIds(settings?.favoriteDiscoverSectionIds ?? DEFAULT_FAVORITE_DISCOVER_SECTION_IDS)
   }, [settings?.favoriteDiscoverSectionIds])
 
-  const { data, isLoading, isFetching } = trpc.workshop.getItems.useQuery({
+  const { data, error, isLoading, isFetching } = trpc.workshop.getItems.useQuery({
     search: debouncedSearchQuery || undefined,
     page,
   }, {
     enabled: showBrowse,
   })
 
-  const { data: discoverData, isLoading: isDiscoverLoading } = trpc.workshop.discover.useQuery(undefined, {
+  const { data: discoverData, error: discoverError, isLoading: isDiscoverLoading } = trpc.workshop.discover.useQuery(undefined, {
     enabled: !showBrowse,
+  })
+
+  trpc.workshop.onConnectionEvent.useSubscription(undefined, {
+    onData: () => {
+      void utils.workshop.connectionStatus.invalidate()
+      void utils.workshop.getItems.invalidate()
+      void utils.workshop.discover.invalidate()
+
+      if (selectedWallpaper) {
+        void utils.workshop.status.invalidate({ workshopId: selectedWallpaper.workshopId ?? selectedWallpaper.id })
+      }
+    },
   })
 
   const wallpapers = useMemo(
@@ -193,6 +191,7 @@ function WorkshopPage() {
       <PageHeader
         title="Workshop"
         description="Browse wallpapers from Steam Workshop"
+        action={<WorkshopConnectionButton />}
       >
         <div className="flex items-center gap-3 max-w-2xl mx-auto pt-1.5">
           <div className="flex items-center gap-1 shrink-0">
@@ -226,77 +225,81 @@ function WorkshopPage() {
       <div className="flex items-start gap-6 flex-1">
         <div className="flex-1 h-fit transition-all duration-300 space-y-4">
           {showBrowse ? (
-            <>
-              <WallpaperGridLayout
-                wallpapers={wallpapers}
-                isLoading={isLoading}
-                showCompatibilityDot={false}
-                selectedId={selectedWallpaper?.id}
-                onCardClick={toggleWallpaper}
-                gridClassName={gridCols}
-                emptyIcon={Store}
-                emptyMessage="No workshop items found"
-                emptySubMessage="Try a different search term"
-              />
+            error ? (
+              <WorkshopConnectionPrompt message={error.message} />
+            ) : (
+              <>
+                <WallpaperGridLayout
+                  wallpapers={wallpapers}
+                  isLoading={isLoading}
+                  showCompatibilityDot={false}
+                  selectedId={selectedWallpaper?.id}
+                  onCardClick={toggleWallpaper}
+                  gridClassName={gridCols}
+                  emptyIcon={Store}
+                  emptyMessage="No workshop items found"
+                  emptySubMessage="Try a different search term"
+                />
 
-              {data && data.returnedResults > 0 && (() => {
-                const { nearbyPages, totalPages, showFirstPage, showLastPage, showStartEllipsis, showEndEllipsis } = getPaginationRange(page, data.totalResults, data.returnedResults)
+                {data && data.returnedResults > 0 && (() => {
+                  const { nearbyPages, totalPages, showFirstPage, showLastPage, showStartEllipsis, showEndEllipsis } = getPaginationRange(page, data.totalResults, data.returnedResults)
 
-                return (
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-                          aria-disabled={page <= 1 || isFetching}
-                          className={page <= 1 || isFetching ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                      {showFirstPage && (
+                  return (
+                    <Pagination>
+                      <PaginationContent>
                         <PaginationItem>
-                          <PaginationLink onClick={() => setPage(1)} className="cursor-pointer">1</PaginationLink>
+                          <PaginationPrevious
+                            onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                            aria-disabled={page <= 1 || isFetching}
+                            className={page <= 1 || isFetching ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
                         </PaginationItem>
-                      )}
-                      {showStartEllipsis && (
+                        {showFirstPage && (
+                          <PaginationItem>
+                            <PaginationLink onClick={() => setPage(1)} className="cursor-pointer">1</PaginationLink>
+                          </PaginationItem>
+                        )}
+                        {showStartEllipsis && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+                        {nearbyPages.filter(p => p < page).map(p => (
+                          <PaginationItem key={p}>
+                            <PaginationLink onClick={() => setPage(p)} className="cursor-pointer">{p}</PaginationLink>
+                          </PaginationItem>
+                        ))}
                         <PaginationItem>
-                          <PaginationEllipsis />
+                          <PaginationLink isActive className="cursor-default">{page}</PaginationLink>
                         </PaginationItem>
-                      )}
-                      {nearbyPages.filter(p => p < page).map(p => (
-                        <PaginationItem key={p}>
-                          <PaginationLink onClick={() => setPage(p)} className="cursor-pointer">{p}</PaginationLink>
-                        </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationLink isActive className="cursor-default">{page}</PaginationLink>
-                      </PaginationItem>
-                      {nearbyPages.filter(p => p > page).map(p => (
-                        <PaginationItem key={p}>
-                          <PaginationLink onClick={() => setPage(p)} className="cursor-pointer">{p}</PaginationLink>
-                        </PaginationItem>
-                      ))}
-                      {showEndEllipsis && (
+                        {nearbyPages.filter(p => p > page).map(p => (
+                          <PaginationItem key={p}>
+                            <PaginationLink onClick={() => setPage(p)} className="cursor-pointer">{p}</PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        {showEndEllipsis && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+                        {showLastPage && (
+                          <PaginationItem>
+                            <PaginationLink onClick={() => setPage(totalPages)} className="cursor-pointer">{totalPages}</PaginationLink>
+                          </PaginationItem>
+                        )}
                         <PaginationItem>
-                          <PaginationEllipsis />
+                          <PaginationNext
+                            onClick={() => setPage(prev => prev + 1)}
+                            aria-disabled={!data.hasNextPage || isFetching}
+                            className={!data.hasNextPage || isFetching ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
                         </PaginationItem>
-                      )}
-                      {showLastPage && (
-                        <PaginationItem>
-                          <PaginationLink onClick={() => setPage(totalPages)} className="cursor-pointer">{totalPages}</PaginationLink>
-                        </PaginationItem>
-                      )}
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => setPage(prev => prev + 1)}
-                          aria-disabled={!data.hasNextPage || isFetching}
-                          className={!data.hasNextPage || isFetching ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                )
-              })()}
-            </>
+                      </PaginationContent>
+                    </Pagination>
+                  )
+                })()}
+              </>
+            )
           ) : (
             <div className="space-y-10">
               {isDiscoverLoading ? (
@@ -310,6 +313,8 @@ function WorkshopPage() {
                     </div>
                   </div>
                 ))
+              ) : discoverError ? (
+                <WorkshopConnectionPrompt message={discoverError.message} />
               ) : visibleDiscoverSections.length > 0 ? (
                 <>
                   {visibleDiscoverSections.map((section) => (

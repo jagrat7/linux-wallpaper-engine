@@ -1,4 +1,6 @@
 import { AGE_RATINGS, FILTER_TYPE_OPTIONS, type AgeRating, type WallpaperFilterType, type WallpaperType } from '../../../shared/constants/wallpaper'
+import type { AppSettings } from '../../../shared/constants/app'
+import type { DiscoverSectionConfig, WorkshopItem } from './workshop.types'
 
 export function parseWorkshopId(workshopId: string): bigint | null {
   const normalizedId = workshopId.trim()
@@ -84,4 +86,61 @@ export function matchesWallpaperTypeFilter(type: WallpaperType, filterType: Wall
   }
 
   return selectedTypes.includes(type)
+}
+
+export function buildRequiredTags(
+  settings: Pick<AppSettings, 'filterTags' | 'filterAgeRating' | 'filterResolution'>,
+  baseTags: string[] = []
+): string[] {
+  const customTags = settings.filterTags.map(tag => tag.trim()).filter(Boolean)
+  const ageRatingTags = settings.filterAgeRating
+    .map(value => AGE_RATINGS[value]?.workshopTag)
+    .filter(Boolean)
+  const resolutionTags = settings.filterResolution
+    .map(value => toWorkshopResolutionTag(value))
+    .filter((value): value is string => value != null)
+
+  return Array.from(new Set([...baseTags, ...customTags, ...ageRatingTags, ...resolutionTags]))
+}
+
+export function shuffleDiscoverSectionConfigs(sectionConfigs: DiscoverSectionConfig[]): DiscoverSectionConfig[] {
+  const shuffledConfigs = [...sectionConfigs]
+
+  for (let index = shuffledConfigs.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    const currentConfig = shuffledConfigs[index]
+
+    shuffledConfigs[index] = shuffledConfigs[swapIndex]
+    shuffledConfigs[swapIndex] = currentConfig
+  }
+
+  return shuffledConfigs
+}
+
+type WorkshopSourceItem = {
+  publishedFileId: bigint
+  title: string
+  owner: {
+    steamId64: bigint
+  }
+  tags: string[]
+  previewUrl?: string | null
+}
+
+export function mapWorkshopItems(
+  items: Array<WorkshopSourceItem | null | undefined>,
+  filterType: AppSettings['filterType']
+): WorkshopItem[] {
+  return items
+    .filter((item): item is WorkshopSourceItem => item != null)
+    .map((item): WorkshopItem => ({
+      id: item.publishedFileId.toString(),
+      title: item.title,
+      author: item.owner.steamId64.toString(),
+      ageRating: parseWorkshopAgeRating(item.tags),
+      type: parseWorkshopType(item.tags),
+      tags: item.tags,
+      previewUrl: item.previewUrl ?? undefined,
+    }))
+    .filter(item => matchesWallpaperTypeFilter(item.type, filterType))
 }

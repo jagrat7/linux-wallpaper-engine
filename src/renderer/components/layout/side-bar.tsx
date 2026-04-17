@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router"
+import { useNavigate, useRouterState } from "@tanstack/react-router"
 import {
     Download,
     List,
@@ -35,6 +35,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
     const router = useRouterState()
+    const navigate = useNavigate()
     const currentPath = router.location.pathname
     const isLightTheme = useTheme().mode.includes("light")
     return (
@@ -59,11 +60,9 @@ export function Sidebar({ className }: SidebarProps) {
                                 const isActive = currentPath === item.to
                                 return (
                                     <SidebarMenuItem key={item.to}>
-                                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                                            <Link to={item.to}>
-                                                <item.icon className="size-4" />
-                                                <span>{item.label}</span>
-                                            </Link>
+                                        <SidebarMenuButton isActive={isActive} tooltip={item.label} onClick={() => navigate({ to: item.to })}>
+                                            <item.icon className="size-4" />
+                                            <span>{item.label}</span>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 )
