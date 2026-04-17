@@ -32,18 +32,6 @@ export const workshopRouter = trpc.router({
     })
   }),
 
-  connectionStatus: trpc.procedure.query(() => workshopService.getConnectionStatus()),
-
-  disconnect: trpc.procedure.mutation(() => {
-    workshopService.disconnect()
-    return true
-  }),
-
-  reconnect: workshopProcedure.mutation(async () => {
-    await workshopService.reconnect()
-    return true
-  }),
-
   getItems: workshopProcedure
     .input(
       z.object({
@@ -66,5 +54,5 @@ export const workshopRouter = trpc.router({
 
   status: workshopProcedure
     .input(z.object({ workshopId: z.string() }))
-    .query(({ input }) => workshopService.status(input.workshopId)),
+    .query(({ input }) => workshopService.itemStatus(input.workshopId)),
 })

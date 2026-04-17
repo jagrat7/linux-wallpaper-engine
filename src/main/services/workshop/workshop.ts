@@ -3,9 +3,9 @@ import { EventEmitter } from 'node:events'
 import { promisify } from 'node:util'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { settingsService } from '../settings'
-import type { IWorkshopService, WorkshopConnectionStatus } from './workshop.interface'
+import type { IWorkshopService } from './workshop.interface'
 import type { WorkshopDiscoverResult, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
-import { createWorkshopConnectionError, type WorkshopConnectionIssue } from './workshop.errors'
+import { createWorkshopConnectionError } from './workshop.errors'
 import { buildRequiredTags, mapWorkshopItems, parseWorkshopId, shuffleDiscoverSectionConfigs, toSafeNumber } from './workshop.utils'
 import { FIRST_PAGE, DISCOVER_PAGE, DISCOVER_SECTION_LIMIT, UGC_QUERY_TYPE_RANKED_BY_TREND, UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH, UGC_TYPE_ITEMS_READY_TO_USE, CURATED_DISCOVER_SECTION_CONFIGS, PINNED_DISCOVER_SECTION_CONFIGS } from '../../../shared/constants/workshop'
 
@@ -13,27 +13,16 @@ type SteamworksModule = typeof import('steamworks.js')
 type SteamClient = ReturnType<SteamworksModule['init']>
 export type WorkshopConnectionEvent = 'connected' | 'disconnected'
 
-type SteamConnectionState =
-    | { status: 'idle' }
-    | { status: 'connecting' }
-    | { status: 'connected'; client: SteamClient }
-    | { status: 'disconnected'; reason: WorkshopConnectionIssue }
-    | { status: 'user_disconnected' }
-
 const execFileAsync = promisify(execFile)
-const CONNECTION_MONITOR_INTERVAL_MS = 3000
-const STEAM_SERVERS_DISCONNECTED_CALLBACK = 2
+const AUTO_CONNECT_INTERVAL_MS = 3000
 
 class WorkshopService implements IWorkshopService {
     private static instance: WorkshopService | null = null
 
-    private connection: SteamConnectionState = { status: 'idle' }
-    private clientPromise: Promise<SteamClient | null> | null = null
-    private disconnectHandle: { disconnect(): void } | null = null
-    private steamCallbacksInterval: ReturnType<typeof setInterval> | null = null
+    private client: SteamClient | null = null
+    private clientPromise: Promise<SteamClient> | null = null
     private connectionEmitter = new EventEmitter()
-    private connectionMonitor: ReturnType<typeof setInterval> | null = null
-    private isRecoveryRunning = false
+    private autoConnectTimer: ReturnType<typeof setInterval> | null = null
     private subscriberCount = 0
 
     static getInstance(): WorkshopService {
@@ -44,69 +33,56 @@ class WorkshopService implements IWorkshopService {
         return WorkshopService.instance
     }
 
-    getConnectionStatus(): WorkshopConnectionStatus {
-        return this.connection.status
-    }
-
-    disconnect(): void {
-        if (this.connection.status !== 'connected') {
-            return
+    private async isSteamProcessRunning(): Promise<boolean> {
+        for (const name of ['steam', 'steamwebhelper']) {
+            try {
+                const { stdout } = await execFileAsync('pgrep', ['-x', name])
+                if (stdout.trim().length > 0) return true
+            } catch {
+                continue
+            }
         }
-
-        this.releaseSteamResources()
-        this.connection = { status: 'user_disconnected' }
-        this.connectionEmitter.emit('connection', 'disconnected')
-    }
-
-    async reconnect(): Promise<void> {
-        if (this.connection.status === 'connected' || this.connection.status === 'connecting') {
-            return
-        }
-
-        this.connection = { status: 'idle' }
-
-        try {
-            await this.getClient()
-        } catch {
-            // getClient will have transitioned to the appropriate disconnected state.
-        }
+        return false
     }
 
     subscribeToConnectionEvents(cb: (event: WorkshopConnectionEvent) => void): () => void {
         this.subscriberCount += 1
         this.connectionEmitter.on('connection', cb)
-        this.startMonitor()
+
+        if (!this.autoConnectTimer) {
+            this.autoConnectTimer = setInterval(async () => {
+                if (this.client || this.clientPromise) {
+                    return
+                }
+
+                if (await this.isSteamProcessRunning()) {
+                    try {
+                        await this.getClient()
+                    } catch {
+                        // Steam running but init failed (not logged in, etc). Retry next tick.
+                    }
+                }
+            }, AUTO_CONNECT_INTERVAL_MS)
+        }
 
         return () => {
             this.connectionEmitter.off('connection', cb)
             this.subscriberCount = Math.max(this.subscriberCount - 1, 0)
 
-            if (this.subscriberCount === 0) {
-                this.stopMonitor()
+            if (this.subscriberCount === 0 && this.autoConnectTimer) {
+                clearInterval(this.autoConnectTimer)
+                this.autoConnectTimer = null
             }
         }
     }
 
     async query(options?: WorkshopQueryOptions): Promise<WorkshopQueryResult> {
-        // Get the Steam client instance, or return an empty result if unavailable.
         const client = await this.getClient()
         const settings = await settingsService.loadSettings()
         const page = Math.max(options?.page ?? FIRST_PAGE, FIRST_PAGE)
         const search = options?.search?.trim()
         const requiredTags = buildRequiredTags(settings)
 
-        // Return an empty result when Steam is unavailable so the renderer can stay consistent.
-        if (!client) {
-            return {
-                items: [],
-                page,
-                totalResults: 0,
-                returnedResults: 0,
-                hasNextPage: false,
-            }
-        }
-
-        // Query Wallpaper Engine Workshop items with server-side tag filtering where possible.
         const result = await client.workshop.getAllItems(
             page,
             search ? UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH : UGC_QUERY_TYPE_RANKED_BY_TREND,
@@ -124,7 +100,6 @@ class WorkshopService implements IWorkshopService {
             },
         )
 
-        // Normalize the raw Steam items into the app's WorkshopItem shape, then apply type filtering.
         const items = mapWorkshopItems(result.items, settings.filterType)
 
         return {
@@ -144,12 +119,6 @@ class WorkshopService implements IWorkshopService {
             ...shuffleDiscoverSectionConfigs(CURATED_DISCOVER_SECTION_CONFIGS),
         ]
 
-        // Return an empty discover payload when Steam is unavailable so the renderer can render fallback UI.
-        if (!client) {
-            return { sections: [] }
-        }
-
-        // Build each discover rail from a small curated Workshop query while preserving the shared app filters.
         const sections = await Promise.all(
             sectionConfigs.map(async (sectionConfig) => {
                 const result = await client.workshop.getAllItems(
@@ -212,7 +181,7 @@ class WorkshopService implements IWorkshopService {
         }
     }
 
-    async status(workshopId: string): Promise<WorkshopStatus | null> {
+    async itemStatus(workshopId: string): Promise<WorkshopStatus | null> {
         const workshopContext = await this.resolveWorkshopContext(workshopId)
 
         if (!workshopContext) {
@@ -240,161 +209,44 @@ class WorkshopService implements IWorkshopService {
     }
 
     private async resolveWorkshopContext(workshopId: string): Promise<{ client: SteamClient; itemId: bigint } | null> {
-        const client = await this.getClient()
         const itemId = parseWorkshopId(workshopId)
 
-        if (!client || itemId == null) {
+        if (itemId == null) {
             return null
         }
 
-        return { client, itemId }
+        try {
+            const client = await this.getClient()
+            return { client, itemId }
+        } catch {
+            return null
+        }
     }
 
-    private async getClient(): Promise<SteamClient | null> {
-        if (this.connection.status === 'connected') {
-            return this.connection.client
+    private async getClient(): Promise<SteamClient> {
+        if (this.client) {
+            return this.client
         }
 
         if (this.clientPromise) {
             return this.clientPromise
         }
 
-        if (this.connection.status === 'disconnected') {
-            throw createWorkshopConnectionError(this.connection.reason)
-        }
-
-        if (this.connection.status === 'user_disconnected') {
-            throw createWorkshopConnectionError('steam_unavailable')
-        }
-
-        this.connection = { status: 'connecting' }
-
-        const isSteamRunning = await this.isSteamProcessRunning()
-
-        if (!isSteamRunning) {
-            this.connection = { status: 'disconnected', reason: 'steam_not_running' }
-            throw createWorkshopConnectionError('steam_not_running')
-        }
-
         this.clientPromise = import('steamworks.js')
             .then((steamworksModule) => {
-                const client = this.initSteamClient(steamworksModule)
-
-                this.disconnectHandle = client.callback.register(
-                    STEAM_SERVERS_DISCONNECTED_CALLBACK,
-                    () => this.handleDisconnect(),
-                )
-
-                this.connection = { status: 'connected', client }
+                const client = steamworksModule.init(WALLPAPER_ENGINE_APP_ID)
+                this.client = client
                 this.connectionEmitter.emit('connection', 'connected')
                 return client
             })
             .catch(() => {
-                this.connection = { status: 'disconnected', reason: 'steam_not_logged_in' }
-                throw createWorkshopConnectionError('steam_not_logged_in')
+                throw createWorkshopConnectionError('steam_not_running')
             })
             .finally(() => {
                 this.clientPromise = null
             })
 
         return this.clientPromise
-    }
-
-    // Temporarily monkey-patch setInterval to capture the runCallbacks interval ID
-    // that steamworks.js creates internally. This lets us stop polling Steam on
-    // disconnect so Steam can shut down without waiting for our app.
-    private initSteamClient(steamworksModule: SteamworksModule): SteamClient {
-        const originalSetInterval = globalThis.setInterval
-        globalThis.setInterval = ((...args: Parameters<typeof setInterval>) => {
-            const id = originalSetInterval(...args)
-            this.steamCallbacksInterval = id
-            return id
-        }) as typeof setInterval
-
-        try {
-            return steamworksModule.init(WALLPAPER_ENGINE_APP_ID)
-        } finally {
-            globalThis.setInterval = originalSetInterval
-        }
-    }
-
-    private handleDisconnect(): void {
-        this.releaseSteamResources()
-        this.connection = { status: 'disconnected', reason: 'steam_not_running' }
-        this.connectionEmitter.emit('connection', 'disconnected')
-    }
-
-    private releaseSteamResources(): void {
-        this.disconnectHandle?.disconnect()
-        this.disconnectHandle = null
-
-        if (this.steamCallbacksInterval) {
-            clearInterval(this.steamCallbacksInterval)
-            this.steamCallbacksInterval = null
-        }
-    }
-
-    private startMonitor(): void {
-        if (this.connectionMonitor) {
-            return
-        }
-
-        this.connectionMonitor = setInterval(() => {
-            void this.tryRecover()
-        }, CONNECTION_MONITOR_INTERVAL_MS)
-    }
-
-    private stopMonitor(): void {
-        if (!this.connectionMonitor) {
-            return
-        }
-
-        clearInterval(this.connectionMonitor)
-        this.connectionMonitor = null
-    }
-
-    private async tryRecover(): Promise<void> {
-        if (this.isRecoveryRunning || this.connection.status !== 'disconnected') {
-            return
-        }
-
-        this.isRecoveryRunning = true
-
-        try {
-            const isSteamRunning = await this.isSteamProcessRunning()
-
-            if (!isSteamRunning) {
-                return
-            }
-
-            this.connection = { status: 'idle' }
-            await this.getClient()
-        } catch {
-            // Recovery failed, will retry on next interval tick.
-        } finally {
-            this.isRecoveryRunning = false
-        }
-    }
-
-    private async isSteamProcessRunning(): Promise<boolean> {
-        const processChecks = [
-            { command: 'pgrep', args: ['-x', 'steam'] },
-            { command: 'pgrep', args: ['-x', 'steamwebhelper'] },
-        ]
-
-        for (const processCheck of processChecks) {
-            try {
-                const { stdout } = await execFileAsync(processCheck.command, processCheck.args)
-
-                if (stdout.trim().length > 0) {
-                    return true
-                }
-            } catch {
-                continue
-            }
-        }
-
-        return false
     }
 }
 

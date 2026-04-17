@@ -11,7 +11,6 @@ import { SearchInput } from "@/components/wallpaper/search"
 import { WorkshopDiscoverSection } from "@/components/workshop/workshop-discover-section"
 import { WorkshopConnectionPrompt } from "@/components/workshop/workshop-connection-prompt"
 import { WorkshopFiltersDropdown } from "@/components/workshop/workshop-filters-dropdown"
-import { WorkshopConnectionButton } from "@/components/workshop/workshop-connection-button"
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink, PaginationEllipsis, getPaginationRange } from "@/components/ui/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/page-header"
@@ -116,7 +115,6 @@ function WorkshopPage() {
 
   trpc.workshop.onConnectionEvent.useSubscription(undefined, {
     onData: () => {
-      void utils.workshop.connectionStatus.invalidate()
       void utils.workshop.getItems.invalidate()
       void utils.workshop.discover.invalidate()
 
@@ -191,7 +189,6 @@ function WorkshopPage() {
       <PageHeader
         title="Workshop"
         description="Browse wallpapers from Steam Workshop"
-        action={<WorkshopConnectionButton />}
       >
         <div className="flex items-center gap-3 max-w-2xl mx-auto pt-1.5">
           <div className="flex items-center gap-1 shrink-0">
