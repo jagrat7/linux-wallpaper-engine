@@ -70,6 +70,44 @@ export const displayService = {
       // xrandr not available or failed, try Wayland
     }
 
+    // Try hyprctl (Hyprland) — guaranteed available on Hyprland, unlike wlr-randr
+    try {
+      const { stdout } = await hostExecAsync('hyprctl monitors -j')
+      const monitors = JSON.parse(stdout) as Array<{
+        name: string
+        width: number
+        height: number
+        refreshRate: number
+        x: number
+        y: number
+        focused: boolean
+        disabled?: boolean
+      }>
+
+      for (const m of monitors) {
+        if (m.disabled) continue
+        displays.push({
+          id: m.name,
+          name: m.name,
+          resolution: `${m.width}x${m.height}`,
+          width: m.width,
+          height: m.height,
+          x: m.x,
+          y: m.y,
+          refreshRate: Math.round(m.refreshRate),
+          primary: m.focused || displays.length === 0,
+          connected: true,
+          degraded: false,
+        })
+      }
+
+      if (displays.length > 0) {
+        return this.applyNameOverrides(displays)
+      }
+    } catch {
+      // hyprctl not available (not Hyprland) or failed
+    }
+
     // Try wlr-randr (Wayland with wlroots-based compositors)
     try {
       const { stdout } = await hostExecAsync('wlr-randr')
