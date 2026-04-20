@@ -22,7 +22,7 @@ export const wallpaperRouter = trpc.router({
     )
     .query(async ({ input }) => {
       const { wallpapers } = await wallpaperService.query(input)
-      return wallpapers
+      return []
     }),
 
   // Invalidate wallpaper cache so the next query triggers a fresh scan

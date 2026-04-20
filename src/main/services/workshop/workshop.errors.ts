@@ -7,7 +7,7 @@ export class SteamNotRunningError extends TaggedError('SteamNotRunningError')<{
 }>() {
   constructor() {
     super({
-      message: 'Start Steam to browse Workshop items.',
+      message: 'Start Steam app to browse Workshop items.',
     })
   }
 }

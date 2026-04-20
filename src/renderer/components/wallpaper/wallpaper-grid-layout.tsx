@@ -1,7 +1,7 @@
 import { type ReactNode } from "react"
-import { motion } from "framer-motion"
 import { FolderOpen, type LucideIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/empty-state"
 import { WallpaperCard } from "./wallpaper-card"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
@@ -49,20 +49,7 @@ export function WallpaperGridLayout({
     }
 
     if (wallpapers.length === 0) {
-        return (
-            <motion.div
-                className="flex flex-col items-center justify-center py-20 text-muted-foreground"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-            >
-                <EmptyIcon className="size-12 mb-4 opacity-50" />
-                <p className="font-medium">{emptyMessage}</p>
-                {emptySubMessage && (
-                    <p className="text-sm mt-1">{emptySubMessage}</p>
-                )}
-            </motion.div>
-        )
+        return <EmptyState icon={EmptyIcon} title={emptyMessage} description={emptySubMessage} />
     }
 
     return (
