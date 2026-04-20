@@ -12,7 +12,7 @@ import {
 interface WorkshopPaginationProps {
   page: number
   totalResults: number
-  returnedResults: number
+  resultsPerPage: number
   hasNextPage: boolean
   isFetching: boolean
   onPageChange: (page: number) => void
@@ -21,12 +21,12 @@ interface WorkshopPaginationProps {
 export function WorkshopPagination({
   page,
   totalResults,
-  returnedResults,
+  resultsPerPage,
   hasNextPage,
   isFetching,
   onPageChange,
 }: WorkshopPaginationProps) {
-  const { nearbyPages, totalPages, showFirstPage, showLastPage, showStartEllipsis, showEndEllipsis } = getPaginationRange(page, totalResults, returnedResults)
+  const { nearbyPages, totalPages, showFirstPage, showLastPage, showStartEllipsis, showEndEllipsis } = getPaginationRange(page, totalResults, resultsPerPage)
   const isPrevDisabled = page <= 1 || isFetching
   const isNextDisabled = !hasNextPage || isFetching
 

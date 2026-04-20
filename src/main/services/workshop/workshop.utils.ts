@@ -1,5 +1,6 @@
 import { AGE_RATINGS, FILTER_TYPE_OPTIONS, type AgeRating, type WallpaperType } from '../../../shared/constants/wallpaper'
 import type { AppSettings } from '../../../shared/constants/app'
+import { FIRST_PAGE } from '../../../shared/constants/workshop'
 import type { DiscoverSectionConfig, WorkshopItem } from './workshop.types'
 
 type WorkshopFilterSettings = Pick<AppSettings, 'workshopFilterType' | 'workshopFilterAgeRating' | 'workshopFilterTags' | 'workshopFilterResolution'>
@@ -166,6 +167,58 @@ export function mergeWorkshopItemsBySource<T extends WorkshopMergeableItem>(
   }
 
   return mergedItems
+}
+
+export type WorkshopPaginatedResultLike<TItem> = {
+  items: Array<TItem | null | undefined>
+  returnedResults: number
+  totalResults: number
+  wasCached: boolean
+}
+
+function isInvalidWorkshopPageError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const normalizedMessage = error.message.toLowerCase()
+  return normalizedMessage.includes('parameter') && normalizedMessage.includes('invalid')
+}
+
+export async function settleWorkshopPageResults<TItem>(
+  requests: Array<Promise<WorkshopPaginatedResultLike<TItem>>>,
+  page: number
+): Promise<WorkshopPaginatedResultLike<TItem>[]> {
+  const settledResults = await Promise.allSettled(requests)
+  const results: WorkshopPaginatedResultLike<TItem>[] = []
+  let firstError: unknown = null
+
+  for (const settledResult of settledResults) {
+    if (settledResult.status === 'fulfilled') {
+      results.push(settledResult.value)
+      continue
+    }
+
+    if (page > FIRST_PAGE && isInvalidWorkshopPageError(settledResult.reason)) {
+      results.push({
+        items: [],
+        returnedResults: 0,
+        totalResults: 0,
+        wasCached: false,
+      })
+      continue
+    }
+
+    if (firstError == null) {
+      firstError = settledResult.reason
+    }
+  }
+
+  if (results.length > 0) {
+    return results
+  }
+
+  throw firstError
 }
 
 type WorkshopSourceItem = {

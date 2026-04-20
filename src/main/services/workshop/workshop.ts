@@ -4,14 +4,15 @@ import { promisify } from 'node:util'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { settingsService } from '../settings'
 import type { IWorkshopService } from './workshop.interface'
-import type { WorkshopDiscoverOptions, WorkshopDiscoverResult, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
+import type { WorkshopDiscoverOptions, WorkshopDiscoverResult, WorkshopItem as AppWorkshopItem, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
 import { createWorkshopConnectionError } from './workshop.errors'
-import { buildFilterCombinations, mapWorkshopItems, mergeWorkshopItemsBySource, parseWorkshopId, shuffleDiscoverSectionConfigs, toSafeNumber } from './workshop.utils'
+import { buildFilterCombinations, mapWorkshopItems, mergeWorkshopItemsBySource, parseWorkshopId, settleWorkshopPageResults, shuffleDiscoverSectionConfigs, toSafeNumber } from './workshop.utils'
 import { decodeWorkshopCursor } from '../../../shared/utils/workshop-cursor'
 import { DISCOVER_PAGE, DISCOVER_SECTION_LIMIT, UGC_QUERY_TYPE_RANKED_BY_TREND, UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH, UGC_TYPE_ITEMS_READY_TO_USE, CURATED_DISCOVER_SECTION_CONFIGS, PINNED_DISCOVER_SECTION_CONFIGS, WORKSHOP_SORT_TO_QUERY_TYPE, WORKSHOP_TREND_DAYS, WORKSHOP_MAX_RESULTS } from '../../../shared/constants/workshop'
 
 type SteamworksModule = typeof import('steamworks.js')
 type SteamClient = ReturnType<SteamworksModule['init']>
+type WorkshopPaginatedResult = Awaited<ReturnType<SteamClient['workshop']['getAllItems']>>
 export type WorkshopConnectionEvent = 'connected' | 'disconnected'
 
 const execFileAsync = promisify(execFile)
@@ -86,10 +87,8 @@ class WorkshopService implements IWorkshopService {
         const sortedQueryType = WORKSHOP_SORT_TO_QUERY_TYPE[sortBy] ?? UGC_QUERY_TYPE_RANKED_BY_TREND
         const queryType = search ? UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH : sortedQueryType
 
-        // One Steam query per (type, ageRating) combination. AND within a combo, OR across combos.
-        // This keeps filtering fully server-side (no post-filter) and gives a stable result set per unique query.
         const combinations = buildFilterCombinations(settings)
-        const results = await Promise.all(
+        const results = await settleWorkshopPageResults(
             combinations.map(requiredTags =>
                 client.workshop.getAllItems(
                     page,
@@ -108,22 +107,28 @@ class WorkshopService implements IWorkshopService {
                     },
                 ),
             ),
+            page,
         )
 
-        const mergedRawItems = mergeWorkshopItemsBySource(results.map(result => result.items))
-
-        const items = mapWorkshopItems(mergedRawItems)
-        // Sum is a slight over-count when combos overlap, but Steam's cap clamps it below the UI pagination ceiling.
-        const totalResults = results.reduce((sum, result) => sum + result.totalResults, 0)
+        const mergedRawItems = mergeWorkshopItemsBySource<NonNullable<WorkshopPaginatedResult['items'][number]>>(
+            results.map((result: WorkshopPaginatedResult) => result.items),
+        )
+        const items: AppWorkshopItem[] = mapWorkshopItems(mergedRawItems)
+        const totalResults = results.reduce((sum: number, result: WorkshopPaginatedResult) => sum + result.totalResults, 0)
         const cappedTotalResults = Math.min(totalResults, WORKSHOP_MAX_RESULTS)
+        const resultsPerPage = Math.max(
+            results.reduce((sum: number, result: WorkshopPaginatedResult) => sum + result.returnedResults, 0),
+            1,
+        )
         const returnedResults = items.length
-        const anyCombinationHasMore = results.some(result => (page * result.returnedResults) < result.totalResults)
-        const hasNextPage = anyCombinationHasMore && (page * returnedResults) < cappedTotalResults
+        const anyCombinationHasMore = results.some((result: WorkshopPaginatedResult) => (page * result.returnedResults) < result.totalResults)
+        const hasNextPage = anyCombinationHasMore
 
         return {
             items,
             page,
             totalResults: cappedTotalResults,
+            resultsPerPage,
             returnedResults,
             hasNextPage,
         }
@@ -141,17 +146,14 @@ class WorkshopService implements IWorkshopService {
 
         const sections = await Promise.all(
             sectionConfigs.map(async (sectionConfig) => {
-                // Pinned sections (Trending, New) keep their defining query.
-                // Curated category sections follow the user-selected sort so the order is consistent.
                 const isPinned = PINNED_DISCOVER_SECTION_CONFIGS.some(pinned => pinned.id === sectionConfig.id)
                 const queryType = isPinned || !sortedQueryType ? sectionConfig.queryType : sortedQueryType
                 const rankedByTrendDays = queryType === UGC_QUERY_TYPE_RANKED_BY_TREND
                     ? (sectionConfig.rankedByTrendDays ?? WORKSHOP_TREND_DAYS)
                     : undefined
 
-                // Section's own required tags become baseTags for the combinator, then type/age axes fan out into combos.
                 const combinations = buildFilterCombinations(settings, sectionConfig.requiredTags)
-                const results = await Promise.all(
+                const results = await settleWorkshopPageResults(
                     combinations.map(requiredTags =>
                         client.workshop.getAllItems(
                             DISCOVER_PAGE,
@@ -169,10 +171,11 @@ class WorkshopService implements IWorkshopService {
                             },
                         ),
                     ),
+                    DISCOVER_PAGE,
                 )
 
-                const mergedRawItems = mergeWorkshopItemsBySource(
-                    results.map(result => result.items),
+                const mergedRawItems = mergeWorkshopItemsBySource<NonNullable<WorkshopPaginatedResult['items'][number]>>(
+                    results.map((result: WorkshopPaginatedResult) => result.items),
                     DISCOVER_SECTION_LIMIT,
                 )
 

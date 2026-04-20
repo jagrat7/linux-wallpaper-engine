@@ -247,7 +247,7 @@ function WorkshopPage() {
                   <WorkshopPagination
                     page={page}
                     totalResults={data.totalResults}
-                    returnedResults={data.returnedResults}
+                    resultsPerPage={data.resultsPerPage}
                     hasNextPage={data.hasNextPage}
                     isFetching={isFetching}
                     onPageChange={setPage}

@@ -56,6 +56,7 @@ export interface WorkshopQueryResult {
   items: WorkshopItem[]
   page: number
   totalResults: number
+  resultsPerPage: number
   returnedResults: number
   hasNextPage: boolean
 }
