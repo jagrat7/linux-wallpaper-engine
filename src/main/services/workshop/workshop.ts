@@ -4,10 +4,11 @@ import { promisify } from 'node:util'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { settingsService } from '../settings'
 import type { IWorkshopService } from './workshop.interface'
-import type { WorkshopDiscoverResult, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
+import type { WorkshopDiscoverOptions, WorkshopDiscoverResult, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
 import { createWorkshopConnectionError } from './workshop.errors'
-import { buildRequiredTags, mapWorkshopItems, parseWorkshopId, shuffleDiscoverSectionConfigs, toSafeNumber } from './workshop.utils'
-import { FIRST_PAGE, DISCOVER_PAGE, DISCOVER_SECTION_LIMIT, UGC_QUERY_TYPE_RANKED_BY_TREND, UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH, UGC_TYPE_ITEMS_READY_TO_USE, CURATED_DISCOVER_SECTION_CONFIGS, PINNED_DISCOVER_SECTION_CONFIGS } from '../../../shared/constants/workshop'
+import { buildFilterCombinations, mapWorkshopItems, mergeWorkshopItemsBySource, parseWorkshopId, shuffleDiscoverSectionConfigs, toSafeNumber } from './workshop.utils'
+import { decodeWorkshopCursor } from '../../../shared/utils/workshop-cursor'
+import { DISCOVER_PAGE, DISCOVER_SECTION_LIMIT, UGC_QUERY_TYPE_RANKED_BY_TREND, UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH, UGC_TYPE_ITEMS_READY_TO_USE, CURATED_DISCOVER_SECTION_CONFIGS, PINNED_DISCOVER_SECTION_CONFIGS, WORKSHOP_SORT_TO_QUERY_TYPE, WORKSHOP_TREND_DAYS, WORKSHOP_MAX_RESULTS } from '../../../shared/constants/workshop'
 
 type SteamworksModule = typeof import('steamworks.js')
 type SteamClient = ReturnType<SteamworksModule['init']>
@@ -79,41 +80,60 @@ class WorkshopService implements IWorkshopService {
     async query(options?: WorkshopQueryOptions): Promise<WorkshopQueryResult> {
         const client = await this.getClient()
         const settings = await settingsService.loadSettings()
-        const page = Math.max(options?.page ?? FIRST_PAGE, FIRST_PAGE)
+        const page = decodeWorkshopCursor(options?.cursor)
         const search = options?.search?.trim()
-        const requiredTags = buildRequiredTags(settings)
+        const sortBy = options?.sortBy ?? settings.workshopSortBy
+        const sortedQueryType = WORKSHOP_SORT_TO_QUERY_TYPE[sortBy] ?? UGC_QUERY_TYPE_RANKED_BY_TREND
+        const queryType = search ? UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH : sortedQueryType
 
-        const result = await client.workshop.getAllItems(
-            page,
-            search ? UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH : UGC_QUERY_TYPE_RANKED_BY_TREND,
-            UGC_TYPE_ITEMS_READY_TO_USE,
-            WALLPAPER_ENGINE_APP_ID,
-            WALLPAPER_ENGINE_APP_ID,
-            {
-                searchText: search || undefined,
-                matchAnyTag: requiredTags.length > 1 ? true : undefined,
-                requiredTags: requiredTags.length > 0 ? requiredTags : undefined,
-                rankedByTrendDays: search ? undefined : 30,
-                includeAdditionalPreviews: false,
-                includeLongDescription: false,
-                includeMetadata: true,
-            },
+        // One Steam query per (type, ageRating) combination. AND within a combo, OR across combos.
+        // This keeps filtering fully server-side (no post-filter) and gives a stable result set per unique query.
+        const combinations = buildFilterCombinations(settings)
+        const results = await Promise.all(
+            combinations.map(requiredTags =>
+                client.workshop.getAllItems(
+                    page,
+                    queryType,
+                    UGC_TYPE_ITEMS_READY_TO_USE,
+                    WALLPAPER_ENGINE_APP_ID,
+                    WALLPAPER_ENGINE_APP_ID,
+                    {
+                        searchText: search || undefined,
+                        matchAnyTag: false,
+                        requiredTags: requiredTags.length > 0 ? requiredTags : undefined,
+                        rankedByTrendDays: queryType === UGC_QUERY_TYPE_RANKED_BY_TREND ? WORKSHOP_TREND_DAYS : undefined,
+                        includeAdditionalPreviews: false,
+                        includeLongDescription: false,
+                        includeMetadata: true,
+                    },
+                ),
+            ),
         )
 
-        const items = mapWorkshopItems(result.items, settings.filterType)
+        const mergedRawItems = mergeWorkshopItemsBySource(results.map(result => result.items))
+
+        const items = mapWorkshopItems(mergedRawItems)
+        // Sum is a slight over-count when combos overlap, but Steam's cap clamps it below the UI pagination ceiling.
+        const totalResults = results.reduce((sum, result) => sum + result.totalResults, 0)
+        const cappedTotalResults = Math.min(totalResults, WORKSHOP_MAX_RESULTS)
+        const returnedResults = items.length
+        const anyCombinationHasMore = results.some(result => (page * result.returnedResults) < result.totalResults)
+        const hasNextPage = anyCombinationHasMore && (page * returnedResults) < cappedTotalResults
 
         return {
             items,
             page,
-            totalResults: result.totalResults,
-            returnedResults: result.returnedResults,
-            hasNextPage: (page * result.returnedResults) < result.totalResults,
+            totalResults: cappedTotalResults,
+            returnedResults,
+            hasNextPage,
         }
     }
 
-    async discover(): Promise<WorkshopDiscoverResult> {
+    async discover(options?: WorkshopDiscoverOptions): Promise<WorkshopDiscoverResult> {
         const client = await this.getClient()
         const settings = await settingsService.loadSettings()
+        const sortBy = options?.sortBy ?? settings.workshopSortBy
+        const sortedQueryType = WORKSHOP_SORT_TO_QUERY_TYPE[sortBy]
         const sectionConfigs = [
             ...PINNED_DISCOVER_SECTION_CONFIGS,
             ...shuffleDiscoverSectionConfigs(CURATED_DISCOVER_SECTION_CONFIGS),
@@ -121,26 +141,45 @@ class WorkshopService implements IWorkshopService {
 
         const sections = await Promise.all(
             sectionConfigs.map(async (sectionConfig) => {
-                const result = await client.workshop.getAllItems(
-                    DISCOVER_PAGE,
-                    sectionConfig.queryType,
-                    UGC_TYPE_ITEMS_READY_TO_USE,
-                    WALLPAPER_ENGINE_APP_ID,
-                    WALLPAPER_ENGINE_APP_ID,
-                    {
-                        matchAnyTag: false,
-                        requiredTags: buildRequiredTags(settings, sectionConfig.requiredTags),
-                        rankedByTrendDays: sectionConfig.rankedByTrendDays,
-                        includeAdditionalPreviews: false,
-                        includeLongDescription: false,
-                        includeMetadata: true,
-                    },
+                // Pinned sections (Trending, New) keep their defining query.
+                // Curated category sections follow the user-selected sort so the order is consistent.
+                const isPinned = PINNED_DISCOVER_SECTION_CONFIGS.some(pinned => pinned.id === sectionConfig.id)
+                const queryType = isPinned || !sortedQueryType ? sectionConfig.queryType : sortedQueryType
+                const rankedByTrendDays = queryType === UGC_QUERY_TYPE_RANKED_BY_TREND
+                    ? (sectionConfig.rankedByTrendDays ?? WORKSHOP_TREND_DAYS)
+                    : undefined
+
+                // Section's own required tags become baseTags for the combinator, then type/age axes fan out into combos.
+                const combinations = buildFilterCombinations(settings, sectionConfig.requiredTags)
+                const results = await Promise.all(
+                    combinations.map(requiredTags =>
+                        client.workshop.getAllItems(
+                            DISCOVER_PAGE,
+                            queryType,
+                            UGC_TYPE_ITEMS_READY_TO_USE,
+                            WALLPAPER_ENGINE_APP_ID,
+                            WALLPAPER_ENGINE_APP_ID,
+                            {
+                                matchAnyTag: false,
+                                requiredTags: requiredTags.length > 0 ? requiredTags : undefined,
+                                rankedByTrendDays,
+                                includeAdditionalPreviews: false,
+                                includeLongDescription: false,
+                                includeMetadata: true,
+                            },
+                        ),
+                    ),
+                )
+
+                const mergedRawItems = mergeWorkshopItemsBySource(
+                    results.map(result => result.items),
+                    DISCOVER_SECTION_LIMIT,
                 )
 
                 return {
                     id: sectionConfig.id,
                     title: sectionConfig.title,
-                    items: mapWorkshopItems(result.items, settings.filterType).slice(0, DISCOVER_SECTION_LIMIT),
+                    items: mapWorkshopItems(mergedRawItems).slice(0, DISCOVER_SECTION_LIMIT),
                 }
             }),
         )

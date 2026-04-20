@@ -1,5 +1,6 @@
 
 import type { AgeRating, WallpaperType } from '../../../shared/constants/wallpaper'
+import type { WorkshopSortBy } from '../../../shared/constants/workshop'
 
 export interface WorkshopDownloadProgress {
   current: number
@@ -23,7 +24,12 @@ export interface DiscoverSectionConfig {
 
 export interface WorkshopQueryOptions {
   search?: string
-  page?: number
+  cursor?: string
+  sortBy?: WorkshopSortBy
+}
+
+export interface WorkshopDiscoverOptions {
+  sortBy?: WorkshopSortBy
 }
 
 export interface WorkshopItem {

@@ -1,4 +1,4 @@
-import { ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, Check } from "lucide-react"
+import { ArrowDown, ChevronDown, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
@@ -9,17 +9,13 @@ import {
     DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { useWallpaperSort } from "@/contexts/wallpaper-search-context"
-import { SORT_OPTIONS } from "../../../shared/constants/sort"
+import { useWorkshopSort } from "@/contexts/workshop-search-context"
+import { WORKSHOP_SORT_OPTIONS } from "../../../shared/constants/workshop"
 
-export function SortDropdown() {
-    const { sortBy, setSortBy, sortOrder, setSortOrder } = useWallpaperSort()
+export function WorkshopSortDropdown() {
+    const { sortBy, setSortBy } = useWorkshopSort()
 
-    const toggleSortOrder = () => {
-        setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-    }
-
-    const currentLabel = SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? sortBy
+    const currentLabel = WORKSHOP_SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? sortBy
 
     return (
         <DropdownMenu>
@@ -32,17 +28,15 @@ export function SortDropdown() {
                         "bg-secondary/50 ring-1 ring-border/40 hover:bg-secondary hover:ring-border"
                     )}
                 >
-                    <div className="flex items-center gap-1">
-                        {sortOrder === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
-                    </div>
+                    <ArrowDown className="size-3" />
                     <span className="hidden sm:inline">{currentLabel}</span>
                     <ChevronDown className="size-3 opacity-50" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[140px] rounded-xl border-border bg-popover/95 backdrop-blur-xl">
+            <DropdownMenuContent align="end" className="min-w-[160px] rounded-xl border-border bg-popover/95 backdrop-blur-xl">
                 <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/60">Sort by</DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border/50" />
-                {SORT_OPTIONS.map((option) => (
+                {WORKSHOP_SORT_OPTIONS.map((option) => (
                     <DropdownMenuItem
                         key={option.value}
                         onClick={() => setSortBy(option.value)}
@@ -52,14 +46,6 @@ export function SortDropdown() {
                         {sortBy === option.value && <Check className="size-3.5 text-primary" />}
                     </DropdownMenuItem>
                 ))}
-                <DropdownMenuSeparator className="bg-border/50" />
-                <DropdownMenuItem
-                    onClick={toggleSortOrder}
-                    className="flex items-center gap-2 rounded-lg text-xs"
-                >
-                    <ArrowUpDown className="size-3.5" />
-                    {sortOrder === "asc" ? "Ascending" : "Descending"}
-                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     )

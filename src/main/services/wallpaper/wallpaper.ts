@@ -38,13 +38,13 @@ class WallpaperService implements IWallpaperService {
 
   // ── Query ──────────────────────────────────────────────────────────────
 
-  async query(options?: { search?: string }): Promise<{
+  async query(): Promise<{
     wallpapers: Wallpaper[]
     backendInstalled: boolean
     active: ActiveWallpaperEntry[]
   }> {
     const [wallpapers, backendInstalled] = await Promise.all([
-      this.getWallpapers(options?.search),
+      this.getWallpapers(),
       this.checkBackendInstalled(),
     ])
     const active = await this.getActiveWithTitles(wallpapers)
@@ -150,7 +150,7 @@ class WallpaperService implements IWallpaperService {
     }
   }
 
-  private async getWallpapers(search?: string): Promise<Wallpaper[]> {
+  private async getWallpapers(): Promise<Wallpaper[]> {
     const now = Date.now()
     const cacheExpired = !this.cacheTimestamp || (now - this.cacheTimestamp) > CACHE_TTL
 
@@ -159,18 +159,7 @@ class WallpaperService implements IWallpaperService {
       this.cacheTimestamp = now
     }
 
-    let filtered = this.wallpaperCache
-
-    if (search?.trim()) {
-      const searchLower = search.toLowerCase().trim()
-      filtered = filtered.filter(w =>
-        w.title.toLowerCase().includes(searchLower) ||
-        w.author.toLowerCase().includes(searchLower) ||
-        w.tags.some(tag => tag.toLowerCase().includes(searchLower))
-      )
-    }
-
-    return filtered
+    return this.wallpaperCache
   }
 
   private async scanWallpapers(): Promise<Wallpaper[]> {

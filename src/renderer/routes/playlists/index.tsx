@@ -45,7 +45,7 @@ function PlaylistsPage() {
 
     const { data: settings } = trpc.settings.get.useQuery()
     const { data: playlists = [], isLoading, refetch } = trpc.playlist.list.useQuery()
-    const { data: wallpapers = [] } = trpc.wallpaper.getWallpapers.useQuery({})
+    const { data: wallpapers = [] } = trpc.wallpaper.getWallpapers.useQuery()
     const { data: activePlaylist } = trpc.playlist.active.useQuery(undefined, {
         refetchInterval: 5000,
     })

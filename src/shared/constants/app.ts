@@ -2,7 +2,7 @@ import type { CompatibilityStatus } from './compatibility'
 import type { ScalingOption } from './display'
 import type { SortBy, SortOrder } from './sort'
 import type { ThemeOption } from './theme'
-import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS } from './workshop'
+import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS, type WorkshopSortBy } from './workshop'
 import type { AgeRating, WallpaperFilterType } from './wallpaper'
 import packageJson from '../../../package.json'
 
@@ -51,10 +51,15 @@ export interface AppSettings {
   filterTags: string[]
   filterResolution: string[]
   favoriteDiscoverSectionIds: string[]
+  workshopFilterType: WallpaperFilterType[]
+  workshopFilterAgeRating: AgeRating[]
+  workshopFilterTags: string[]
+  workshopFilterResolution: string[]
 
   filterCompatibility: CompatibilityStatus[]
   sortBy: SortBy
   sortOrder: SortOrder
+  workshopSortBy: WorkshopSortBy
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -102,9 +107,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   filterTags: [],
   filterResolution: [],
   favoriteDiscoverSectionIds: DEFAULT_FAVORITE_DISCOVER_SECTION_IDS,
+  workshopFilterType: [],
+  workshopFilterAgeRating: [],
+  workshopFilterTags: [],
+  workshopFilterResolution: [],
   filterCompatibility: [],
   sortBy: 'name',
   sortOrder: 'asc',
+  workshopSortBy: 'trend',
 }
 
 // App info

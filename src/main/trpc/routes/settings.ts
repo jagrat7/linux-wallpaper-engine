@@ -7,6 +7,7 @@ import { SCALING_OPTIONS, type ScalingOption } from '../../../shared/constants/d
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS, type AgeRating, type WallpaperFilterType } from '../../../shared/constants/wallpaper'
 import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from '../../../shared/constants/compatibility'
 import { SORT_OPTIONS, type SortBy, SORT_ORDER_OPTIONS, type SortOrder } from '../../../shared/constants/sort'
+import { WORKSHOP_SORT_OPTIONS, type WorkshopSortBy } from '../../../shared/constants/workshop'
 import { isFlatpak, setFlatpakBypass } from '../../utils/host'
 import { setAutostart } from '../../utils/autostart'
 
@@ -60,9 +61,14 @@ const settingsSchema = z.object({
   filterTags: z.array(z.string()).optional(),
   filterResolution: z.array(z.string()).optional(),
   favoriteDiscoverSectionIds: z.array(z.string()).optional(),
+  workshopFilterType: z.array(z.enum(FILTER_TYPE_OPTIONS.map(o => o.value) as [WallpaperFilterType, ...WallpaperFilterType[]])).optional(),
+  workshopFilterAgeRating: z.array(z.enum(AGE_RATING_OPTIONS.map(o => o.value) as [AgeRating, ...AgeRating[]])).optional(),
+  workshopFilterTags: z.array(z.string()).optional(),
+  workshopFilterResolution: z.array(z.string()).optional(),
   filterCompatibility: z.array(z.enum(COMPATIBILITY_OPTIONS.map(o => o.value) as [CompatibilityStatus, ...CompatibilityStatus[]])).optional(),
   sortBy: z.enum(SORT_OPTIONS.map(o => o.value) as [SortBy, ...SortBy[]]).optional(),
   sortOrder: z.enum(SORT_ORDER_OPTIONS.map(o => o.value) as [SortOrder, ...SortOrder[]]).optional(),
+  workshopSortBy: z.enum(WORKSHOP_SORT_OPTIONS.map(o => o.value) as [WorkshopSortBy, ...WorkshopSortBy[]]).optional(),
 })
 
 export const settingsRouter = trpc.router({

@@ -1,6 +1,8 @@
-import { AGE_RATINGS, FILTER_TYPE_OPTIONS, type AgeRating, type WallpaperFilterType, type WallpaperType } from '../../../shared/constants/wallpaper'
+import { AGE_RATINGS, FILTER_TYPE_OPTIONS, type AgeRating, type WallpaperType } from '../../../shared/constants/wallpaper'
 import type { AppSettings } from '../../../shared/constants/app'
 import type { DiscoverSectionConfig, WorkshopItem } from './workshop.types'
+
+type WorkshopFilterSettings = Pick<AppSettings, 'workshopFilterType' | 'workshopFilterAgeRating' | 'workshopFilterTags' | 'workshopFilterResolution'>
 
 export function parseWorkshopId(workshopId: string): bigint | null {
   const normalizedId = workshopId.trim()
@@ -78,29 +80,40 @@ export function toWorkshopResolutionTag(value: string): string | null {
   return `${resolutionMatch[1]} x ${resolutionMatch[2]}`
 }
 
-export function matchesWallpaperTypeFilter(type: WallpaperType, filterType: WallpaperFilterType[]): boolean {
-  const selectedTypes = filterType.filter((value): value is WallpaperType => value !== 'all')
-
-  if (selectedTypes.length === 0) {
-    return true
-  }
-
-  return selectedTypes.includes(type)
-}
-
-export function buildRequiredTags(
-  settings: Pick<AppSettings, 'filterTags' | 'filterAgeRating' | 'filterResolution'>,
+// All filters we want Steam to honor, split into two classes:
+//  - "always required": tags every combination must include (custom tags, resolution, any caller-supplied base tags).
+//  - "axes": categories where the user may pick multiple values (type, age rating). We Cartesian-product the axes
+//    so each sub-query is a pure AND (matchAnyTag=false), and the union of sub-queries gives OR-within-category.
+export function buildFilterCombinations(
+  settings: WorkshopFilterSettings,
   baseTags: string[] = []
-): string[] {
-  const customTags = settings.filterTags.map(tag => tag.trim()).filter(Boolean)
-  const ageRatingTags = settings.filterAgeRating
-    .map(value => AGE_RATINGS[value]?.workshopTag)
-    .filter(Boolean)
-  const resolutionTags = settings.filterResolution
+): string[][] {
+  const customTags = settings.workshopFilterTags.map(tag => tag.trim()).filter(Boolean)
+  const resolutionTags = settings.workshopFilterResolution
     .map(value => toWorkshopResolutionTag(value))
     .filter((value): value is string => value != null)
+  const alwaysRequired = Array.from(new Set([...baseTags, ...customTags, ...resolutionTags]))
 
-  return Array.from(new Set([...baseTags, ...customTags, ...ageRatingTags, ...resolutionTags]))
+  const typeTags = settings.workshopFilterType
+    .filter((value): value is WallpaperType => value !== 'all')
+    .map(type => WORKSHOP_TYPE_TAGS[type])
+  const ageRatingTags = settings.workshopFilterAgeRating.map(rating => AGE_RATINGS[rating].workshopTag)
+
+  // Placeholder axis keeps a singleton combination when a category has no selection.
+  const axes: Array<Array<string | null>> = [
+    typeTags.length > 0 ? typeTags : [null],
+    ageRatingTags.length > 0 ? ageRatingTags : [null],
+  ]
+
+  let combinations: Array<Array<string | null>> = [[]]
+  for (const axis of axes) {
+    combinations = combinations.flatMap(prefix => axis.map(value => [...prefix, value]))
+  }
+
+  return combinations.map(combo => {
+    const comboTags = combo.filter((tag): tag is string => typeof tag === 'string')
+    return Array.from(new Set([...alwaysRequired, ...comboTags]))
+  })
 }
 
 export function shuffleDiscoverSectionConfigs(sectionConfigs: DiscoverSectionConfig[]): DiscoverSectionConfig[] {
@@ -117,6 +130,44 @@ export function shuffleDiscoverSectionConfigs(sectionConfigs: DiscoverSectionCon
   return shuffledConfigs
 }
 
+type WorkshopMergeableItem = {
+  publishedFileId: bigint
+}
+
+export function mergeWorkshopItemsBySource<T extends WorkshopMergeableItem>(
+  itemGroups: Array<Array<T | null | undefined>>,
+  limit?: number
+): T[] {
+  const mergedItems: T[] = []
+  const seenIds = new Set<string>()
+  const normalizedGroups = itemGroups.map(group => group.filter((item): item is T => item != null))
+  const maxGroupLength = normalizedGroups.reduce((currentMax, group) => Math.max(currentMax, group.length), 0)
+
+  for (let itemIndex = 0; itemIndex < maxGroupLength; itemIndex += 1) {
+    for (const group of normalizedGroups) {
+      const item = group[itemIndex]
+
+      if (!item) {
+        continue
+      }
+
+      const itemId = item.publishedFileId.toString()
+      if (seenIds.has(itemId)) {
+        continue
+      }
+
+      seenIds.add(itemId)
+      mergedItems.push(item)
+
+      if (limit != null && mergedItems.length >= limit) {
+        return mergedItems
+      }
+    }
+  }
+
+  return mergedItems
+}
+
 type WorkshopSourceItem = {
   publishedFileId: bigint
   title: string
@@ -127,10 +178,8 @@ type WorkshopSourceItem = {
   previewUrl?: string | null
 }
 
-export function mapWorkshopItems(
-  items: Array<WorkshopSourceItem | null | undefined>,
-  filterType: AppSettings['filterType']
-): WorkshopItem[] {
+// Pure mapper — filtering is done server-side via requiredTags so every item reaching here is already in-scope.
+export function mapWorkshopItems(items: Array<WorkshopSourceItem | null | undefined>): WorkshopItem[] {
   return items
     .filter((item): item is WorkshopSourceItem => item != null)
     .map((item): WorkshopItem => ({
@@ -142,5 +191,4 @@ export function mapWorkshopItems(
       tags: item.tags,
       previewUrl: item.previewUrl ?? undefined,
     }))
-    .filter(item => matchesWallpaperTypeFilter(item.type, filterType))
 }

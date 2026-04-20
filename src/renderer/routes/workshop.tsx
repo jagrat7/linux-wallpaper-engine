@@ -5,20 +5,21 @@ import { useIntersectionObserver } from "@uidotdev/usehooks"
 import { motion, AnimatePresence } from "framer-motion"
 import { Compass, LayoutGrid, Store } from "lucide-react"
 import { IconButton } from "@/components/ui/icon-button"
-import { SortDropdown } from "@/components/wallpaper/sort-dropdown"
+import { WorkshopSortDropdown } from "@/components/workshop/workshop-sort-dropdown"
 import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layout"
-import { SearchInput } from "@/components/wallpaper/search"
+import { WorkshopSearchInput } from "@/components/workshop/workshop-search-input"
 import { WorkshopDiscoverSection } from "@/components/workshop/workshop-discover-section"
 import { WorkshopConnectionPrompt } from "@/components/workshop/workshop-connection-prompt"
 import { WorkshopFiltersDropdown } from "@/components/workshop/workshop-filters-dropdown"
 import { WorkshopPagination } from "@/components/workshop/workshop-pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/page-header"
-import { useDebouncedSearchQuery, useFilter } from "@/contexts/search-context"
+import { useDebouncedWorkshopSearchQuery, useWorkshopFilter, useWorkshopSort } from "@/contexts/workshop-search-context"
 import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { trpc } from "@/lib/trpc"
 import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS } from "../../shared/constants/workshop"
+import { encodeWorkshopCursor } from "../../shared/utils/workshop-cursor"
 import { workshopModeAtom } from "@/contexts/atoms/workshop-atoms"
 import type { Wallpaper } from "../../shared/constants/wallpaper"
 import type { RouterOutputs } from "../../main/trpc/router"
@@ -40,13 +41,14 @@ type WorkshopDiscoverSectionData = RouterOutputs["workshop"]["discover"]["sectio
 function WorkshopPage() {
   const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
   const [mode, setMode] = useAtom(workshopModeAtom)
+  const { sortBy: workshopSortBy } = useWorkshopSort()
   const [detailsVisible, setDetailsVisible] = useState(false)
   const [page, setPage] = useState(1)
   const [visibleSectionCount, setVisibleSectionCount] = useState(DISCOVER_SECTION_BATCH_SIZE)
   const [canLoadMoreSections, setCanLoadMoreSections] = useState(true)
   const [favoriteDiscoverSectionIds, setFavoriteDiscoverSectionIds] = useState<string[]>(DEFAULT_FAVORITE_DISCOVER_SECTION_IDS)
-  const { debouncedSearchQuery } = useDebouncedSearchQuery()
-  const { filterType, filterAgeRating, filterTags, filterResolution } = useFilter()
+  const { debouncedSearchQuery } = useDebouncedWorkshopSearchQuery()
+  const { filterType, filterAgeRating, filterTags, filterResolution } = useWorkshopFilter()
   const { setSelectedUrl } = useWallpaperBackground()
   const utils = trpc.useUtils()
   const { data: settings } = trpc.settings.get.useQuery()
@@ -84,14 +86,12 @@ function WorkshopPage() {
     rootMargin: "360px 0px",
   })
 
-  // Reset page and refetch when search or filters change
+  // Reset paging/UI state when search, filters or sort change
   useEffect(() => {
     setPage(1)
     setVisibleSectionCount(DISCOVER_SECTION_BATCH_SIZE)
     setCanLoadMoreSections(true)
-    void utils.workshop.getItems.invalidate()
-    void utils.workshop.discover.invalidate()
-  }, [debouncedSearchQuery, filterType, filterAgeRating, filterTags, filterResolution, utils])
+  }, [debouncedSearchQuery, filterType, filterAgeRating, filterTags, filterResolution, workshopSortBy])
 
   // Sync selected wallpaper thumbnail as blurred page background
   useEffect(() => {
@@ -104,19 +104,24 @@ function WorkshopPage() {
 
   const { data, error, isLoading, isFetching } = trpc.workshop.getItems.useQuery({
     search: debouncedSearchQuery || undefined,
-    page,
+    cursor: encodeWorkshopCursor(page),
+    sortBy: workshopSortBy,
   }, {
     enabled: showBrowse,
   })
 
-  const { data: discoverData, error: discoverError, isLoading: isDiscoverLoading } = trpc.workshop.discover.useQuery(undefined, {
+  const { data: discoverData, error: discoverError, isLoading: isDiscoverLoading } = trpc.workshop.discover.useQuery({
+    sortBy: workshopSortBy,
+  }, {
     enabled: !showBrowse,
   })
 
   trpc.workshop.onConnectionEvent.useSubscription(undefined, {
     onData: () => {
-      void utils.workshop.getItems.invalidate()
-      void utils.workshop.discover.invalidate()
+      // Only retry queries that previously failed (e.g. Steam was offline). Avoids the duplicate fetch
+      // that happens when the initial 'connected' event fires right after a successful query.
+      if (error) void utils.workshop.getItems.invalidate()
+      if (discoverError) void utils.workshop.discover.invalidate()
 
       if (selectedWallpaper) {
         void utils.workshop.status.invalidate({ workshopId: selectedWallpaper.workshopId ?? selectedWallpaper.id })
@@ -207,13 +212,13 @@ function WorkshopPage() {
               title="Browse"
             />
           </div>
-          <SearchInput placeholder="Search workshop..." className="flex-1" />
+          <WorkshopSearchInput className="flex-1" />
           <div className="flex items-center gap-1.5">
             <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
               <WorkshopFiltersDropdown />
             </div>
             <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
-              <SortDropdown />
+              <WorkshopSortDropdown />
             </div>
           </div>
         </div>

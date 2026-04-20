@@ -8,14 +8,44 @@ export const FIRST_PAGE = 1
 export const DISCOVER_PAGE = 1
 // Each discover section stays compact so the default page can load several categories in parallel.
 export const DISCOVER_SECTION_LIMIT = 12
-// Steam's publication date query is useful for a "new" discover rail.
+// Steam UGC query types (subset used by the app).
+export const UGC_QUERY_TYPE_RANKED_BY_VOTE = 0
 export const UGC_QUERY_TYPE_RANKED_BY_PUBLICATION_DATE = 1
-// Default browse mode uses Steam's trending ranking query.
 export const UGC_QUERY_TYPE_RANKED_BY_TREND = 3
-// Search mode uses Steam's text-search ranking query.
+export const UGC_QUERY_TYPE_RANKED_BY_VOTES_UP = 10
 export const UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH = 11
+export const UGC_QUERY_TYPE_RANKED_BY_TOTAL_UNIQUE_SUBSCRIPTIONS = 12
+export const UGC_QUERY_TYPE_RANKED_BY_LAST_UPDATED_DATE = 19
 // Restrict results to Workshop items that are ready to be used by the app.
 export const UGC_TYPE_ITEMS_READY_TO_USE = 2
+
+// Default window used by trend-based queries so results emphasize the last month.
+export const WORKSHOP_TREND_DAYS = 30
+
+// Steam Workshop UGC queries are capped server-side; paging past this returns k_EResultLimitExceeded.
+// We clamp the results surfaced to the UI so pagination never offers an unreachable page.
+export const WORKSHOP_MAX_RESULTS = 50000
+
+// Number of Steam UGC pages we fetch in parallel per UI page. Bigger = fewer UI pages, more items
+// per request. Steam returns up to ~50 items per page, so a batch of 5 yields ~250 items per UI page.
+export const WORKSHOP_PAGE_BATCH_SIZE = 5
+
+export const WORKSHOP_SORT_OPTIONS = [
+    { label: 'Trending', value: 'trend' },
+    { label: 'Most Popular', value: 'votes' },
+    { label: 'Most Subscribed', value: 'subscriptions' },
+    { label: 'Newest', value: 'date' },
+    { label: 'Recently Updated', value: 'updated' },
+] as const
+export type WorkshopSortBy = typeof WORKSHOP_SORT_OPTIONS[number]['value']
+
+export const WORKSHOP_SORT_TO_QUERY_TYPE: Record<WorkshopSortBy, number> = {
+    trend: UGC_QUERY_TYPE_RANKED_BY_TREND,
+    votes: UGC_QUERY_TYPE_RANKED_BY_VOTES_UP,
+    subscriptions: UGC_QUERY_TYPE_RANKED_BY_TOTAL_UNIQUE_SUBSCRIPTIONS,
+    date: UGC_QUERY_TYPE_RANKED_BY_PUBLICATION_DATE,
+    updated: UGC_QUERY_TYPE_RANKED_BY_LAST_UPDATED_DATE,
+}
 
 
 

@@ -7,7 +7,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { useFilter, type AgeRating, type WallpaperFilterType } from "@/contexts/search-context"
+import { useWorkshopFilter, type AgeRating, type WallpaperFilterType } from "@/contexts/workshop-search-context"
 import { FilterSection } from "@/components/wallpaper/filter-section"
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from "../../../shared/constants/wallpaper"
 
@@ -28,7 +28,7 @@ export function WorkshopFiltersDropdown() {
         filterAgeRating,
         setFilterAgeRating,
         toggleFilterAgeRating,
-    } = useFilter()
+    } = useWorkshopFilter()
 
     const activeFilterCount = filterType.length + filterAgeRating.length
 

@@ -7,7 +7,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { useFilter, type AgeRating, type WallpaperFilterType } from "@/contexts/search-context"
+import { useWallpaperFilter, type AgeRating, type WallpaperFilterType } from "@/contexts/wallpaper-search-context"
 import { FilterSection } from "./filter-section"
 import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from "../../../shared/constants/compatibility"
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from "../../../shared/constants/wallpaper"
@@ -46,7 +46,7 @@ export function FiltersDropdown() {
         filterCompatibility,
         toggleFilterCompatibility,
         setFilterCompatibility,
-    } = useFilter()
+    } = useWallpaperFilter()
 
     const activeFilterCount =
         filterType.length +

@@ -4,7 +4,7 @@ import { GridHeader } from "./wallpaper-grid-header"
 import { WallpaperGridLayout } from "./wallpaper-grid-layout"
 import { AlertCircle, FolderOpen } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSearch } from "@/contexts/search-context"
+import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
 import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
@@ -16,7 +16,7 @@ const WallpaperDetails = lazy(() => import("./wallpaper-details").then(m => ({ d
 export function WallpaperGrid() {
     const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
     const [detailsVisible, setDetailsVisible] = useState(false)
-    const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useSearch()
+    const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useWallpaperSearch()
     const { setSelectedUrl } = useWallpaperBackground()
 
     const {
@@ -33,6 +33,7 @@ export function WallpaperGrid() {
     // Filter and sort wallpapers
     const wallpapers: Wallpaper[] = useMemo(() =>
         filterAndSortWallpapers(transformedWallpapers, {
+            searchQuery,
             filterType,
             filterAgeRating,
             filterTags,
@@ -42,7 +43,7 @@ export function WallpaperGrid() {
             sortOrder,
             compatibilityMap,
         }),
-        [transformedWallpapers, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
+        [transformedWallpapers, searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
 
     // Sync selected wallpaper thumbnail as blurred page background
     useEffect(() => {
