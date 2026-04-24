@@ -46,8 +46,7 @@ export function WorkshopFiltersDropdown() {
                     size="sm"
                     className={cn(
                         "h-8 gap-1.5 rounded-lg px-3 text-xs font-medium tracking-wide transition-all duration-200",
-                        "bg-secondary/50 ring-1 ring-border/40 hover:bg-secondary hover:ring-border",
-                        activeFilterCount > 0 && "ring-primary/40 text-primary bg-primary/10"
+                        "bg-secondary/50 ring-1 ring-border/40 hover:bg-secondary hover:ring-border"
                     )}
                 >
                     <SlidersHorizontal className="size-3.5" />
