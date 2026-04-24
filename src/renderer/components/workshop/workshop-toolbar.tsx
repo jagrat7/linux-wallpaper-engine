@@ -21,14 +21,20 @@ export function WorkshopToolbar({ showBrowse, onSelectDiscover, onSelectBrowse }
           icon={Compass}
           size="sm"
           pressed={!showBrowse}
-          onClick={onSelectDiscover}
+          onClick={() => {
+            setSearchQuery("")
+            onSelectDiscover()
+          }}
           title="Discover"
         />
         <IconButton
           icon={LayoutGrid}
           size="sm"
           pressed={showBrowse}
-          onClick={onSelectBrowse}
+          onClick={() => {
+            setSearchQuery("")
+            onSelectBrowse()
+          }}
           title="Browse"
         />
       </div>
