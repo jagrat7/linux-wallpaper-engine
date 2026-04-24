@@ -10,7 +10,7 @@ import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
 import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
 import { useState, useMemo, useEffect, lazy, Suspense } from "react"
 
-const WallpaperDetails = lazy(() => import("./wallpaper-details").then(m => ({ default: m.WallpaperDetails })))
+const WallpaperDetails = lazy(() => import("./details-card/wallpaper-details").then(m => ({ default: m.WallpaperDetails })))
 
 // TODO: Fix wallpaper details size so that is consistent width with a column
 export function WallpaperGrid() {

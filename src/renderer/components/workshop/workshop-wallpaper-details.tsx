@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { trpc } from "@/lib/trpc"
-import { WallpaperDetailsShell } from "../wallpaper/wallpaper-details"
+import { WallpaperDetailsShell } from "../wallpaper/details-card/wallpaper-details"
 import { WorkshopActionButtons } from "./action-buttons"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 
