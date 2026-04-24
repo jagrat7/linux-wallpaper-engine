@@ -49,6 +49,8 @@ export const workshopRouter = trpc.router({
     .input(
       z.object({
         sortBy: workshopSortSchema.optional(),
+        focusedSectionId: z.string().optional(),
+        page: z.number().int().positive().optional(),
       }).optional(),
     )
     .query(({ input }) => workshopService.discover(input)),

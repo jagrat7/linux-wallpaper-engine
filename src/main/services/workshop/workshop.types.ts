@@ -30,6 +30,8 @@ export interface WorkshopQueryOptions {
 
 export interface WorkshopDiscoverOptions {
   sortBy?: WorkshopSortBy
+  focusedSectionId?: string
+  page?: number
 }
 
 export interface WorkshopItem {
@@ -46,6 +48,10 @@ export interface WorkshopDiscoverSection {
   id: string
   title: string
   items: WorkshopItem[]
+  page: number
+  totalResults: number
+  resultsPerPage: number
+  hasNextPage: boolean
 }
 
 export interface WorkshopDiscoverResult {

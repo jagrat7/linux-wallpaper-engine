@@ -139,52 +139,84 @@ class WorkshopService implements IWorkshopService {
         const settings = await settingsService.loadSettings()
         const sortBy = options?.sortBy ?? settings.workshopSortBy
         const sortedQueryType = WORKSHOP_SORT_TO_QUERY_TYPE[sortBy]
-        const sectionConfigs = [
+        const allConfigs = [
             ...PINNED_DISCOVER_SECTION_CONFIGS,
             ...shuffleDiscoverSectionConfigs(CURATED_DISCOVER_SECTION_CONFIGS),
         ]
 
-        const sections = await Promise.all(
-            sectionConfigs.map(async (sectionConfig) => {
-                const isPinned = PINNED_DISCOVER_SECTION_CONFIGS.some(pinned => pinned.id === sectionConfig.id)
-                const queryType = isPinned || !sortedQueryType ? sectionConfig.queryType : sortedQueryType
-                const rankedByTrendDays = queryType === UGC_QUERY_TYPE_RANKED_BY_TREND
-                    ? (sectionConfig.rankedByTrendDays ?? WORKSHOP_TREND_DAYS)
-                    : undefined
+        const fetchSection = async (
+            sectionConfig: typeof allConfigs[number],
+            page: number,
+            itemLimit: number | null,
+        ) => {
+            const isPinned = PINNED_DISCOVER_SECTION_CONFIGS.some(pinned => pinned.id === sectionConfig.id)
+            const queryType = isPinned || !sortedQueryType ? sectionConfig.queryType : sortedQueryType
+            const rankedByTrendDays = queryType === UGC_QUERY_TYPE_RANKED_BY_TREND
+                ? (sectionConfig.rankedByTrendDays ?? WORKSHOP_TREND_DAYS)
+                : undefined
 
-                const combinations = buildFilterCombinations(settings, sectionConfig.requiredTags)
-                const results = await settleWorkshopPageResults(
-                    combinations.map(requiredTags =>
-                        client.workshop.getAllItems(
-                            DISCOVER_PAGE,
-                            queryType,
-                            UGC_TYPE_ITEMS_READY_TO_USE,
-                            WALLPAPER_ENGINE_APP_ID,
-                            WALLPAPER_ENGINE_APP_ID,
-                            {
-                                matchAnyTag: false,
-                                requiredTags: requiredTags.length > 0 ? requiredTags : undefined,
-                                rankedByTrendDays,
-                                includeAdditionalPreviews: false,
-                                includeLongDescription: false,
-                                includeMetadata: true,
-                            },
-                        ),
+            const combinations = buildFilterCombinations(settings, sectionConfig.requiredTags)
+            const results = await settleWorkshopPageResults(
+                combinations.map(requiredTags =>
+                    client.workshop.getAllItems(
+                        page,
+                        queryType,
+                        UGC_TYPE_ITEMS_READY_TO_USE,
+                        WALLPAPER_ENGINE_APP_ID,
+                        WALLPAPER_ENGINE_APP_ID,
+                        {
+                            matchAnyTag: false,
+                            requiredTags: requiredTags.length > 0 ? requiredTags : undefined,
+                            rankedByTrendDays,
+                            includeAdditionalPreviews: false,
+                            includeLongDescription: false,
+                            includeMetadata: true,
+                        },
                     ),
-                    DISCOVER_PAGE,
-                )
+                ),
+                page,
+            )
 
-                const mergedRawItems = mergeWorkshopItemsBySource<NonNullable<WorkshopPaginatedResult['items'][number]>>(
-                    results.map((result: WorkshopPaginatedResult) => result.items),
-                    DISCOVER_SECTION_LIMIT,
-                )
+            const mergedRawItems = mergeWorkshopItemsBySource<NonNullable<WorkshopPaginatedResult['items'][number]>>(
+                results.map((result: WorkshopPaginatedResult) => result.items),
+                itemLimit ?? undefined,
+            )
+            const mapped = mapWorkshopItems(mergedRawItems)
+            const items = itemLimit != null ? mapped.slice(0, itemLimit) : mapped
 
-                return {
-                    id: sectionConfig.id,
-                    title: sectionConfig.title,
-                    items: mapWorkshopItems(mergedRawItems).slice(0, DISCOVER_SECTION_LIMIT),
-                }
-            }),
+            const totalResults = Math.min(
+                results.reduce((sum: number, result: WorkshopPaginatedResult) => sum + result.totalResults, 0),
+                WORKSHOP_MAX_RESULTS,
+            )
+            const resultsPerPage = Math.max(
+                results.reduce((sum: number, result: WorkshopPaginatedResult) => sum + result.returnedResults, 0),
+                1,
+            )
+            const hasNextPage = results.some((result: WorkshopPaginatedResult) => (page * result.returnedResults) < result.totalResults)
+
+            return {
+                id: sectionConfig.id,
+                title: sectionConfig.title,
+                items,
+                page,
+                totalResults,
+                resultsPerPage,
+                hasNextPage,
+            }
+        }
+
+        if (options?.focusedSectionId) {
+            const sectionConfig = allConfigs.find(config => config.id === options.focusedSectionId)
+            if (!sectionConfig) {
+                return { sections: [] }
+            }
+            const page = options.page ?? DISCOVER_PAGE
+            const section = await fetchSection(sectionConfig, page, null)
+            return { sections: [section] }
+        }
+
+        const sections = await Promise.all(
+            allConfigs.map(sectionConfig => fetchSection(sectionConfig, DISCOVER_PAGE, DISCOVER_SECTION_LIMIT)),
         )
 
         return {

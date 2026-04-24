@@ -1,21 +1,19 @@
-import { useState } from "react"
 import { motion } from "framer-motion"
-import { Star } from "lucide-react"
+import { ArrowDown, Star } from "lucide-react"
 import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layout"
 import { IconButton } from "@/components/ui/icon-button"
-import { FadeDivider } from "@/components/ui/fade-divider"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
-
-const INITIAL_VISIBLE_COUNT = 6
 
 interface WorkshopDiscoverSectionProps {
   id: string
   title: string
   wallpapers: Wallpaper[]
+  totalResults: number
   isFavorite: boolean
   selectedId?: string
   onCardClick: (wallpaper: Wallpaper) => void
   onFavoriteToggle: (sectionId: string) => void
+  onSeeMore: (sectionId: string) => void
   gridClassName?: string
 }
 
@@ -23,15 +21,15 @@ export function WorkshopDiscoverSection({
   id,
   title,
   wallpapers,
+  totalResults,
   isFavorite,
   selectedId,
   onCardClick,
   onFavoriteToggle,
+  onSeeMore,
   gridClassName,
 }: WorkshopDiscoverSectionProps) {
-  const [expanded, setExpanded] = useState(false)
-  const hasMore = wallpapers.length > INITIAL_VISIBLE_COUNT
-  const visibleWallpapers = expanded ? wallpapers : wallpapers.slice(0, INITIAL_VISIBLE_COUNT)
+  const hasMore = totalResults > wallpapers.length
 
   return (
     <motion.section
@@ -47,10 +45,10 @@ export function WorkshopDiscoverSection({
             {hasMore && (
               <button
                 type="button"
-                onClick={() => setExpanded(prev => !prev)}
+                onClick={() => onSeeMore(id)}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                {expanded ? "Show less" : `See more (${wallpapers.length})`}
+                See more <ArrowDown className="inline-block size-3" />
               </button>
             )}
           </div>
@@ -65,11 +63,10 @@ export function WorkshopDiscoverSection({
             className={isFavorite ? "[&>svg]:fill-current" : ""}
           />
         </div>
-        {/* <FadeDivider /> */}
       </div>
 
       <WallpaperGridLayout
-        wallpapers={visibleWallpapers}
+        wallpapers={wallpapers}
         isLoading={false}
         showCompatibilityDot={false}
         selectedId={selectedId}
