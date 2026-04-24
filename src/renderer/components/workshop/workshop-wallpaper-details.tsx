@@ -3,8 +3,12 @@ import { trpc } from "@/lib/trpc"
 import { WallpaperDetailsShell } from "../wallpaper/details-card/wallpaper-details"
 import { WorkshopActionButtons } from "./action-buttons"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
-
-
+import { useAtomValue, useSetAtom } from "jotai"
+import {
+    addUnsubscribedWorkshopIdAtom,
+    removeUnsubscribedWorkshopIdAtom,
+    unsubscribedWorkshopIdsAtom,
+} from "@/contexts/atoms/workshop-atoms"
 
 interface WorkshopWallpaperDetailsProps {
     wallpaper: Wallpaper
@@ -14,40 +18,37 @@ interface WorkshopWallpaperDetailsProps {
 export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpaperDetailsProps) {
     const [isApplying, setIsApplying] = useState(false)
     const [isDownloading, setIsDownloading] = useState(false)
-    const [unsubscribed, setUnsubscribed] = useState(false)
     const workshopId = wallpaper.workshopId ?? wallpaper.id
+    const unsubscribedWorkshopIds = useAtomValue(unsubscribedWorkshopIdsAtom)
+    const addUnsubscribedWorkshopId = useSetAtom(addUnsubscribedWorkshopIdAtom)
+    const removeUnsubscribedWorkshopId = useSetAtom(removeUnsubscribedWorkshopIdAtom)
     const applyMutation = trpc.wallpaper.setWallpaper.useMutation()
     const stopMutation = trpc.wallpaper.stopWalpaper.useMutation()
     const utils = trpc.useUtils()
+    const isUnsubscribed = unsubscribedWorkshopIds.has(workshopId)
 
     const { data: workshopStatus } = trpc.workshop.status.useQuery(
         { workshopId },
         // Stop polling once unsubscribed — Steam keeps files until app close
         // so status would still return a path, but the user already unsubscribed.
-        { refetchInterval: isDownloading ? 1000 : 3000, enabled: !unsubscribed },
+        { refetchInterval: isDownloading ? 1000 : 3000, enabled: !isUnsubscribed },
     )
 
     const subscribeMutation = trpc.workshop.subscribe.useMutation({
         onSuccess: () => {
-            setUnsubscribed(false)
+            removeUnsubscribedWorkshopId(workshopId)
             setIsDownloading(true)
         },
     })
 
-    const unsubscribeMutation = trpc.workshop.unsubscribe.useMutation({
-        onSuccess: () => {
-            // Steam only deletes files after the app closes, so we track
-            // unsubscribed state locally to show the download button.
-            setUnsubscribed(true)
-        },
-    })
+    const unsubscribeMutation = trpc.workshop.unsubscribe.useMutation()
 
     const { data: activeWallpapers = [] } = trpc.wallpaper.getActiveWallpaper.useQuery(undefined, {
         refetchInterval: 5000,
     })
 
     // Treat as not installed when user has unsubscribed (files linger until app close)
-    const wallpaperPath = unsubscribed ? null : (workshopStatus?.path ?? null)
+    const wallpaperPath = isUnsubscribed ? null : (workshopStatus?.path ?? null)
     const downloadProgress = workshopStatus?.download ?? null
 
     // When status reports a path while downloading, the download is complete
@@ -66,7 +67,15 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
     }
 
     const handleUnsubscribe = () => {
-        unsubscribeMutation.mutate({ workshopId })
+        unsubscribeMutation.mutate({ workshopId }, {
+            onSuccess: (didUnsubscribe) => {
+                if (!didUnsubscribe) return
+
+                // Steam only deletes files after the app closes, so we track
+                // unsubscribed state locally to show the download button.
+                addUnsubscribedWorkshopId(workshopId)
+            },
+        })
     }
 
     const handleApply = async (screen?: string) => {
@@ -104,6 +113,7 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
                     onApply={handleApply}
                     onStop={handleStop}
                     isApplying={isApplying}
+                    isUnsubscribing={unsubscribeMutation.isPending}
                     isActive={isActive}
                 />
             }

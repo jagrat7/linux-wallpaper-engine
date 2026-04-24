@@ -9,6 +9,8 @@ import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
 import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
 import { useState, useMemo, useEffect, lazy, Suspense } from "react"
+import { useAtomValue } from "jotai"
+import { unsubscribedWorkshopIdsAtom } from "@/contexts/atoms/workshop-atoms"
 
 const WallpaperDetails = lazy(() => import("./details-card/wallpaper-details").then(m => ({ default: m.WallpaperDetails })))
 
@@ -16,6 +18,7 @@ const WallpaperDetails = lazy(() => import("./details-card/wallpaper-details").t
 export function WallpaperGrid() {
     const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
     const [detailsVisible, setDetailsVisible] = useState(false)
+    const unsubscribedWorkshopIds = useAtomValue(unsubscribedWorkshopIdsAtom)
     const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useWallpaperSearch()
     const { setSelectedUrl } = useWallpaperBackground()
 
@@ -31,8 +34,10 @@ export function WallpaperGrid() {
     } = useWallpapers()
 
     // Filter and sort wallpapers
-    const wallpapers: Wallpaper[] = useMemo(() =>
-        filterAndSortWallpapers(transformedWallpapers, {
+    const wallpapers: Wallpaper[] = useMemo(() => {
+        const visibleWallpapers = transformedWallpapers.filter(wallpaper => !unsubscribedWorkshopIds.has(wallpaper.workshopId ?? wallpaper.id))
+
+        return filterAndSortWallpapers(visibleWallpapers, {
             searchQuery,
             filterType,
             filterAgeRating,
@@ -42,8 +47,9 @@ export function WallpaperGrid() {
             sortBy,
             sortOrder,
             compatibilityMap,
-        }),
-        [transformedWallpapers, searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
+        })
+    },
+        [transformedWallpapers, unsubscribedWorkshopIds, searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
 
     // Sync selected wallpaper thumbnail as blurred page background
     useEffect(() => {
@@ -88,6 +94,10 @@ export function WallpaperGrid() {
 
     const handleRefresh = () => {
         refetch()
+    }
+
+    const handleUnsubscribe = () => {
+        setSelectedWallpaper(null)
     }
 
     // Error state
@@ -155,6 +165,7 @@ export function WallpaperGrid() {
                                 <WallpaperDetails
                                     wallpaper={selectedWallpaper}
                                     onClose={() => setSelectedWallpaper(null)}
+                                    onUnsubscribe={handleUnsubscribe}
                                 />
                             </Suspense>
                         </motion.div>

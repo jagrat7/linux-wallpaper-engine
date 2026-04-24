@@ -6,6 +6,10 @@ import { ApplyButton } from "../apply-button"
 import { DebugLogDialog } from "../debug-log-dialog"
 import { WallpaperDetailsShell } from "./wallpaper-details-shell"
 import { CompatibilitySection } from "./compatibility-section"
+import { ErrorMessage } from "@/components/error-message"
+import { UnsubscribeButton } from "@/components/workshop/unsubscribe-button"
+import { useSetAtom } from "jotai"
+import { addUnsubscribedWorkshopIdAtom } from "@/contexts/atoms/workshop-atoms"
 
 export { WallpaperDetailsShell } from "./wallpaper-details-shell"
 export { WallpaperMetadata } from "./wallpaper-metadata"
@@ -14,13 +18,20 @@ export { WallpaperTags } from "./wallpaper-tags"
 interface WallpaperDetailsProps {
     wallpaper: Wallpaper
     onClose: () => void
+    onUnsubscribe?: () => void
 }
 
-export function WallpaperDetails({ wallpaper, onClose }: WallpaperDetailsProps) {
+export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: WallpaperDetailsProps) {
     const [isApplying, setIsApplying] = useState(false)
+    const [isUnsubscribing, setIsUnsubscribing] = useState(false)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [debugScreen, setDebugScreen] = useState<string | null>(null)
+    const workshopId = wallpaper.workshopId ?? wallpaper.id
+    const canUnsubscribe = !!wallpaper.workshopId
+    const addUnsubscribedWorkshopId = useSetAtom(addUnsubscribedWorkshopIdAtom)
     const applyMutation = trpc.wallpaper.setWallpaper.useMutation()
     const stopMutation = trpc.wallpaper.stopWalpaper.useMutation()
+    const unsubscribeMutation = trpc.workshop.unsubscribe.useMutation()
     const utils = trpc.useUtils()
 
     const { data: settings } = trpc.settings.get.useQuery()
@@ -60,18 +71,54 @@ export function WallpaperDetails({ wallpaper, onClose }: WallpaperDetailsProps) 
         await utils.playlist.active.invalidate()
     }
 
+    const handleUnsubscribe = async () => {
+        if (!canUnsubscribe) return
+        setIsUnsubscribing(true)
+        setErrorMessage(null)
+        try {
+            const didUnsubscribe = await unsubscribeMutation.mutateAsync({ workshopId })
+
+            if (!didUnsubscribe) {
+                setErrorMessage("Steam is not connected. Start Steam and log in, then try again.")
+                return
+            }
+
+            addUnsubscribedWorkshopId(workshopId)
+            onUnsubscribe?.()
+        } catch {
+            setErrorMessage("Steam is not connected. Start Steam and log in, then try again.")
+        } finally {
+            setIsUnsubscribing(false)
+        }
+    }
+
     return (
         <WallpaperDetailsShell
             wallpaper={wallpaper}
             onClose={onClose}
             actions={
-                <ApplyButton
-                    onApply={handleApply}
-                    onStop={handleStop}
-                    isApplying={isApplying}
-                    isActive={isActive}
-                    className="w-full"
-                />
+                <>
+                    <div className="flex items-center gap-2">
+                        <ApplyButton
+                            onApply={handleApply}
+                            onStop={handleStop}
+                            isApplying={isApplying}
+                            isActive={isActive}
+                            className="flex-1"
+                        />
+                        {canUnsubscribe && (
+                            <UnsubscribeButton
+                                onClick={handleUnsubscribe}
+                                disabled={isUnsubscribing}
+                            />
+                        )}
+                    </div>
+                    <ErrorMessage
+                        message={errorMessage}
+                        setMessage={setErrorMessage}
+                        className="mt-2 bg-destructive/10"
+                    />
+                </>
             }
         >
             {debugScreen && (

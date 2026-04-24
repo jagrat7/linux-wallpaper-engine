@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button"
-import { Download, Trash2 } from "lucide-react"
+import { Download } from "lucide-react"
 import { LoadingButton } from "@/components/loading-button"
 import { ApplyButton } from "../wallpaper/apply-button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
+import { UnsubscribeButton } from "./unsubscribe-button"
 
 type DownloadProgress = {
     current: number
@@ -18,6 +18,7 @@ interface WorkshopActionButtonsProps {
     onApply: (screen?: string) => Promise<void>
     onStop: (screen?: string) => Promise<void>
     isApplying: boolean
+    isUnsubscribing?: boolean
     isActive: boolean
 }
 
@@ -30,6 +31,7 @@ export function WorkshopActionButtons({
     onApply,
     onStop,
     isApplying,
+    isUnsubscribing = false,
     isActive,
 }: WorkshopActionButtonsProps) {
     const isSubscribed = wallpaperPath != null
@@ -67,19 +69,7 @@ export function WorkshopActionButtons({
                 isActive={isActive}
                 className="flex-1"
             />
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        onClick={onUnsubscribe}
-                    >
-                        <Trash2 className="size-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>Unsubscribe</TooltipContent>
-            </Tooltip>
+            <UnsubscribeButton onClick={onUnsubscribe} disabled={isUnsubscribing} />
         </div>
     )
 }
