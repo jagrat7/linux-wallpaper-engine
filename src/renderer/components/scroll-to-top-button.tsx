@@ -35,7 +35,7 @@ export function ScrollToTopButton({ threshold = DEFAULT_THRESHOLD, className }: 
     scrollTargetRef.current = scrollTarget
 
     const handleScroll = () => {
-      const scrollTop = scrollTarget === window ? window.scrollY : scrollTarget.scrollTop
+      const scrollTop = scrollTarget instanceof HTMLElement ? scrollTarget.scrollTop : window.scrollY
       setIsVisible(scrollTop > threshold)
     }
 
