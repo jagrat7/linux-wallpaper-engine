@@ -6,6 +6,7 @@ import { WorkshopToolbar } from "@/components/workshop/workshop-toolbar"
 import { WorkshopBrowseView } from "@/components/workshop/workshop-browse-view"
 import { WorkshopDiscoverView } from "@/components/workshop/workshop-discover-view"
 import { WorkshopDetailsPanel } from "@/components/workshop/workshop-details-panel"
+import { ScrollToTopButton } from "@/components/scroll-to-top-button"
 import { useDebouncedWorkshopSearchQuery, useWorkshopFilter, useWorkshopSort } from "@/contexts/workshop-search-context"
 import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
@@ -97,6 +98,7 @@ function WorkshopPage() {
           onExitComplete={() => setDetailsVisible(false)}
         />
       </div>
+      <ScrollToTopButton />
     </div>
   )
 }

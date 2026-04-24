@@ -133,15 +133,16 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("launchOnLogin", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label={<span className="inline-flex items-center gap-1">Enable system tray <Button variant="ghost" size="icon" onClick={() => setStartupTrayOpen((o) => !o)} className="size-6 text-muted-foreground hover:text-foreground" title="Advanced tray options"><ChevronDown className={`size-3.5 transition-transform ${startupTrayOpen ? "rotate-180" : ""}`} /></Button></span>}>
+                    <SettingRow label={<span className="inline-flex items-center gap-1">Enable system tray <Button variant="ghost" size="icon" onClick={() => setStartupTrayOpen((o) => !o)} className="size-6 text-muted-foreground hover:text-foreground" title="Advanced tray options"><ChevronDown className={`size-3.5 transition-transform ${startupTrayOpen ? "rotate-180" : ""}`} /></Button></span>} className={!startupTrayOpen ? "border-b-0" : ""}>
                         <Switch
                             checked={settings.enableSystemTray}
                             onCheckedChange={(checked) => updateSetting("enableSystemTray", checked)}
                         />
                     </SettingRow>
+                    {startupTrayOpen && (
                     <Collapsible open={startupTrayOpen} onOpenChange={setStartupTrayOpen}>
                         <CollapsibleContent>
-                            <div className="divide-y divide-border border-t border-border bg-muted/30">
+                            <div className="divide-y divide-border bg-muted/30">
                                 <SettingRow
                                     label="Minimize on startup"
                                     disabled={!settings.launchOnLogin || !settings.enableSystemTray}
@@ -154,6 +155,7 @@ function SettingsPage() {
                                 <SettingRow
                                     label="Minimize on close"
                                     disabled={!settings.enableSystemTray}
+                                    className="border-b-0"
                                 >
                                     <Switch
                                         checked={settings.minimizeOnClose}
@@ -163,6 +165,7 @@ function SettingsPage() {
                             </div>
                         </CollapsibleContent>
                     </Collapsible>
+                    )}
                 </SettingsSection>
 
                 {/* Compatibility Scan Section */}
@@ -173,14 +176,14 @@ function SettingsPage() {
                     id="onboarding-compatibility-scan"
                 >
                     <CompatibilityScanRow settings={settings} updateSetting={updateSetting} />
-                    <SettingRow label="Debug mode">
+                    <SettingRow label="Debug mode" className={!isFlatpakEnv ? "border-b-0" : ""}>
                         <Switch
                             checked={settings.debugMode}
                             onCheckedChange={(v) => updateSetting("debugMode", v)}
                         />
                     </SettingRow>
                     {isFlatpakEnv && (
-                        <SettingRow label="Bypass Flatpak sandbox">
+                        <SettingRow label="Bypass Flatpak sandbox" className="border-b-0">
                             <Switch
                                 checked={settings.flatpakBypass}
                                 onCheckedChange={(v) => updateSetting("flatpakBypass", v)}
@@ -223,7 +226,7 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("noAutomute", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label="Audio reactive effects">
+                    <SettingRow label="Audio reactive effects" className="border-b-0">
                         <Switch
                             checked={settings.audioProcessing}
                             onCheckedChange={(checked) => updateSetting("audioProcessing", checked)}
@@ -278,7 +281,7 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("disableMouse", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label="Disable parallax effect">
+                    <SettingRow label="Disable parallax effect" className="border-b-0">
                         <Switch
                             checked={settings.disableParallax}
                             onCheckedChange={(checked) => updateSetting("disableParallax", checked)}
@@ -327,7 +330,7 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("showStatusBar", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label="Dynamic background">
+                    <SettingRow label="Dynamic background" className="border-b-0">
                         <Switch
                             checked={settings.dynamicBackground}
                             onCheckedChange={(checked) => updateSetting("dynamicBackground", checked)}
