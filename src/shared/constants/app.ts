@@ -93,7 +93,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showCompatibilityDot: true,
   showStatusBar: true,
   dynamicBackground: true,
-  dismissedScanReminder: false
+  dismissedScanReminder: false,
 
   // Debug & Flatpak
   debugMode: false,
