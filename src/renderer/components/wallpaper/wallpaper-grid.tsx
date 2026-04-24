@@ -128,10 +128,7 @@ export function WallpaperGrid() {
             <GridHeader onRefresh={handleRefresh} isLoading={isFetching} />
 
             <div className="flex items-start gap-6 flex-1">
-                <div
-                    id="onboarding-wallpaper-grid"
-                    className="flex-1 h-fit transition-all duration-300"
-                >
+                <div className="flex-1 h-fit transition-all duration-300">
                     <WallpaperGridLayout
                         wallpapers={wallpapers}
                         isLoading={isLoading}

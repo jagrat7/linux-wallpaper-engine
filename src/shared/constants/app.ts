@@ -38,7 +38,6 @@ export interface AppSettings {
   showCompatibilityDot: boolean
   showStatusBar: boolean
   dynamicBackground: boolean
-  onboardingComplete: boolean
   dismissedScanReminder: boolean
 
   // Debug & Flatpak
@@ -94,8 +93,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showCompatibilityDot: true,
   showStatusBar: true,
   dynamicBackground: true,
-  onboardingComplete: false,
-  dismissedScanReminder: false,
+  dismissedScanReminder: false
 
   // Debug & Flatpak
   debugMode: false,

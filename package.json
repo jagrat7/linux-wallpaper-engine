@@ -89,7 +89,6 @@
     "glob": "^13.0.0",
     "jotai": "^2.19.1",
     "lucide-react": "^0.562.0",
-    "onborda-rrd": "^1.0.1",
     "radix-ui": "^1.4.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

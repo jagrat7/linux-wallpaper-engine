@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { WallpaperGrid } from "@/components/wallpaper/wallpaper-grid"
-import { ScanReminderBanner } from "@/components/onboarding/scan-reminder-banner"
+import { ScanReminderBanner } from "@/components/scan-reminder-banner"
 import { ScrollToTopButton } from "@/components/scroll-to-top-button"
 import { trpc } from "@/lib/trpc"
 

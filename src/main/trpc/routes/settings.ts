@@ -48,7 +48,6 @@ const settingsSchema = z.object({
   showCompatibilityDot: z.boolean().optional(),
   showStatusBar: z.boolean().optional(),
   dynamicBackground: z.boolean().optional(),
-  onboardingComplete: z.boolean().optional(),
   dismissedScanReminder: z.boolean().optional(),
 
   // Debug & Flatpak
@@ -107,9 +106,7 @@ export const settingsRouter = trpc.router({
     const current = await settingsService.loadSettings()
     const reset = await settingsService.resetSettings()
 
-    // Preserve non-resettable flags
     await settingsService.saveSettings({
-      onboardingComplete: current.onboardingComplete,
       dismissedScanReminder: current.dismissedScanReminder,
     })
 

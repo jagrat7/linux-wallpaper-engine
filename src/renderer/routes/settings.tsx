@@ -28,14 +28,9 @@ import { getFpsOptions } from "@/lib/utils"
 import { CompatibilityScanRow } from "@/components/settings/compatibility-scan-row"
 import { LoadingButton } from "@/components/loading-button"
 import { PageHeader } from "@/components/page-header"
-import { lazy, Suspense, useState } from "react"
+import { useState } from "react"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
-
-// Dev-only flag to show onboarding test button
-const DEV_SHOW_ONBOARDING_TEST = false
-
-const DevOnboardingTest = lazy(() => import("@/components/settings/dev-onboarding-test").then(m => ({ default: m.DevOnboardingTest })))
 
 export const Route = createFileRoute("/settings")({
     component: SettingsPage,
@@ -95,7 +90,6 @@ function SettingsPage() {
     return (
         <div className="p-6 max-h-[100vh]">
             <PageHeader
-                id="onboarding-settings-page"
                 title="Settings"
                 description="Configure global application preferences"
                 action={
@@ -116,7 +110,6 @@ function SettingsPage() {
             <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
                 {/* General Section */}
                 <SettingsSection
-                    id="onboarding-performance"
                     icon={Settings}
                     title="General"
                     description="App behavior and startup"
@@ -173,7 +166,6 @@ function SettingsPage() {
                     icon={ScanSearch}
                     title="Compatibility"
                     description="Test wallpapers for Linux compatibility"
-                    id="onboarding-compatibility-scan"
                 >
                     <CompatibilityScanRow settings={settings} updateSetting={updateSetting} />
                     <SettingRow label="Debug mode" className={!isFlatpakEnv ? "border-b-0" : ""}>
@@ -194,7 +186,6 @@ function SettingsPage() {
 
                 {/* Audio Section */}
                 <SettingsSection
-                    id="onboarding-audio"
                     icon={Volume2}
                     title="Audio"
                     description="Volume and audio processing"
@@ -236,7 +227,6 @@ function SettingsPage() {
 
                 {/* Display Section */}
                 <SettingsSection
-                    id="onboarding-display"
                     icon={Monitor}
                     title="Display"
                     description="Default display behavior"
@@ -291,7 +281,6 @@ function SettingsPage() {
 
                 {/* Appearance Section */}
                 <SettingsSection
-                    id="onboarding-appearance"
                     icon={Palette}
                     title="Appearance"
                     description="Theme and visual preferences"
@@ -339,15 +328,7 @@ function SettingsPage() {
 
                 </SettingsSection>
 
-                {/* Dev-only: Test Onboarding */}
-                {DEV_SHOW_ONBOARDING_TEST && (
-                    <Suspense fallback={null}>
-                        <DevOnboardingTest />
-                    </Suspense>
-                )}
             </div>
         </div>
     )
 }
-
-

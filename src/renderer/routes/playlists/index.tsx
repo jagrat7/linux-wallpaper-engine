@@ -133,7 +133,6 @@ function PlaylistsPage() {
                         size="sm"
                         className="gap-2 flex justify-center items-center"
                         onClick={handleCreate}
-                        id="onboarding-playlists"
                     >
                         <Plus className="size-4" />
                         New Playlist

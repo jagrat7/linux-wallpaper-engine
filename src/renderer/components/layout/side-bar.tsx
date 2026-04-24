@@ -55,7 +55,7 @@ export function Sidebar({ className }: SidebarProps) {
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu id="onboarding-sidebar-nav">
+                        <SidebarMenu>
                             {navItems.map((item) => {
                                 const isActive = currentPath === item.to
                                 return (
