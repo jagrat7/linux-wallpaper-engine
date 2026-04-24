@@ -35,6 +35,12 @@ function WorkshopPage() {
     setSelectedUrl(selectedWallpaper?.thumbnail ?? null)
   }, [selectedWallpaper, setSelectedUrl])
 
+  // Shrink grid immediately when a wallpaper is selected; the false flip is
+  // deferred to onExitComplete so columns expand only after the panel exits.
+  useEffect(() => {
+    if (selectedWallpaper) setDetailsVisible(true)
+  }, [selectedWallpaper])
+
   trpc.workshop.onConnectionEvent.useSubscription(undefined, {
     onData: () => {
       if (selectedWallpaper) {
@@ -94,7 +100,6 @@ function WorkshopPage() {
         <WorkshopDetailsPanel
           wallpaper={selectedWallpaper}
           onClose={() => setSelectedWallpaper(null)}
-          onEnter={() => setDetailsVisible(true)}
           onExitComplete={() => setDetailsVisible(false)}
         />
       </div>

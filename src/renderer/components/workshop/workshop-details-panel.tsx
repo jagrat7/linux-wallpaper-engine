@@ -10,22 +10,19 @@ const WorkshopWallpaperDetails = lazy(() =>
 interface WorkshopDetailsPanelProps {
   wallpaper: Wallpaper | null
   onClose: () => void
-  onEnter: () => void
   onExitComplete: () => void
 }
 
-export function WorkshopDetailsPanel({ wallpaper, onClose, onEnter, onExitComplete }: WorkshopDetailsPanelProps) {
+export function WorkshopDetailsPanel({ wallpaper, onClose, onExitComplete }: WorkshopDetailsPanelProps) {
   return (
-    <AnimatePresence mode="wait" onExitComplete={onExitComplete}>
+    <AnimatePresence onExitComplete={onExitComplete}>
       {wallpaper && (
         <motion.div
-          key={wallpaper.id}
           className="sticky top-0"
           initial={{ opacity: 0, x: -40 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -40 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          onAnimationStart={onEnter}
         >
           <Suspense fallback={<Skeleton className="w-80 h-96 rounded-xl" />}>
             <WorkshopWallpaperDetails wallpaper={wallpaper} onClose={onClose} />
