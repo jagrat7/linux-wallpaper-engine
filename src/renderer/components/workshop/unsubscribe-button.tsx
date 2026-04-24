@@ -14,7 +14,7 @@ export function UnsubscribeButton({ onClick, disabled = false }: UnsubscribeButt
                 <Button
                     variant="outline"
                     size="icon"
-                    className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    className="shrink-0 hover:bg-destructive/10 hover:text-destructive"
                     onClick={onClick}
                     disabled={disabled}
                 >
