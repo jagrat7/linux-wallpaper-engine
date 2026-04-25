@@ -7,6 +7,7 @@ export type PlaylistOrder = typeof PLAYLIST_ORDER_OPTIONS[number]['value']
 export const PLAYLIST_ORDER_VALUES = PLAYLIST_ORDER_OPTIONS.map(o => o.value) as [PlaylistOrder, ...PlaylistOrder[]]
 
 export const PLAYLIST_TIME_UNIT_OPTIONS = [
+  { label: 'sec', value: 'seconds' },
   { label: 'min', value: 'minutes' },
   { label: 'hr', value: 'hours' },
 ] as const

@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc"
 import {
   availableResolutionsAtom,
   availableTagsAtom,
+  filterAgeRatingAtom,
   filterCompatibilityAtom,
   filterResolutionAtom,
   filterTagsAtom,
@@ -14,27 +15,30 @@ import {
   sortOrderAtom,
 } from "@/contexts/atoms/search-atoms"
 import type { CompatibilityStatus } from "../../shared/constants/compatibility"
-import type { WallpaperFilterType } from "../../shared/constants/wallpaper"
+import type { AgeRating, WallpaperFilterType } from "../../shared/constants/wallpaper"
 import type { SortBy, SortOrder } from "../../shared/constants/sort"
 
-export type { WallpaperFilterType, SortBy, SortOrder }
+export type { AgeRating, WallpaperFilterType, SortBy, SortOrder }
 
-interface SearchQueryContextType {
+interface WallpaperSearchQueryContextType {
   searchQuery: string
   setSearchQuery: (query: string) => void
 }
 
-interface SortContextType {
+interface WallpaperSortContextType {
   sortBy: SortBy
   setSortBy: (sort: SortBy) => void
   sortOrder: SortOrder
   setSortOrder: (order: SortOrder) => void
 }
 
-interface FilterContextType {
+interface WallpaperFilterContextType {
   filterType: WallpaperFilterType[]
   setFilterType: (types: WallpaperFilterType[]) => void
   toggleFilterType: (type: WallpaperFilterType) => void
+  filterAgeRating: AgeRating[]
+  setFilterAgeRating: (ratings: AgeRating[]) => void
+  toggleFilterAgeRating: (rating: AgeRating) => void
   filterTags: string[]
   setFilterTags: (tags: string[]) => void
   toggleTag: (tag: string) => void
@@ -50,45 +54,42 @@ interface FilterContextType {
   toggleFilterCompatibility: (status: CompatibilityStatus) => void
 }
 
-// --- Combined provider ---
-
-export function SearchProvider({ children }: { children: ReactNode }) {
+export function WallpaperSearchProvider({ children }: { children: ReactNode }) {
   const { data: settings } = trpc.settings.get.useQuery()
 
   const setFilterType = useSetAtom(filterTypeAtom)
+  const setFilterAgeRating = useSetAtom(filterAgeRatingAtom)
   const setFilterTags = useSetAtom(filterTagsAtom)
   const setFilterResolution = useSetAtom(filterResolutionAtom)
   const setFilterCompatibility = useSetAtom(filterCompatibilityAtom)
   const setSortBy = useSetAtom(sortByAtom)
   const setSortOrder = useSetAtom(sortOrderAtom)
 
-  // Load persisted preferences on mount
   useEffect(() => {
     if (settings) {
       setFilterType(settings.filterType ?? [])
+      setFilterAgeRating(settings.filterAgeRating ?? [])
       setFilterTags(settings.filterTags)
       setFilterResolution(settings.filterResolution)
       setFilterCompatibility(settings.filterCompatibility)
       setSortBy(settings.sortBy)
       setSortOrder(settings.sortOrder)
     }
-  }, [settings, setFilterCompatibility, setFilterResolution, setFilterTags, setFilterType, setSortBy, setSortOrder])
+  }, [settings, setFilterAgeRating, setFilterCompatibility, setFilterResolution, setFilterTags, setFilterType, setSortBy, setSortOrder])
 
   return children
 }
 
-// --- Hooks ---
-
-export function useSearchQuery() {
+export function useWallpaperSearchQuery() {
   const [searchQuery, setSearchQuery] = useAtom(searchQueryAtom)
 
-  return useMemo<SearchQueryContextType>(() => ({
+  return useMemo<WallpaperSearchQueryContextType>(() => ({
     searchQuery,
     setSearchQuery,
   }), [searchQuery, setSearchQuery])
 }
 
-export function useSort() {
+export function useWallpaperSort() {
   const [sortBy, setSortByValue] = useAtom(sortByAtom)
   const [sortOrder, setSortOrderValue] = useAtom(sortOrderAtom)
   const updateSettings = trpc.settings.update.useMutation()
@@ -103,7 +104,7 @@ export function useSort() {
     updateSettings.mutate({ sortOrder: order })
   }, [setSortOrderValue, updateSettings])
 
-  return useMemo<SortContextType>(() => ({
+  return useMemo<WallpaperSortContextType>(() => ({
     sortBy,
     setSortBy,
     sortOrder,
@@ -111,8 +112,9 @@ export function useSort() {
   }), [sortBy, setSortBy, sortOrder, setSortOrder])
 }
 
-export function useFilter() {
+export function useWallpaperFilter() {
   const [filterType, setFilterTypeValue] = useAtom(filterTypeAtom)
+  const [filterAgeRating, setFilterAgeRatingValue] = useAtom(filterAgeRatingAtom)
   const [filterTags, setFilterTagsValue] = useAtom(filterTagsAtom)
   const [availableTags, setAvailableTags] = useAtom(availableTagsAtom)
   const [filterResolution, setFilterResolutionValue] = useAtom(filterResolutionAtom)
@@ -134,6 +136,21 @@ export function useFilter() {
       return next
     })
   }, [setFilterTypeValue, updateSettings])
+
+  const setFilterAgeRating = useCallback((ratings: AgeRating[]) => {
+    setFilterAgeRatingValue(ratings)
+    updateSettings.mutate({ filterAgeRating: ratings })
+  }, [setFilterAgeRatingValue, updateSettings])
+
+  const toggleFilterAgeRating = useCallback((rating: AgeRating) => {
+    setFilterAgeRatingValue(prev => {
+      const next = prev.includes(rating)
+        ? prev.filter(item => item !== rating)
+        : [...prev, rating]
+      updateSettings.mutate({ filterAgeRating: next })
+      return next
+    })
+  }, [setFilterAgeRatingValue, updateSettings])
 
   const setFilterTags = useCallback((tags: string[]) => {
     setFilterTagsValue(tags)
@@ -180,10 +197,13 @@ export function useFilter() {
     })
   }, [setFilterCompatibilityValue, updateSettings])
 
-  return useMemo<FilterContextType>(() => ({
+  return useMemo<WallpaperFilterContextType>(() => ({
     filterType,
     setFilterType,
     toggleFilterType,
+    filterAgeRating,
+    setFilterAgeRating,
+    toggleFilterAgeRating,
     filterTags,
     setFilterTags,
     toggleTag,
@@ -200,16 +220,19 @@ export function useFilter() {
   }), [
     availableResolutions,
     availableTags,
+    filterAgeRating,
     filterCompatibility,
     filterResolution,
     filterTags,
     filterType,
+    setFilterAgeRating,
     setAvailableResolutions,
     setAvailableTags,
     setFilterCompatibility,
     setFilterResolution,
     setFilterTags,
     setFilterType,
+    toggleFilterAgeRating,
     toggleFilterCompatibility,
     toggleResolution,
     toggleTag,
@@ -217,23 +240,21 @@ export function useFilter() {
   ])
 }
 
-// Convenience hook that combines all three (for WallpaperGrid)
-export function useSearch() {
+export function useWallpaperSearch() {
   return {
-    ...useSearchQuery(),
-    ...useSort(),
-    ...useFilter(),
+    ...useWallpaperSearchQuery(),
+    ...useWallpaperSort(),
+    ...useWallpaperFilter(),
   }
 }
 
-// Hook that provides debounced search query
-export function useDebouncedSearchQuery(delay = 300) {
-  const { searchQuery, setSearchQuery } = useSearchQuery()
+export function useDebouncedWallpaperSearchQuery(delay = 300) {
+  const { searchQuery, setSearchQuery } = useWallpaperSearchQuery()
   const debouncedSearchQuery = useDebounce(searchQuery, delay)
+
   return {
     searchQuery,
     setSearchQuery,
     debouncedSearchQuery,
   }
 }
-

@@ -1,10 +1,11 @@
 import { atom } from "jotai"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
-import type { WallpaperFilterType } from "../../../shared/constants/wallpaper"
+import type { AgeRating, WallpaperFilterType } from "../../../shared/constants/wallpaper"
 import type { SortBy, SortOrder } from "../../../shared/constants/sort"
 
 export const searchQueryAtom = atom("")
 export const filterTypeAtom = atom<WallpaperFilterType[]>([])
+export const filterAgeRatingAtom = atom<AgeRating[]>([])
 export const filterTagsAtom = atom<string[]>([])
 export const availableTagsAtom = atom<string[]>([])
 export const filterResolutionAtom = atom<string[]>([])

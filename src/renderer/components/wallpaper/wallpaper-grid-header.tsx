@@ -17,7 +17,7 @@ export function GridHeader({ onRefresh, isLoading }: GridHeaderProps) {
             description="Wallpapers downloaded to your system"
             action={<RefreshButton onClick={onRefresh} isLoading={isLoading} />}
         >
-            <div id="onboarding-topbar" className="flex items-center gap-3 max-w-xl mx-auto py-1.5">
+            <div className="flex items-center gap-3 max-w-xl mx-auto py-1.5">
                 <SearchInput className="flex-1" />
 
                 <div className="flex items-center gap-1.5">

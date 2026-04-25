@@ -11,8 +11,8 @@ import type {
 // ── Main wallpaper service — thin facade with condensed API ────────────────
 
 export interface IWallpaperService {
-  // Catalog: scan, search, check backend
-  query(options?: { search?: string }): Promise<{
+  // Catalog: scan and check backend
+  query(): Promise<{
     wallpapers: Wallpaper[]
     backendInstalled: boolean
     active: ActiveWallpaperEntry[]

@@ -5,7 +5,6 @@ import { Sidebar } from "./side-bar"
 import { StatusBar } from "./bottom-status-bar"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { trpc } from "@/lib/trpc"
-import { OnboardingWrapper } from "@/components/onboarding/onboarding-provider"
 import { WallpaperBackground } from "@/components/wallpaper/wallpaper-background"
 
 interface AppShellProps {
@@ -17,21 +16,19 @@ export function AppShell({ children, className }: AppShellProps) {
     const { data: settings } = trpc.settings.get.useQuery()
 
     return (
-        <OnboardingWrapper>
-            <SidebarProvider defaultOpen={false}>
-                <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
-                    {settings?.dynamicBackground && <WallpaperBackground />}
-                    <div className="relative z-10 flex min-h-0 flex-1">
-                        <Sidebar className="z-10" />
-                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                            <main className={cn("min-h-0 flex-1 overflow-auto px-[2.5%] pb-4 scrollbar-styled", className)}>
-                                {children}
-                            </main>
-                        </div>
+        <SidebarProvider defaultOpen={false}>
+            <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
+                {settings?.dynamicBackground && <WallpaperBackground />}
+                <div className="relative z-10 flex min-h-0 flex-1">
+                    <Sidebar className="z-10" />
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                        <main className={cn("min-h-0 flex-1 overflow-auto px-[2.5%] pb-4 scrollbar-styled", className)}>
+                            {children}
+                        </main>
                     </div>
-                    {settings?.showStatusBar && <StatusBar className="z-20 shrink-0" />}
                 </div>
-            </SidebarProvider>
-        </OnboardingWrapper>
+                {settings?.showStatusBar && <StatusBar className="z-20 shrink-0" />}
+            </div>
+        </SidebarProvider>
     )
 }

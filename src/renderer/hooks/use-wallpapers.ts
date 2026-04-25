@@ -1,12 +1,13 @@
 import { trpc } from "@/lib/trpc"
-import { useDebouncedSearchQuery } from "@/contexts/search-context"
 import { useMemo } from "react"
-import type { Wallpaper, WallpaperFilterType } from "../../shared/constants/wallpaper"
+import type { AgeRating, Wallpaper, WallpaperFilterType } from "../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../shared/constants/compatibility"
 import type { SortBy, SortOrder } from "../../shared/constants/sort"
 
 export interface FilterSortOptions {
+    searchQuery: string
     filterType: WallpaperFilterType[]
+    filterAgeRating: AgeRating[]
     filterTags: string[]
     filterResolution: string[]
     filterCompatibility: CompatibilityStatus[]
@@ -23,19 +24,33 @@ export function filterAndSortWallpapers(
     wallpapers: Wallpaper[],
     options: FilterSortOptions,
 ): Wallpaper[] {
-    const { filterType, filterTags, filterResolution, filterCompatibility, sortBy, sortOrder, compatibilityMap } = options
+    const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, filterCompatibility, sortBy, sortOrder, compatibilityMap } = options
     let result = [...wallpapers]
 
+    const normalizedSearchQuery = searchQuery.trim().toLowerCase()
+    const hasSearchQuery = normalizedSearchQuery.length > 0
     const hasTypeFilter = filterType.length > 0
     const typeSet = hasTypeFilter ? new Set(filterType) : null
+    const hasAgeRatingFilter = filterAgeRating.length > 0
+    const ageRatingSet = hasAgeRatingFilter ? new Set(filterAgeRating) : null
     const hasTagFilter = filterTags.length > 0
     const hasResolutionFilter = filterResolution.length > 0
     const hasCompatFilter = filterCompatibility.length > 0 && compatibilityMap
     const compatSet = hasCompatFilter ? new Set(filterCompatibility) : null
 
-    if (hasTypeFilter || hasTagFilter || hasCompatFilter || hasResolutionFilter) {
+    if (hasSearchQuery || hasTypeFilter || hasAgeRatingFilter || hasTagFilter || hasCompatFilter || hasResolutionFilter) {
         result = result.filter(w => {
+            if (hasSearchQuery) {
+                const matchesSearch =
+                    w.title.toLowerCase().includes(normalizedSearchQuery) ||
+                    w.author.toLowerCase().includes(normalizedSearchQuery) ||
+                    w.tags.some(tag => tag.toLowerCase().includes(normalizedSearchQuery))
+
+                if (!matchesSearch) return false
+            }
+
             if (typeSet && !typeSet.has(w.type)) return false
+            if (ageRatingSet && w.ageRating && !ageRatingSet.has(w.ageRating)) return false
             if (hasTagFilter && !filterTags.some(tag => w.tags?.includes(tag))) return false
             if (hasResolutionFilter && !filterResolution.includes(!w.resolution.height || !w.resolution.width ? "Unknown" : `${w.resolution.width}x${w.resolution.height}`)) return false
 
@@ -72,20 +87,16 @@ export function filterAndSortWallpapers(
 /**
  * Shared hook that fetches wallpapers, compatibility map, and app settings.
  * Handles the raw-to-Wallpaper transformation with local-file:// prefixed thumbnails.
- * Debounces the search query internally so consumers don't need to.
+ * Fetches installed wallpapers and related metadata.
  */
 export function useWallpapers() {
-    const { debouncedSearchQuery } = useDebouncedSearchQuery()
-
     const {
         data: rawWallpapers,
         isLoading,
         isFetching,
         error,
         refetch,
-    } = trpc.wallpaper.getWallpapers.useQuery({
-        search: debouncedSearchQuery || undefined,
-    })
+    } = trpc.wallpaper.getWallpapers.useQuery()
 
     const invalidateCache = trpc.wallpaper.invalidateCache.useMutation()
     const { data: compatibilityMap } = trpc.wallpaper.getCompatibilityMap.useQuery()
@@ -99,6 +110,7 @@ export function useWallpapers() {
             workshopId: w.workshopId,
             title: w.title,
             author: w.author,
+            ageRating: w.ageRating,
             type: w.type,
             thumbnail: w.thumbnail ? `local-file://${w.thumbnail}` : "",
             previewUrl: w.previewUrl ? `local-file://${w.previewUrl}` : undefined,

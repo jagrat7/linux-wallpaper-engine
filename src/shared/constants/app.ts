@@ -2,7 +2,9 @@ import type { CompatibilityStatus } from './compatibility'
 import type { ScalingOption } from './display'
 import type { SortBy, SortOrder } from './sort'
 import type { ThemeOption } from './theme'
-import type { WallpaperFilterType } from './wallpaper'
+import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS, type WorkshopSortBy } from './workshop'
+import type { AgeRating, WallpaperFilterType } from './wallpaper'
+import packageJson from '../../../package.json'
 
 export interface AppSettings {
   // Performance settings (backend supported)
@@ -36,7 +38,6 @@ export interface AppSettings {
   showCompatibilityDot: boolean
   showStatusBar: boolean
   dynamicBackground: boolean
-  onboardingComplete: boolean
   dismissedScanReminder: boolean
 
   // Debug & Flatpak
@@ -45,12 +46,19 @@ export interface AppSettings {
 
   // Persisted filter & sort preferences
   filterType: WallpaperFilterType[]
+  filterAgeRating: AgeRating[]
   filterTags: string[]
   filterResolution: string[]
+  favoriteDiscoverSectionIds: string[]
+  workshopFilterType: WallpaperFilterType[]
+  workshopFilterAgeRating: AgeRating[]
+  workshopFilterTags: string[]
+  workshopFilterResolution: string[]
 
   filterCompatibility: CompatibilityStatus[]
   sortBy: SortBy
   sortOrder: SortOrder
+  workshopSortBy: WorkshopSortBy
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -85,7 +93,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showCompatibilityDot: true,
   showStatusBar: true,
   dynamicBackground: true,
-  onboardingComplete: false,
   dismissedScanReminder: false,
 
   // Debug & Flatpak
@@ -94,16 +101,24 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   // Filters & sort
   filterType: [],
+  filterAgeRating: ['g'],
   filterTags: [],
   filterResolution: [],
+  favoriteDiscoverSectionIds: DEFAULT_FAVORITE_DISCOVER_SECTION_IDS,
+  workshopFilterType: [],
+  workshopFilterAgeRating: [],
+  workshopFilterTags: [],
+  workshopFilterResolution: [],
   filterCompatibility: [],
   sortBy: 'name',
   sortOrder: 'asc',
+  workshopSortBy: 'trend',
 }
 
 // App info
 export const APP_NAME = 'Linux Wallpaper Engine'
-export const APP_VERSION = '1.0.0'
+export const APP_VERSION = packageJson.version
+export const WALLPAPER_ENGINE_APP_ID = 431960
 
 // Steam paths to search for wallpapers
 export const STEAM_PATHS = [

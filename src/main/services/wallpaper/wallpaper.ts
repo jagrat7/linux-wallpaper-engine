@@ -6,8 +6,8 @@ import { displayService } from '../display'
 import { settingsService } from '../settings'
 import { storeService } from '../store'
 import { hostSpawn, hostExecAsync, isFlatpak } from '../../utils/host'
-import { STEAM_PATHS, CACHE_TTL } from '../../../shared/constants/app'
-import type { WallpaperOverrides, Wallpaper, ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
+import { CACHE_TTL, STEAM_PATHS, WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
+import type { ApplyWallpaperOptions, Wallpaper, WallpaperOverrides } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
 import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail } from './wallpaper.utils'
@@ -38,13 +38,13 @@ class WallpaperService implements IWallpaperService {
 
   // ── Query ──────────────────────────────────────────────────────────────
 
-  async query(options?: { search?: string }): Promise<{
+  async query(): Promise<{
     wallpapers: Wallpaper[]
     backendInstalled: boolean
     active: ActiveWallpaperEntry[]
   }> {
     const [wallpapers, backendInstalled] = await Promise.all([
-      this.getWallpapers(options?.search),
+      this.getWallpapers(),
       this.checkBackendInstalled(),
     ])
     const active = await this.getActiveWithTitles(wallpapers)
@@ -150,7 +150,7 @@ class WallpaperService implements IWallpaperService {
     }
   }
 
-  private async getWallpapers(search?: string): Promise<Wallpaper[]> {
+  private async getWallpapers(): Promise<Wallpaper[]> {
     const now = Date.now()
     const cacheExpired = !this.cacheTimestamp || (now - this.cacheTimestamp) > CACHE_TTL
 
@@ -159,18 +159,7 @@ class WallpaperService implements IWallpaperService {
       this.cacheTimestamp = now
     }
 
-    let filtered = this.wallpaperCache
-
-    if (search?.trim()) {
-      const searchLower = search.toLowerCase().trim()
-      filtered = filtered.filter(w =>
-        w.title.toLowerCase().includes(searchLower) ||
-        w.author.toLowerCase().includes(searchLower) ||
-        w.tags.some(tag => tag.toLowerCase().includes(searchLower))
-      )
-    }
-
-    return filtered
+    return this.wallpaperCache
   }
 
   private async scanWallpapers(): Promise<Wallpaper[]> {
@@ -181,7 +170,7 @@ class WallpaperService implements IWallpaperService {
     for (const basePath of STEAM_PATHS) {
       const expanded = expandPath(basePath)
 
-      const workshopPath = path.join(expanded, 'steamapps/workshop/content/431960')
+      const workshopPath = path.join(expanded, 'steamapps/workshop/content', String(WALLPAPER_ENGINE_APP_ID))
       try {
         await fs.access(workshopPath)
         workshopDirs.add(workshopPath)
@@ -196,7 +185,7 @@ class WallpaperService implements IWallpaperService {
 
     const snapPaths = await glob(expandPath('~/snap/steam/*/.local/share/Steam'))
     for (const snapPath of snapPaths) {
-      const workshopPath = path.join(snapPath, 'steamapps/workshop/content/431960')
+      const workshopPath = path.join(snapPath, 'steamapps/workshop/content', String(WALLPAPER_ENGINE_APP_ID))
       try {
         await fs.access(workshopPath)
         workshopDirs.add(workshopPath)

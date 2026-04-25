@@ -6,6 +6,18 @@ import { MakerZIP } from '@electron-forge/maker-zip'
 import { VitePlugin } from '@electron-forge/plugin-vite'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
+import { packageNativeDeps } from './distro/native-deps'
+
+const { asarUnpackDir, ignore } = packageNativeDeps({
+  deps: [
+    {
+      pkg: 'steamworks.js',
+      nativeDir: 'dist/linux64',
+      entryFiles: ['index.js', 'package.json'],
+    },
+  ],
+  includedDirs: ['/.vite'],
+})
 
 const config: ForgeConfig = {
   publishers: [
@@ -23,10 +35,13 @@ const config: ForgeConfig = {
     }
   ],
   packagerConfig: {
-    asar: true,
+    // Native .node binaries dlopen sibling .so files via RUNPATH=$ORIGIN,
+    // so their dir must live on disk instead of inside app.asar.
+    asar: { unpackDir: asarUnpackDir },
     icon: './assets/transparent-logo',
     executableName: 'linux-wallpaper-engine',
-    extraResource: ["./assets"],
+    extraResource: ['./assets'],
+    ignore,
   },
   rebuildConfig: {},
   makers: [
@@ -118,6 +133,6 @@ const config: ForgeConfig = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
-};
+}
 
-export default config;
+export default config

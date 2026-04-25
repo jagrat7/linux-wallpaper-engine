@@ -7,14 +7,19 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { useFilter, type WallpaperFilterType } from "@/contexts/search-context"
+import { useWallpaperFilter, type AgeRating, type WallpaperFilterType } from "@/contexts/wallpaper-search-context"
 import { FilterSection } from "./filter-section"
 import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from "../../../shared/constants/compatibility"
-import { FILTER_TYPE_OPTIONS } from "../../../shared/constants/wallpaper"
+import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from "../../../shared/constants/wallpaper"
 
 const TYPE_ITEMS = FILTER_TYPE_OPTIONS
     .filter(o => o.value !== 'all')
     .map(o => ({ key: o.value, label: o.label }))
+
+const AGE_RATING_ITEMS = AGE_RATING_OPTIONS.map((opt) => ({
+    key: opt.value,
+    label: opt.label,
+}))
 
 const COMPAT_ITEMS = COMPATIBILITY_OPTIONS.map((opt) => ({
     key: opt.value,
@@ -27,6 +32,9 @@ export function FiltersDropdown() {
         filterType,
         setFilterType,
         toggleFilterType,
+        filterAgeRating,
+        setFilterAgeRating,
+        toggleFilterAgeRating,
         filterTags,
         toggleTag,
         setFilterTags,
@@ -38,10 +46,11 @@ export function FiltersDropdown() {
         filterCompatibility,
         toggleFilterCompatibility,
         setFilterCompatibility,
-    } = useFilter()
+    } = useWallpaperFilter()
 
     const activeFilterCount =
         filterType.length +
+        filterAgeRating.length +
         filterTags.length +
         filterResolution.length +
         filterCompatibility.length
@@ -49,6 +58,7 @@ export function FiltersDropdown() {
     const handleClearAll = (e: React.MouseEvent) => {
         e.stopPropagation()
         setFilterType([])
+        setFilterAgeRating([])
         setFilterResolution([])
         setFilterTags([])
         setFilterCompatibility([])
@@ -62,8 +72,7 @@ export function FiltersDropdown() {
                     size="sm"
                     className={cn(
                         "h-8 gap-1.5 rounded-lg px-3 text-xs font-medium tracking-wide transition-all duration-200",
-                        "bg-secondary/50 ring-1 ring-border/40 hover:bg-secondary hover:ring-border",
-                        activeFilterCount > 0 && "ring-primary/40 text-primary bg-primary/10"
+                        "bg-secondary/50 ring-1 ring-border/40 hover:bg-secondary hover:ring-border"
                     )}
                 >
                     <SlidersHorizontal className="size-3.5" />
@@ -106,6 +115,17 @@ export function FiltersDropdown() {
                         ) : undefined}
                     />
                 )}
+
+                <FilterSection
+                    label="Age rating"
+                    items={AGE_RATING_ITEMS}
+                    selected={filterAgeRating}
+                    onToggle={(key) => toggleFilterAgeRating(key as AgeRating)}
+                    multi
+                    badge={filterAgeRating.length > 0 ? (
+                        <span className="text-primary">{filterAgeRating.length} selected</span>
+                    ) : undefined}
+                />
 
                 <FilterSection
                     label="Compatibility"

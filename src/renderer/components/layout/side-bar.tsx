@@ -1,10 +1,11 @@
-import { Link, useRouterState } from "@tanstack/react-router"
+import { useNavigate, useRouterState } from "@tanstack/react-router"
 import {
     Download,
     List,
     Monitor,
     Settings,
 } from "lucide-react"
+import { SteamIcon } from "@/components/icons/steam"
 import logoImage from "../../../../assets/transparent-logo.png"
 import {
     Sidebar as SidebarPrimitive,
@@ -22,6 +23,7 @@ import { useTheme } from "../theme-provider"
 
 const navItems = [
     { to: "/", icon: Download, label: "Installed" },
+    { to: "/workshop", icon: SteamIcon, label: "Workshop" },
     { to: "/playlists", icon: List, label: "Playlists" },
     { to: "/displays", icon: Monitor, label: "Displays" },
     { to: "/settings", icon: Settings, label: "Settings" },
@@ -33,6 +35,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
     const router = useRouterState()
+    const navigate = useNavigate()
     const currentPath = router.location.pathname
     const isLightTheme = useTheme().mode.includes("light")
     return (
@@ -52,16 +55,14 @@ export function Sidebar({ className }: SidebarProps) {
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu id="onboarding-sidebar-nav">
+                        <SidebarMenu>
                             {navItems.map((item) => {
                                 const isActive = currentPath === item.to
                                 return (
                                     <SidebarMenuItem key={item.to}>
-                                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                                            <Link to={item.to}>
-                                                <item.icon className="size-4" />
-                                                <span>{item.label}</span>
-                                            </Link>
+                                        <SidebarMenuButton isActive={isActive} tooltip={item.label} onClick={() => navigate({ to: item.to })}>
+                                            <item.icon className="size-4" />
+                                            <span>{item.label}</span>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 )

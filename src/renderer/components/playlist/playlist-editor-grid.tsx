@@ -9,7 +9,7 @@ import { SelectedChips } from "./selected-chips"
 import type { Playlist } from "../../../shared/constants/playlist"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
-import { useSearch } from "@/contexts/search-context"
+import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
 import { usePlaylistEditor } from "@/hooks/use-playlist-editor"
 import { useMemo, useCallback } from "react"
 
@@ -18,7 +18,7 @@ interface PlaylistEditorGridProps {
 }
 
 export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
-    const { searchQuery, filterType, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility } = useSearch()
+    const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility } = useWallpaperSearch()
     const {
         wallpapers: transformedWallpapers,
         isLoading,
@@ -31,7 +31,9 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
     // Apply search-context filters and sorting
     const filteredWallpapers = useMemo(() =>
         filterAndSortWallpapers(transformedWallpapers, {
+            searchQuery,
             filterType,
+            filterAgeRating,
             filterTags,
             filterResolution,
             filterCompatibility,
@@ -39,7 +41,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
             sortOrder,
             compatibilityMap,
         }),
-        [transformedWallpapers, filterType, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
+        [transformedWallpapers, searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
 
     // Derive selected wallpaper objects for the chips list
     const selectedWallpaperData = useMemo(

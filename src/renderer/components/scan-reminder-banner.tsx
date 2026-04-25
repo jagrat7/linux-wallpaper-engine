@@ -10,8 +10,7 @@ export function ScanReminderBanner() {
         onSuccess: () => utils.settings.get.invalidate(),
     })
 
-    // Only show when onboarding is done but scan reminder hasn't been dismissed
-    if (!settings?.onboardingComplete || settings.dismissedScanReminder) {
+    if (!settings || settings.dismissedScanReminder) {
         return null
     }
 
@@ -30,7 +29,7 @@ export function ScanReminderBanner() {
                         to="/settings"
                         className="font-medium underline underline-offset-2 transition-colors hover:text-warning"
                     >
-                        Go to Settings →
+                        Go to Settings
                     </Link>
                 </p>
             </div>
