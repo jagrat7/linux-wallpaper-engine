@@ -80,7 +80,7 @@ function DisplaysPage() {
                 }
             />
 
-            <div id="onboarding-display-layout" className="mb-8 min-h-[200px] md:min-h-[300px] lg:min-h-[400px] xl:min-h-[450px] rounded-xl border border-border bg-card p-6 glass">
+            <div className="mb-8 min-h-[200px] md:min-h-[300px] lg:min-h-[400px] xl:min-h-[450px] rounded-xl border border-border bg-card p-6 glass">
                 <h2 className="mb-4 text-sm font-medium text-muted-foreground">
                     Monitor Layout
                 </h2>
@@ -108,8 +108,8 @@ function DisplaysPage() {
                                         <Plus className="size-8 text-muted-foreground/50" />
                                     </div>
                                 )}
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                                    <p className="text-xs font-medium text-white">{monitor.id}</p>
+                                <div className="absolute inset-x-0 top-0 p-2">
+                                    <p className="text-xs font-medium text-primary/90 glass rounded-md px-2 py-1 w-fit">{monitor.id}</p>
                                 </div>
                             </div>
                         ))
@@ -117,7 +117,7 @@ function DisplaysPage() {
                 </div>
             </div>
 
-            <div id="onboarding-display-settings" className="space-y-4">
+            <div className="space-y-4">
                 <h2 className="text-lg font-semibold">Display Settings</h2>
                 {monitors.map((monitor) => (
                     <div

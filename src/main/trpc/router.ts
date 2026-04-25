@@ -6,6 +6,7 @@ import { displayRouter } from './routes/display'
 import { settingsRouter } from './routes/settings'
 import { windowRouter } from './routes/window'
 import { playlistRouter } from './routes/playlist'
+import { workshopRouter } from './routes/workshop'
 
 export const appRouter = trpc.router({
   health: trpc.procedure.query(() => ({ status: 'ok' })),
@@ -15,6 +16,7 @@ export const appRouter = trpc.router({
   settings: settingsRouter,
   window: windowRouter,
   playlist: playlistRouter,
+  workshop: workshopRouter,
 })
 
 export type AppRouter = typeof appRouter

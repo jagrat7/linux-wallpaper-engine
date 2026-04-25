@@ -14,16 +14,10 @@ export const wallpaperRouter = trpc.router({
   }),
 
   // Get all wallpapers
-  getWallpapers: trpc.procedure
-    .input(
-      z.object({
-        search: z.string().optional(),
-      }),
-    )
-    .query(async ({ input }) => {
-      const { wallpapers } = await wallpaperService.query(input)
-      return wallpapers
-    }),
+  getWallpapers: trpc.procedure.query(async () => {
+    const { wallpapers } = await wallpaperService.query()
+    return wallpapers
+  }),
 
   // Invalidate wallpaper cache so the next query triggers a fresh scan
   invalidateCache: trpc.procedure.mutation(async () => {

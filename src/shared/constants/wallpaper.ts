@@ -12,6 +12,17 @@ export const FILTER_TYPE_OPTIONS = [
 export type WallpaperFilterType = typeof FILTER_TYPE_OPTIONS[number]['value']
 export type WallpaperType = Exclude<WallpaperFilterType, 'all'>
 
+export const AGE_RATINGS = {
+  g: { label: 'G', workshopTag: 'Everyone' },
+  pg13: { label: 'PG13', workshopTag: 'Questionable' },
+  r: { label: 'R', workshopTag: 'Mature' },
+} as const
+export type AgeRating = keyof typeof AGE_RATINGS
+export const AGE_RATING_OPTIONS = Object.entries(AGE_RATINGS).map(([value, config]) => ({
+  label: config.label,
+  value,
+})) as Array<{ label: typeof AGE_RATINGS[AgeRating]['label']; value: AgeRating }>
+
 // Wallpaper type labels for display (derived from FILTER_TYPE_OPTIONS)
 export const WALLPAPER_TYPE_LABELS = Object.fromEntries(
   FILTER_TYPE_OPTIONS.filter(o => o.value !== 'all').map(o => [o.value, o.label])
@@ -23,6 +34,7 @@ export interface Wallpaper {
   workshopId?: string
   title: string
   author: string
+  ageRating?: AgeRating
   type: WallpaperType
   thumbnail: string
   previewUrl?: string

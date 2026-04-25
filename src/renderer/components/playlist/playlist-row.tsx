@@ -2,6 +2,7 @@ import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images, CircleCheck } fro
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/empty-state"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -139,9 +140,7 @@ export function PlaylistRow({
                     <CarouselButtons />
                 </Carousel>
             ) : (
-                <div className="flex items-center justify-center py-12 text-muted-foreground">
-                    <Shuffle className="size-8 opacity-50" />
-                </div>
+                <EmptyState className="-p-10 my-8" icon={Shuffle} title="No wallpapers found" />
             )}
         </div>
     )

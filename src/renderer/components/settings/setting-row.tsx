@@ -3,20 +3,22 @@ import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SettingRowProps {
-    label: string
+    label: React.ReactNode
     children: React.ReactNode
     disabled?: boolean
     changed?: boolean
     onClear?: () => void
+    className?: string
 }
 
-export function SettingRow({ label, children, disabled, changed, onClear }: SettingRowProps) {
+export function SettingRow({ label, children, disabled, changed, onClear, className }: SettingRowProps) {
     return (
         <div
             className={cn(
                 "flex items-center justify-between px-4 py-3 transition-colors rounded-md",
                 disabled && "opacity-50 grayscale-[0.5] cursor-not-allowed select-none",
-                changed && "bg-primary/10 ring-1 ring-primary/30"
+                changed && "bg-primary/10 ring-1 ring-primary/30",
+                className
             )}
         >
             <span className="text-sm">{label}</span>

@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router"
 import {
-    Gauge,
+    Settings,
     Volume2,
     Monitor,
     Palette,
     RotateCcw,
     Loader2,
     ScanSearch,
+    ChevronDown,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -27,12 +28,9 @@ import { getFpsOptions } from "@/lib/utils"
 import { CompatibilityScanRow } from "@/components/settings/compatibility-scan-row"
 import { LoadingButton } from "@/components/loading-button"
 import { PageHeader } from "@/components/page-header"
-import { lazy, Suspense } from "react"
-
-// Dev-only flag to show onboarding test button
-const DEV_SHOW_ONBOARDING_TEST = false
-
-const DevOnboardingTest = lazy(() => import("@/components/settings/dev-onboarding-test").then(m => ({ default: m.DevOnboardingTest })))
+import { useState } from "react"
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
 
 export const Route = createFileRoute("/settings")({
     component: SettingsPage,
@@ -58,6 +56,8 @@ function SettingsPage() {
 
     const { data: flatpakData } = trpc.settings.isFlatpak.useQuery()
     const isFlatpakEnv = flatpakData?.isFlatpak ?? false
+
+    const [startupTrayOpen, setStartupTrayOpen] = useState(false)
 
     // Get max refresh rate from displays
     const { data: maxRefreshData } = trpc.display.maxRefreshRate.useQuery()
@@ -90,7 +90,6 @@ function SettingsPage() {
     return (
         <div className="p-6 max-h-[100vh]">
             <PageHeader
-                id="onboarding-settings-page"
                 title="Settings"
                 description="Configure global application preferences"
                 action={
@@ -109,30 +108,12 @@ function SettingsPage() {
             />
 
             <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
-                {/* Performance Section */}
+                {/* General Section */}
                 <SettingsSection
-                    id="onboarding-performance"
-                    icon={Gauge}
-                    title="Performance"
-                    description="FPS limits and app management"
+                    icon={Settings}
+                    title="General"
+                    description="App behavior and startup"
                 >
-                    <SettingRow label="Maximum FPS">
-                        <Select
-                            value={String(settings.fps)}
-                            onValueChange={(value) => updateSetting("fps", Number(value))}
-                        >
-                            <SelectTrigger className="w-28">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {getFpsOptions(maxRefreshData?.maxRefreshRate ?? 60, settings.fps).map((fps) => (
-                                    <SelectItem key={fps} value={String(fps)}>
-                                        {fps} FPS
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </SettingRow>
                     <SettingRow label="Pause on fullscreen apps">
                         <Switch
                             checked={settings.pauseOnFullscreen}
@@ -145,30 +126,39 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("launchOnLogin", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label="Enable system tray">
+                    <SettingRow label={<span className="inline-flex items-center gap-1">Enable system tray <Button variant="ghost" size="icon" onClick={() => setStartupTrayOpen((o) => !o)} className="size-6 text-muted-foreground hover:text-foreground" title="Advanced tray options"><ChevronDown className={`size-3.5 transition-transform ${startupTrayOpen ? "rotate-180" : ""}`} /></Button></span>} className={!startupTrayOpen ? "border-b-0" : ""}>
                         <Switch
                             checked={settings.enableSystemTray}
                             onCheckedChange={(checked) => updateSetting("enableSystemTray", checked)}
                         />
                     </SettingRow>
-                    <SettingRow
-                        label="Minimize on startup"
-                        disabled={!settings.launchOnLogin || !settings.enableSystemTray}
-                    >
-                        <Switch
-                            checked={settings.minimizeOnStartup}
-                            onCheckedChange={(checked) => updateSetting("minimizeOnStartup", checked)}
-                        />
-                    </SettingRow>
-                    <SettingRow
-                        label="Minimize on close"
-                        disabled={!settings.enableSystemTray}
-                    >
-                        <Switch
-                            checked={settings.minimizeOnClose}
-                            onCheckedChange={(checked) => updateSetting("minimizeOnClose", checked)}
-                        />
-                    </SettingRow>
+                    {startupTrayOpen && (
+                    <Collapsible open={startupTrayOpen} onOpenChange={setStartupTrayOpen}>
+                        <CollapsibleContent>
+                            <div className="divide-y divide-border bg-muted/30">
+                                <SettingRow
+                                    label="Minimize on startup"
+                                    disabled={!settings.launchOnLogin || !settings.enableSystemTray}
+                                >
+                                    <Switch
+                                        checked={settings.minimizeOnStartup}
+                                        onCheckedChange={(checked) => updateSetting("minimizeOnStartup", checked)}
+                                    />
+                                </SettingRow>
+                                <SettingRow
+                                    label="Minimize on close"
+                                    disabled={!settings.enableSystemTray}
+                                    className="border-b-0"
+                                >
+                                    <Switch
+                                        checked={settings.minimizeOnClose}
+                                        onCheckedChange={(checked) => updateSetting("minimizeOnClose", checked)}
+                                    />
+                                </SettingRow>
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
+                    )}
                 </SettingsSection>
 
                 {/* Compatibility Scan Section */}
@@ -176,17 +166,16 @@ function SettingsPage() {
                     icon={ScanSearch}
                     title="Compatibility"
                     description="Test wallpapers for Linux compatibility"
-                    id="onboarding-compatibility-scan"
                 >
                     <CompatibilityScanRow settings={settings} updateSetting={updateSetting} />
-                    <SettingRow label="Debug mode">
+                    <SettingRow label="Debug mode" className={!isFlatpakEnv ? "border-b-0" : ""}>
                         <Switch
                             checked={settings.debugMode}
                             onCheckedChange={(v) => updateSetting("debugMode", v)}
                         />
                     </SettingRow>
                     {isFlatpakEnv && (
-                        <SettingRow label="Bypass Flatpak sandbox">
+                        <SettingRow label="Bypass Flatpak sandbox" className="border-b-0">
                             <Switch
                                 checked={settings.flatpakBypass}
                                 onCheckedChange={(v) => updateSetting("flatpakBypass", v)}
@@ -197,7 +186,6 @@ function SettingsPage() {
 
                 {/* Audio Section */}
                 <SettingsSection
-                    id="onboarding-audio"
                     icon={Volume2}
                     title="Audio"
                     description="Volume and audio processing"
@@ -229,7 +217,7 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("noAutomute", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label="Audio reactive effects">
+                    <SettingRow label="Audio reactive effects" className="border-b-0">
                         <Switch
                             checked={settings.audioProcessing}
                             onCheckedChange={(checked) => updateSetting("audioProcessing", checked)}
@@ -239,11 +227,27 @@ function SettingsPage() {
 
                 {/* Display Section */}
                 <SettingsSection
-                    id="onboarding-display"
                     icon={Monitor}
                     title="Display"
                     description="Default display behavior"
                 >
+                    <SettingRow label="Maximum FPS">
+                        <Select
+                            value={String(settings.fps)}
+                            onValueChange={(value) => updateSetting("fps", Number(value))}
+                        >
+                            <SelectTrigger className="w-28">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {getFpsOptions(maxRefreshData?.maxRefreshRate ?? 60, settings.fps).map((fps) => (
+                                    <SelectItem key={fps} value={String(fps)}>
+                                        {fps} FPS
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </SettingRow>
                     <SettingRow label="Default scaling">
                         <Select
                             value={settings.defaultScaling}
@@ -267,7 +271,7 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("disableMouse", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label="Disable parallax effect">
+                    <SettingRow label="Disable parallax effect" className="border-b-0">
                         <Switch
                             checked={settings.disableParallax}
                             onCheckedChange={(checked) => updateSetting("disableParallax", checked)}
@@ -277,7 +281,6 @@ function SettingsPage() {
 
                 {/* Appearance Section */}
                 <SettingsSection
-                    id="onboarding-appearance"
                     icon={Palette}
                     title="Appearance"
                     description="Theme and visual preferences"
@@ -316,7 +319,7 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("showStatusBar", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label="Dynamic background">
+                    <SettingRow label="Dynamic background" className="border-b-0">
                         <Switch
                             checked={settings.dynamicBackground}
                             onCheckedChange={(checked) => updateSetting("dynamicBackground", checked)}
@@ -325,15 +328,7 @@ function SettingsPage() {
 
                 </SettingsSection>
 
-                {/* Dev-only: Test Onboarding */}
-                {DEV_SHOW_ONBOARDING_TEST && (
-                    <Suspense fallback={null}>
-                        <DevOnboardingTest />
-                    </Suspense>
-                )}
             </div>
         </div>
     )
 }
-
-

@@ -4,18 +4,22 @@ import { GridHeader } from "./wallpaper-grid-header"
 import { WallpaperGridLayout } from "./wallpaper-grid-layout"
 import { AlertCircle, FolderOpen } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSearch } from "@/contexts/search-context"
+import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
-import { useState, useMemo, useEffect, useCallback, useRef, lazy, Suspense } from "react"
+import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
+import { useState, useMemo, useEffect, lazy, Suspense } from "react"
+import { useAtomValue } from "jotai"
+import { unsubscribedWorkshopIdsAtom } from "@/contexts/atoms/workshop-atoms"
 
-const WallpaperDetails = lazy(() => import("./wallpaper-details").then(m => ({ default: m.WallpaperDetails })))
+const WallpaperDetails = lazy(() => import("./details-card/wallpaper-details").then(m => ({ default: m.WallpaperDetails })))
 
 // TODO: Fix wallpaper details size so that is consistent width with a column
 export function WallpaperGrid() {
-    const [selectedWallpaper, setSelectedWallpaper] = useState<Wallpaper | null>(null)
+    const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
     const [detailsVisible, setDetailsVisible] = useState(false)
-    const { searchQuery, filterType, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useSearch()
+    const unsubscribedWorkshopIds = useAtomValue(unsubscribedWorkshopIdsAtom)
+    const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useWallpaperSearch()
     const { setSelectedUrl } = useWallpaperBackground()
 
     const {
@@ -29,22 +33,23 @@ export function WallpaperGrid() {
         appSettings,
     } = useWallpapers()
 
-    // Throttle wallpaper selection to prevent UI freezing from rapid clicks
-    const lastClickTime = useRef(0)
-    const THROTTLE_MS = 150
-
     // Filter and sort wallpapers
-    const wallpapers: Wallpaper[] = useMemo(() =>
-        filterAndSortWallpapers(transformedWallpapers, {
+    const wallpapers: Wallpaper[] = useMemo(() => {
+        const visibleWallpapers = transformedWallpapers.filter(wallpaper => !unsubscribedWorkshopIds.has(wallpaper.workshopId ?? wallpaper.id))
+
+        return filterAndSortWallpapers(visibleWallpapers, {
+            searchQuery,
             filterType,
+            filterAgeRating,
             filterTags,
             filterResolution,
             filterCompatibility,
             sortBy,
             sortOrder,
             compatibilityMap,
-        }),
-        [transformedWallpapers, filterType, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
+        })
+    },
+        [transformedWallpapers, unsubscribedWorkshopIds, searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
 
     // Sync selected wallpaper thumbnail as blurred page background
     useEffect(() => {
@@ -87,17 +92,12 @@ export function WallpaperGrid() {
     }, [rawWallpapers, setAvailableTags, setAvailableResolutions])
 
 
-    const toggleWallpaper = useCallback((w: Wallpaper) => {
-        const now = Date.now()
-        if (now - lastClickTime.current < THROTTLE_MS) {
-            return // Ignore rapid clicks
-        }
-        lastClickTime.current = now
-        setSelectedWallpaper(prev => prev?.id === w.id ? null : w)
-    }, [])
-
     const handleRefresh = () => {
         refetch()
+    }
+
+    const handleUnsubscribe = () => {
+        setSelectedWallpaper(null)
     }
 
     // Error state
@@ -128,10 +128,7 @@ export function WallpaperGrid() {
             <GridHeader onRefresh={handleRefresh} isLoading={isFetching} />
 
             <div className="flex items-start gap-6 flex-1">
-                <div
-                    id="onboarding-wallpaper-grid"
-                    className="flex-1 h-fit transition-all duration-300"
-                >
+                <div className="flex-1 h-fit transition-all duration-300">
                     <WallpaperGridLayout
                         wallpapers={wallpapers}
                         isLoading={isLoading}
@@ -165,6 +162,7 @@ export function WallpaperGrid() {
                                 <WallpaperDetails
                                     wallpaper={selectedWallpaper}
                                     onClose={() => setSelectedWallpaper(null)}
+                                    onUnsubscribe={handleUnsubscribe}
                                 />
                             </Suspense>
                         </motion.div>

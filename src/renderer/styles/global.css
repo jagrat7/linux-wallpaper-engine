@@ -235,9 +235,3 @@
 @utility scrollbar-styled {
   @apply scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border/40 hover:scrollbar-thumb-border;
 }
-
-/* Ensure onboarding overlay renders above all UI elements */
-[data-name="onborda-overlay"] {
-  position: fixed !important;
-  z-index: 99999 !important;
-}

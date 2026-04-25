@@ -1,4 +1,15 @@
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
+import {
+  DEFAULT_DISPLAY_HEIGHT,
+  DEFAULT_DISPLAY_WIDTH,
+  DEFAULT_REFRESH_RATE,
+  DISPLAY_COMMANDS,
+  DRM_CONNECTOR_PATTERN,
+  DRM_PATH,
+} from '../../shared/constants/display'
 import { hostExecAsync } from '../utils/host'
+import { settingsService } from './settings'
 
 export interface Display {
   id: string
@@ -11,6 +22,7 @@ export interface Display {
   refreshRate: number
   primary: boolean
   connected: boolean
+  degraded: boolean
 }
 
 export const displayService = {
@@ -19,11 +31,11 @@ export const displayService = {
 
     // Try xrandr first (X11)
     try {
-      const { stdout } = await hostExecAsync('xrandr --query')
+      const { stdout } = await hostExecAsync(DISPLAY_COMMANDS.xrandrQuery)
       const lines = stdout.split('\n')
 
       // Regex to match: Name connected [primary] WxH+X+Y ...
-      const pattern = /^(\S+)\s+connected\s+(primary\s+)?(\d+)x(\d+)\+(\d+)\+(\d+)/
+      const pattern = /^(\S+)\s+connected\s+(primary\s+)?(\d+)x(\d+)([+-]\d+)([+-]\d+)/
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
@@ -33,7 +45,7 @@ export const displayService = {
 
           // Look for refresh rate in the next line (mode line)
           // Example: "   1920x1080     60.00*+  59.93"
-          let refreshRate = 60 // Default fallback
+          let refreshRate = DEFAULT_REFRESH_RATE
           if (i + 1 < lines.length) {
             const modeLine = lines[i + 1]
             const rateMatch = modeLine.match(/(\d+\.\d+)\*/)
@@ -53,6 +65,7 @@ export const displayService = {
             refreshRate,
             primary: !!primaryStr,
             connected: true,
+            degraded: false,
           })
         }
       }
@@ -66,7 +79,7 @@ export const displayService = {
 
     // Try wlr-randr (Wayland with wlroots-based compositors)
     try {
-      const { stdout } = await hostExecAsync('wlr-randr')
+      const { stdout } = await hostExecAsync(DISPLAY_COMMANDS.wlrRandr)
       const lines = stdout.split('\n')
 
       let currentDisplay: Partial<Display> | null = null
@@ -87,15 +100,22 @@ export const displayService = {
             height: parseInt(height, 10),
             x: 0,
             y: 0,
-            refreshRate: 60, // Default for Wayland
-            primary: displays.length === 0, // First one is primary
+            refreshRate: DEFAULT_REFRESH_RATE,
+            primary: displays.length === 0,
             connected: true,
+            degraded: false,
           }
         }
 
-        // Position line: "Position: 0,0"
         if (currentDisplay) {
-          const posMatch = line.match(/Position:\s*(\d+),(\d+)/)
+          // Refresh rate line: "    1920x1080 px, 144.000 Hz (preferred, current)"
+          const rateMatch = line.match(/([\d.]+)\s*Hz.*current/)
+          if (rateMatch) {
+            currentDisplay.refreshRate = Math.round(parseFloat(rateMatch[1]))
+          }
+
+          // Position line: "Position: 0,0"
+          const posMatch = line.match(/Position:\s*(-?\d+),(-?\d+)/)
           if (posMatch) {
             currentDisplay.x = parseInt(posMatch[1], 10)
             currentDisplay.y = parseInt(posMatch[2], 10)
@@ -114,15 +134,45 @@ export const displayService = {
       // wlr-randr not available or failed
     }
 
+    // Try Hyprland's native monitor API
+    try {
+      const { stdout } = await hostExecAsync(DISPLAY_COMMANDS.hyprlandMonitors)
+      const monitors = JSON.parse(stdout) as Partial<Display & { focused: boolean }>[]
+
+      for (const monitor of monitors) {
+        if (!monitor.name || !monitor.width || !monitor.height) continue
+
+        displays.push({
+          id: monitor.name,
+          name: monitor.name,
+          resolution: `${monitor.width}x${monitor.height}`,
+          width: monitor.width,
+          height: monitor.height,
+          x: monitor.x ?? 0,
+          y: monitor.y ?? 0,
+          refreshRate: Math.round(monitor.refreshRate ?? DEFAULT_REFRESH_RATE),
+          primary: monitor.focused ?? displays.length === 0,
+          connected: true,
+          degraded: false,
+        })
+      }
+
+      if (displays.length > 0) {
+        return displays
+      }
+    } catch {
+      // hyprctl not available or failed
+    }
+
     // Try gnome-randr for GNOME Wayland
     try {
-      const { stdout } = await hostExecAsync('gnome-randr query')
+      const { stdout } = await hostExecAsync(DISPLAY_COMMANDS.gnomeRandrQuery)
       // Parse gnome-randr output (format varies)
       const lines = stdout.split('\n')
 
       for (const line of lines) {
         // Basic parsing for connected displays
-        const match = line.match(/^(\S+)\s+(\d+)x(\d+)\+(\d+)\+(\d+)/)
+        const match = line.match(/^(\S+)\s+(\d+)x(\d+)([+-]\d+)([+-]\d+)/)
         if (match) {
           const [, name, width, height, x, y] = match
           displays.push({
@@ -133,9 +183,10 @@ export const displayService = {
             height: parseInt(height, 10),
             x: parseInt(x, 10),
             y: parseInt(y, 10),
-            refreshRate: 60, // Default for gnome-randr
+            refreshRate: DEFAULT_REFRESH_RATE,
             primary: displays.length === 0,
             connected: true,
+            degraded: false,
           })
         }
       }
@@ -147,21 +198,89 @@ export const displayService = {
       // gnome-randr not available
     }
 
-    // Fallback: return a default display
+    // Fallback: parse /sys/class/drm for connector names without compositor tools.
+    // Sysfs modes do not include refresh rate, so use the user's configured value.
+    try {
+      const entries = await fs.readdir(DRM_PATH)
+      const fallbackRefreshRate = this.getFallbackRefreshRate()
+
+      for (const entry of entries) {
+        const match = entry.match(DRM_CONNECTOR_PATTERN)
+        if (!match) continue
+
+        const connectorName = match[1]
+        if (connectorName.startsWith('Writeback')) continue
+
+        try {
+          const entryPath = path.join(DRM_PATH, entry)
+          const status = (await fs.readFile(path.join(entryPath, 'status'), 'utf-8')).trim()
+          if (status !== 'connected') continue
+
+          let width = DEFAULT_DISPLAY_WIDTH
+          let height = DEFAULT_DISPLAY_HEIGHT
+
+          try {
+            const modes = (await fs.readFile(path.join(entryPath, 'modes'), 'utf-8')).trim()
+            const firstMode = modes.split('\n')[0]
+            const modeMatch = firstMode?.match(/(\d+)x(\d+)/)
+
+            if (modeMatch) {
+              width = parseInt(modeMatch[1], 10)
+              height = parseInt(modeMatch[2], 10)
+            }
+          } catch {
+            // modes may be absent for some connectors
+          }
+
+          displays.push({
+            id: connectorName,
+            name: connectorName,
+            resolution: `${width}x${height}`,
+            width,
+            height,
+            x: 0,
+            y: 0,
+            refreshRate: fallbackRefreshRate,
+            primary: displays.length === 0,
+            connected: true,
+            degraded: true,
+          })
+        } catch {
+          // Individual connector metadata can disappear while scanning.
+        }
+      }
+
+      if (displays.length > 0) {
+        return displays
+      }
+    } catch {
+      // /sys/class/drm not accessible
+    }
+
+    // Last resort fallback
+    const fallbackRefreshRate = this.getFallbackRefreshRate()
+
     return [
       {
         id: 'default',
         name: 'Unknown Display',
-        resolution: '1920x1080',
-        width: 1920,
-        height: 1080,
+        resolution: `${DEFAULT_DISPLAY_WIDTH}x${DEFAULT_DISPLAY_HEIGHT}`,
+        width: DEFAULT_DISPLAY_WIDTH,
+        height: DEFAULT_DISPLAY_HEIGHT,
         x: 0,
         y: 0,
-        refreshRate: 60,
+        refreshRate: fallbackRefreshRate,
         primary: true,
         connected: true,
+        degraded: true,
       },
     ]
+  },
+
+  getFallbackRefreshRate(): number {
+    return settingsService.getSetting('maxRefreshRate')
+      ?? settingsService.getSetting('fps')
+      ?? DEFAULT_REFRESH_RATE
   },
 
   async getDisplaySession(): Promise<'x11' | 'wayland' | 'unknown'> {

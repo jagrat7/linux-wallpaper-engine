@@ -164,7 +164,7 @@ describe('settingsRouter', () => {
 
   describe('reset', () => {
     it('should reset settings and reapply wallpapers', async () => {
-      const current = makeSettings({ onboardingComplete: true, dismissedScanReminder: true, fps: 144 })
+      const current = makeSettings({ dismissedScanReminder: true, fps: 144 })
       const resetResult = makeSettings()
       mockSettingsService.loadSettings.mockResolvedValue(current)
       mockSettingsService.resetSettings.mockResolvedValue(resetResult)
@@ -174,37 +174,10 @@ describe('settingsRouter', () => {
       await caller.reset()
 
       expect(mockSettingsService.resetSettings).toHaveBeenCalled()
-      expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'reapply' })
-    })
-
-    it('should preserve onboardingComplete after reset', async () => {
-      const current = makeSettings({ onboardingComplete: true, dismissedScanReminder: false })
-      mockSettingsService.loadSettings.mockResolvedValue(current)
-      mockSettingsService.resetSettings.mockResolvedValue(makeSettings())
-      mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      await caller.reset()
-
       expect(mockSettingsService.saveSettings).toHaveBeenCalledWith({
-        onboardingComplete: true,
-        dismissedScanReminder: false,
-      })
-    })
-
-    it('should preserve dismissedScanReminder after reset', async () => {
-      const current = makeSettings({ onboardingComplete: false, dismissedScanReminder: true })
-      mockSettingsService.loadSettings.mockResolvedValue(current)
-      mockSettingsService.resetSettings.mockResolvedValue(makeSettings())
-      mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      await caller.reset()
-
-      expect(mockSettingsService.saveSettings).toHaveBeenCalledWith({
-        onboardingComplete: false,
         dismissedScanReminder: true,
       })
+      expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'reapply' })
     })
   })
 
