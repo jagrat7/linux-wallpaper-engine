@@ -72,7 +72,7 @@ export const wallpaperRouter = trpc.router({
         disableMouse: input.disableMouse ?? settings.disableMouse,
         disableParallax: input.disableParallax ?? settings.disableParallax,
         noFullscreenPause: input.noFullscreenPause ?? !settings.pauseOnFullscreen,
-        windowed: settings.windowMode? 'emit-flag' : input.windowed,
+        windowed: settings.windowMode ? 'emit-flag' : input.windowed,
       }
 
       return wallpaperService.apply({ kind: 'wallpaper', options })

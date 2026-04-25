@@ -121,7 +121,7 @@ export const playlistRouter = trpc.router({
             : ['ignore', 'ignore', 'pipe'],
         })
 
-        const screenKey = targetScreen ?? 'default'
+        const screenKey = settings.windowMode ? 'default' : (targetScreen ?? 'default')
         await wallpaperService.apply({
           kind: 'register',
           screen: screenKey,
@@ -129,7 +129,7 @@ export const playlistRouter = trpc.router({
           args,
           options: {
             backgroundId: playlist.items[0],
-            screen: targetScreen,
+            screen: settings.windowMode ? undefined : targetScreen,
           },
         })
 
