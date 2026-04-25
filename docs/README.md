@@ -17,56 +17,6 @@ This is app aims to be a 1:1 linux replacement for [Wallpaper Engine](https://st
 - [Contributing & Feedback](#-contributing--feedback)
 
 ---
-
-
-## ✨ Features
-
-- **Wallpaper Gallery** — Browse all your Steam Workshop wallpapers in a responsive, animated grid with thumbnails. You can add filters and sorts to make it easier to find the wallpapers you want.
-  - **Per-wallpaper Settings** — Save settings for each wallpaper individually.
-  - **Filtering, Sorting, and Searching**
-
-![Wallpaper Gallery](grid.png)
-
-
-- **Steam Workshop Integration (NEW!)** — Browse and subscribe to new wallpapers from the Steam Workshop.
-
-![Workshop Discover](workshop.png)
-
-
-<br />
-
-- **Playlists** — You can create and apply playlists to group wallpapers together and apply them to your monitors.
-
-![Playlist Support](playlists.png)
-
-<br />
-
-- **Compatibility/Errors tracking** — You can manually tag the wallpapers as compatible or not from the settings or run the compatibility scanner to bulk-tag them, it's not 100% accurate but it will get you close. You can filter out wallpapers with errors or compatibility issues so you don't see them in the gallery.
-
-![Compatibility Tag](comp-tag.png)
-![Compatibility Scanner](comp-scan.png)
-
-  - Wouldn't be a linux experience without it not working on your system. Enter **debug mode** when applying a wallpaper to see what's happening:
-![Debug Mode](debug-mode.png)
-![Flatpak Compatibility Settings](comp-add.png)
-<br />
-
-- **Multi-Monitor Support** — Detect all connected displays, apply different wallpapers per screen, and view your monitor layout at a glance
-![Multi-Monitor Support](displays.png)
-
-<br />
-
-- **Theming** — Choose from Light, Dark, Steam, Hard Light, or System themes
-![Theming](dark.png)
-![Theming](steam.png)
-![Theming](light-mode.png)
-
-<br />
-
-- **Settings** — Comprehensive options to tailor the application to your needs:
-  
-![Settings](settings.png)
-
 ## 📦 Installation
 
 ### 1. Wallpaper Engine (Steam)
@@ -171,6 +121,55 @@ Then simply consume the package:
 }
 ```
 
+
+
+## ✨ Features
+
+- **Wallpaper Gallery** — Browse all your Steam Workshop wallpapers in a responsive, animated grid with thumbnails. You can add filters and sorts to make it easier to find the wallpapers you want.
+  - **Per-wallpaper Settings** — Save settings for each wallpaper individually.
+  - **Filtering, Sorting, and Searching**
+
+![Wallpaper Gallery](grid.png)
+
+
+- **Steam Workshop Integration (NEW!)** — Browse and subscribe to new wallpapers from the Steam Workshop.
+
+![Workshop Discover](workshop.png)
+
+
+<br />
+
+- **Playlists** — You can create and apply playlists to group wallpapers together and apply them to your monitors.
+
+![Playlist Support](playlists.png)
+
+<br />
+
+- **Compatibility/Errors tracking** — You can manually tag the wallpapers as compatible or not from the settings or run the compatibility scanner to bulk-tag them, it's not 100% accurate but it will get you close. You can filter out wallpapers with errors or compatibility issues so you don't see them in the gallery.
+
+![Compatibility Tag](comp-tag.png)
+![Compatibility Scanner](comp-scan.png)
+
+  - Wouldn't be a linux experience without it not working on your system. Enter **debug mode** when applying a wallpaper to see what's happening:
+![Debug Mode](debug-mode.png)
+![Flatpak Compatibility Settings](comp-add.png)
+<br />
+
+- **Multi-Monitor Support** — Detect all connected displays, apply different wallpapers per screen, and view your monitor layout at a glance
+![Multi-Monitor Support](displays.png)
+
+<br />
+
+- **Theming** — Choose from Light, Dark, Steam, Hard Light, or System themes
+![Theming](dark.png)
+![Theming](steam.png)
+![Theming](light-mode.png)
+
+<br />
+
+- **Settings** — Comprehensive options to tailor the application to your needs:
+  
+![Settings](settings.png)
 
 ## 🔮 Future Features
 
