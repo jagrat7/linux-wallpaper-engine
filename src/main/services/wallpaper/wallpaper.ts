@@ -10,7 +10,7 @@ import { CACHE_TTL, STEAM_PATHS, WALLPAPER_ENGINE_APP_ID } from '../../../shared
 import type { ApplyWallpaperOptions, Wallpaper, WallpaperOverrides } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
-import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail } from './wallpaper.utils'
+import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
 import type { MutationResult, ActiveWallpaperEntry, ApplyTarget, OverrideMutation, ServiceAction, DebugInfo } from './wallpaper.types'
@@ -68,7 +68,8 @@ class WallpaperService implements IWallpaperService {
   // ── Stop ───────────────────────────────────────────────────────────────
 
   async stop(screen?: string): Promise<{ success: boolean }> {
-    if (screen) {
+    const settings = await settingsService.loadSettings()
+    if (screen && !settings.windowMode) {
       const { remaining } = this.state.release(screen)
       // Kill any orphaned processes for this screen
       try {
@@ -310,9 +311,12 @@ class WallpaperService implements IWallpaperService {
   }
 
   private async spawnWindowed(options: ApplyWallpaperOptions): Promise<MutationResult> {
-    const { x, y, width, height } = options.windowed!
-    const args = ['--window', `${x}x${y}x${width}x${height}`, '--bg', options.backgroundId, ...this.buildArgs(options)]
-
+    let args = ['--bg', options.backgroundId, ...this.buildArgs(options)]
+    // 'emit-flag' means run in app-level window mode with no backend geometry flag.
+    if (options.windowed !== 'emit-flag' && options.windowed) {
+      const { x, y, width, height } = options.windowed
+      args = ['--window', `${x}x${y}x${width}x${height}`, ...args]
+    }
     try {
       const screenKey = 'default'
       const existing = this.state.getProcess(screenKey)
@@ -417,8 +421,11 @@ class WallpaperService implements IWallpaperService {
       }
     }
 
+    const windowMode = settings.windowMode
     for (const { screens, options } of grouped.values()) {
-      const result = await this.spawnForScreens(screens, options)
+      const result = windowMode
+        ? await this.spawnWindowed({ ...options, screen: undefined, windowed: parseWindowGeometry(settings.windowGeometry) })
+        : await this.spawnForScreens(screens, options)
       if (!result.success && result.error) {
         errors.push(`${screens.join(',')}: ${result.error}`)
       }
@@ -432,6 +439,13 @@ class WallpaperService implements IWallpaperService {
 
   private async respawnGrouped(remaining: Array<{ screen: string, options: ApplyWallpaperOptions }>): Promise<void> {
     if (remaining.length === 0) return
+
+    const settings = await settingsService.loadSettings()
+    if (settings.windowMode) {
+      const first = remaining[0]
+      await this.spawnWindowed({ ...first.options, screen: undefined, windowed: parseWindowGeometry(settings.windowGeometry) })
+      return
+    }
 
     const grouped = new Map<string, { screens: string[], options: ApplyWallpaperOptions }>()
     for (const { screen, options } of remaining) {
@@ -453,8 +467,16 @@ class WallpaperService implements IWallpaperService {
     if (this.state.getActive().size === 0) return
 
     try {
+      const settings = await settingsService.loadSettings()
       const { stdout } = await hostExecAsync('pgrep -a linux-wallpaperengine').catch(() => ({ stdout: '' }))
       const processOutput = stdout.trim()
+
+      if (settings.windowMode) {
+        if (processOutput.length === 0) {
+          await this.reapplyAll()
+        }
+        return
+      }
 
       for (const [screen] of this.state.getActive().entries()) {
         const isRunning = screen === 'default'

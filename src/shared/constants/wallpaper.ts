@@ -11,6 +11,7 @@ export const FILTER_TYPE_OPTIONS = [
 ] as const
 export type WallpaperFilterType = typeof FILTER_TYPE_OPTIONS[number]['value']
 export type WallpaperType = Exclude<WallpaperFilterType, 'all'>
+export type WindowGeometry = { x: number; y: number; width: number; height: number }
 
 export const AGE_RATINGS = {
   g: { label: 'G', workshopTag: 'Everyone' },
@@ -59,7 +60,7 @@ export interface ApplyWallpaperOptions {
   disableMouse?: boolean
   disableParallax?: boolean
   noFullscreenPause?: boolean
-  windowed?: { x: number; y: number; width: number; height: number }
+  windowed?: WindowGeometry | 'emit-flag'
 }
 
 // Per-wallpaper setting overrides (all optional, falls back to global settings)

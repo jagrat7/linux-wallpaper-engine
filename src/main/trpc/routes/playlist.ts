@@ -106,7 +106,7 @@ export const playlistRouter = trpc.router({
       const settings = await settingsService.loadSettings()
       const settingsArgs = settingsService.settingsToArgs(settings)
       const args: string[] = []
-      if (targetScreen) {
+      if (targetScreen && !settings.windowMode) {
         args.push('--screen-root', targetScreen)
       }
       args.push('--playlist', input.playlistName)
@@ -121,7 +121,7 @@ export const playlistRouter = trpc.router({
             : ['ignore', 'ignore', 'pipe'],
         })
 
-        const screenKey = targetScreen ?? 'default'
+        const screenKey = settings.windowMode ? 'default' : (targetScreen ?? 'default')
         await wallpaperService.apply({
           kind: 'register',
           screen: screenKey,
@@ -129,7 +129,7 @@ export const playlistRouter = trpc.router({
           args,
           options: {
             backgroundId: playlist.items[0],
-            screen: targetScreen,
+            screen: settings.windowMode ? undefined : targetScreen,
           },
         })
 

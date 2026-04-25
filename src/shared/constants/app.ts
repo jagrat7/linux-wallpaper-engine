@@ -42,6 +42,8 @@ export interface AppSettings {
 
   // Debug & Flatpak
   debugMode: boolean
+  windowMode: boolean
+  windowGeometry: string | null
   flatpakBypass: boolean
 
   // Persisted filter & sort preferences
@@ -97,6 +99,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   // Debug & Flatpak
   debugMode: false,
+  windowMode: false,
+  windowGeometry: null,
   flatpakBypass: false,
 
   // Filters & sort
