@@ -5,6 +5,7 @@ import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 import type { DebugInfo } from '../../services/wallpaper/wallpaper.types'
 import { settingsService } from '../../services/settings'
 import { compatibilityService } from '../../services/compatibility'
+import { parseWindowGeometry } from '../../services/wallpaper/wallpaper.utils'
 
 export const wallpaperRouter = trpc.router({
   // Check if linux-wallpaperengine is installed
@@ -72,7 +73,7 @@ export const wallpaperRouter = trpc.router({
         disableMouse: input.disableMouse ?? settings.disableMouse,
         disableParallax: input.disableParallax ?? settings.disableParallax,
         noFullscreenPause: input.noFullscreenPause ?? !settings.pauseOnFullscreen,
-        windowed: settings.windowMode ? 'emit-flag' : input.windowed,
+        windowed: settings.windowMode ? parseWindowGeometry(settings.windowGeometry) : input.windowed,
       }
 
       return wallpaperService.apply({ kind: 'wallpaper', options })

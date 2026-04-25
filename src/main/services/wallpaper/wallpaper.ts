@@ -10,7 +10,7 @@ import { CACHE_TTL, STEAM_PATHS, WALLPAPER_ENGINE_APP_ID } from '../../../shared
 import type { ApplyWallpaperOptions, Wallpaper, WallpaperOverrides } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
-import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail } from './wallpaper.utils'
+import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
 import type { MutationResult, ActiveWallpaperEntry, ApplyTarget, OverrideMutation, ServiceAction, DebugInfo } from './wallpaper.types'
@@ -424,7 +424,7 @@ class WallpaperService implements IWallpaperService {
     const windowMode = settings.windowMode
     for (const { screens, options } of grouped.values()) {
       const result = windowMode
-        ? await this.spawnWindowed({ ...options, screen: undefined, windowed: 'emit-flag' })
+        ? await this.spawnWindowed({ ...options, screen: undefined, windowed: parseWindowGeometry(settings.windowGeometry) })
         : await this.spawnForScreens(screens, options)
       if (!result.success && result.error) {
         errors.push(`${screens.join(',')}: ${result.error}`)
@@ -443,7 +443,7 @@ class WallpaperService implements IWallpaperService {
     const settings = await settingsService.loadSettings()
     if (settings.windowMode) {
       const first = remaining[0]
-      await this.spawnWindowed({ ...first.options, screen: undefined, windowed: 'emit-flag' })
+      await this.spawnWindowed({ ...first.options, screen: undefined, windowed: parseWindowGeometry(settings.windowGeometry) })
       return
     }
 

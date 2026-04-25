@@ -8,8 +8,10 @@ import {
     Loader2,
     ScanSearch,
     ChevronDown,
+    Check,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { Input } from "@/components/ui/input"
 import {
     Select,
     SelectContent,
@@ -31,6 +33,14 @@ import { PageHeader } from "@/components/page-header"
 import { useState } from "react"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+
+const windowGeometrySchema = z.object({
+    windowGeometry: z.string().trim().refine((value) => !value || /^[1-9]\d*x[1-9]\d*$/.test(value), "Use widthxheight, for example 800x600"),
+})
+type WindowGeometryForm = z.infer<typeof windowGeometrySchema>
 
 export const Route = createFileRoute("/settings")({
     component: SettingsPage,
@@ -58,6 +68,14 @@ function SettingsPage() {
     const isFlatpakEnv = flatpakData?.isFlatpak ?? false
 
     const [startupTrayOpen, setStartupTrayOpen] = useState(false)
+    const [windowGeometryOpen, setWindowGeometryOpen] = useState(false)
+
+    const windowGeometryForm = useForm<WindowGeometryForm>({
+        resolver: zodResolver(windowGeometrySchema),
+        values: {
+            windowGeometry: settings?.windowGeometry ?? "",
+        },
+    })
 
     // Get max refresh rate from displays
     const { data: maxRefreshData } = trpc.display.maxRefreshRate.useQuery()
@@ -66,6 +84,17 @@ function SettingsPage() {
     const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
         updateMutation.mutate({ [key]: value })
     }
+
+    const submitWindowGeometry = windowGeometryForm.handleSubmit(({ windowGeometry }) => {
+        updateMutation.mutate(
+            { windowGeometry: windowGeometry || null },
+            {
+                onError: (error) => {
+                    windowGeometryForm.setError("windowGeometry", { message: error.message })
+                },
+            },
+        )
+    })
 
     if (isLoading) {
         return (
@@ -176,14 +205,72 @@ function SettingsPage() {
                     </SettingRow>
 
                     <SettingRow 
-                        label="Run in window mode" 
-                        className={!isFlatpakEnv ? "border-b-0" : ""}
+                        label={(
+                            <span className="inline-flex items-center gap-1">
+                                Run in window mode
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setWindowGeometryOpen((o) => !o)}
+                                    className="size-6 text-muted-foreground hover:text-foreground"
+                                    title="Window geometry"
+                                >
+                                    <ChevronDown className={`size-3.5 transition-transform ${windowGeometryOpen ? "rotate-180" : ""}`} />
+                                </Button>
+                            </span>
+                        )}
+                        className={!windowGeometryOpen && !isFlatpakEnv ? "border-b-0" : ""}
                     >
                         <Switch
                             checked={settings.windowMode}
                             onCheckedChange={(v) => updateSetting("windowMode", v)}
                         />
                     </SettingRow>
+
+                    {windowGeometryOpen && (
+                        <Collapsible open={windowGeometryOpen} onOpenChange={setWindowGeometryOpen}>
+                            <CollapsibleContent>
+                                <div className="bg-muted/30">
+                                    <SettingRow
+                                        label={(
+                                            <span>
+                                                Window size <span className="text-muted-foreground">- optional backend window size</span>
+                                            </span>
+                                        )}
+                                        disabled={!settings.windowMode}
+                                        className={!isFlatpakEnv ? "border-b-0" : ""}
+                                    >
+                                        <form className="flex flex-col items-end gap-1" onSubmit={submitWindowGeometry}>
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    {...windowGeometryForm.register("windowGeometry")}
+                                                    placeholder="1920x1080"
+                                                    disabled={!settings.windowMode}
+                                                    aria-invalid={!!windowGeometryForm.formState.errors.windowGeometry}
+                                                    className="w-28"
+                                                />
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    type="submit"
+                                                    disabled={!settings.windowMode || updateMutation.isPending}
+                                                    title="Save window size"
+                                                    className="bg-transparent"
+                                                >
+                                                    <Check className="size-4" />
+                                                </Button>
+                                            </div>
+                                            {windowGeometryForm.formState.errors.windowGeometry?.message && (
+                                                <p className="max-w-56 text-right text-xs text-destructive">
+                                                    {windowGeometryForm.formState.errors.windowGeometry.message}
+                                                </p>
+                                            )}
+                                        </form>
+                                    </SettingRow>
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+                    )}
 
                     {isFlatpakEnv && (
                         <SettingRow label="Bypass Flatpak sandbox" className="border-b-0">

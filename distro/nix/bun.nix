@@ -477,6 +477,10 @@
     url = "https://registry.npmjs.org/@floating-ui/utils/-/utils-0.2.10.tgz";
     hash = "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==";
   };
+  "@hookform/resolvers@5.2.2" = fetchurl {
+    url = "https://registry.npmjs.org/@hookform/resolvers/-/resolvers-5.2.2.tgz";
+    hash = "sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA==";
+  };
   "@humanwhocodes/config-array@0.13.0" = fetchurl {
     url = "https://registry.npmjs.org/@humanwhocodes/config-array/-/config-array-0.13.0.tgz";
     hash = "sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==";
@@ -1136,6 +1140,10 @@
   "@standard-schema/spec@1.1.0" = fetchurl {
     url = "https://registry.npmjs.org/@standard-schema/spec/-/spec-1.1.0.tgz";
     hash = "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==";
+  };
+  "@standard-schema/utils@0.3.0" = fetchurl {
+    url = "https://registry.npmjs.org/@standard-schema/utils/-/utils-0.3.0.tgz";
+    hash = "sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==";
   };
   "@szmarczak/http-timer@4.0.6" = fetchurl {
     url = "https://registry.npmjs.org/@szmarczak/http-timer/-/http-timer-4.0.6.tgz";
@@ -3488,6 +3496,10 @@
   "react-dom@19.2.3" = fetchurl {
     url = "https://registry.npmjs.org/react-dom/-/react-dom-19.2.3.tgz";
     hash = "sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==";
+  };
+  "react-hook-form@7.73.1" = fetchurl {
+    url = "https://registry.npmjs.org/react-hook-form/-/react-hook-form-7.73.1.tgz";
+    hash = "sha512-VAfVYOPcx3piiEVQy95vyFmBwbVUsP/AUIN+mpFG8h11yshDd444nn0VyfaGWSRnhOLVgiDu7HIuBtAIzxn9dA==";
   };
   "react-refresh@0.18.0" = fetchurl {
     url = "https://registry.npmjs.org/react-refresh/-/react-refresh-0.18.0.tgz";

@@ -15,7 +15,14 @@ import { setAutostart } from '../../utils/autostart'
 const BACKEND_KEYS = new Set([
   'fps', 'pauseOnFullscreen', 'volume', 'silent', 'noAutomute',
   'audioProcessing', 'defaultScaling', 'disableMouse', 'disableParallax', 'assetsDir',
+  'windowMode', 'windowGeometry',
 ])
+
+const windowGeometrySchema = z
+  .string()
+  .trim()
+  .regex(/^[1-9]\d*x[1-9]\d*$/, 'Use widthxheight, for example 800x600')
+  .nullable()
 
 const settingsSchema = z.object({
   // Performance
@@ -53,6 +60,7 @@ const settingsSchema = z.object({
   // Debug & Flatpak
   debugMode: z.boolean().optional(),
   windowMode: z.boolean().optional(),
+  windowGeometry: windowGeometrySchema.optional(),
   flatpakBypass: z.boolean().optional(),
 
   // Persisted filter & sort preferences

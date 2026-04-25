@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
-import type { WallpaperType } from '../../../shared/constants/wallpaper'
+import type { ApplyWallpaperOptions, WallpaperType } from '../../../shared/constants/wallpaper'
 import { hostExecAsync } from '../../utils/host'
 
 type ImageType = "jpeg" | "png" | "bmp"
@@ -11,6 +11,24 @@ const IMAGE_HEADERS_IDENTIFIERS = {
   bmp: 0x424d,
 };
 const MAX_BYTES = 8192;
+const WINDOW_SIZE_PATTERN = /^(\d+)x(\d+)$/
+
+export const parseWindowGeometry = (size: string | null | undefined): ApplyWallpaperOptions['windowed'] => {
+  const match = size?.trim().match(WINDOW_SIZE_PATTERN)
+  if (!match) return 'emit-flag'
+
+  const [, width, height] = match
+  const parsed = {
+    x: 0,
+    y: 0,
+    width: Number(width),
+    height: Number(height),
+  }
+
+  if (parsed.width <= 0 || parsed.height <= 0) return 'emit-flag'
+
+  return parsed
+}
 
 export async function parseImageHeader(imagePath: string) {
   try {
