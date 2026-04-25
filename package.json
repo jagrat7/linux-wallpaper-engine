@@ -82,7 +82,6 @@
     "@trpc/server": "^11.8.1",
     "@uidotdev/usehooks": "^2.4.1",
     "better-result": "^2.8.2",
-    "boneyard-js": "^1.8.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "electron-store": "^11.0.2",

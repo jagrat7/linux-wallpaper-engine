@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useIntersectionObserver } from "@uidotdev/usehooks"
-import { ArrowLeft, Store } from "lucide-react"
+import { ArrowDown, ArrowLeft, Star, Store } from "lucide-react"
 import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layout"
 import { WorkshopConnectionPrompt } from "@/components/workshop/workshop-connection-prompt"
 import { WorkshopDiscoverSection } from "@/components/workshop/workshop-discover-section"
@@ -136,7 +136,23 @@ export function WorkshopDiscoverView({
       <div className="space-y-10">
         {Array.from({ length: SKELETON_SECTION_COUNT }).map((_, index) => (
           <div key={index} className="space-y-4">
-            <Skeleton className="glass h-11 w-full" />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
+                <div className="flex items-baseline gap-3">
+                  <Skeleton className="h-7 w-40" />
+                  <span className="text-xs text-muted-foreground">
+                    See more <ArrowDown className="inline-block size-3" />
+                  </span>
+                </div>
+                <IconButton
+                  icon={Star}
+                  size="sm"
+                  disabled
+                  aria-label="Add to favorites"
+                  title="Add to favorites"
+                />
+              </div>
+            </div>
             <div className={`grid gap-4 ${gridClassName}`}>
               {Array.from({ length: SKELETON_CARDS_PER_SECTION }).map((__, skeletonIndex) => (
                 <Skeleton key={skeletonIndex} className="aspect-[4/3] rounded-xl" />

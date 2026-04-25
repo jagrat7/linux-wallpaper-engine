@@ -7,6 +7,7 @@ import { WorkshopBrowseView } from "@/components/workshop/workshop-browse-view"
 import { WorkshopDiscoverView } from "@/components/workshop/workshop-discover-view"
 import { WorkshopDetailsPanel } from "@/components/workshop/workshop-details-panel"
 import { ScrollToTopButton } from "@/components/scroll-to-top-button"
+import { RefreshButton } from "@/components/wallpaper/refresh-button"
 import { useDebouncedWorkshopSearchQuery, useWorkshopFilter, useWorkshopSort } from "@/contexts/workshop-search-context"
 import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
@@ -25,6 +26,7 @@ function WorkshopPage() {
   const { debouncedSearchQuery } = useDebouncedWorkshopSearchQuery()
   const { filterType, filterAgeRating, filterTags, filterResolution } = useWorkshopFilter()
   const { setSelectedUrl } = useWallpaperBackground()
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const utils = trpc.useUtils()
 
   const hasSearchQuery = (debouncedSearchQuery?.trim().length ?? 0) > 0
@@ -62,11 +64,23 @@ function WorkshopPage() {
     ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
     : "grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await (showBrowse
+        ? utils.workshop.getItems.invalidate()
+        : utils.workshop.discover.invalidate())
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full p-6">
       <PageHeader
         title="Workshop"
         description="Browse wallpapers from Steam Workshop"
+        action={<RefreshButton onClick={handleRefresh} isLoading={isRefreshing} />}
       >
         <WorkshopToolbar
           showBrowse={showBrowse}
