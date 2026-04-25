@@ -168,7 +168,7 @@ function SettingsPage() {
                     description="Test wallpapers for Linux compatibility"
                 >
                     <CompatibilityScanRow settings={settings} updateSetting={updateSetting} />
-                    <SettingRow label="Debug mode" className={!isFlatpakEnv ? "border-b-0" : ""}>
+                    <SettingRow label="Debug mode" >
                         <Switch
                             checked={settings.debugMode}
                             onCheckedChange={(v) => updateSetting("debugMode", v)}
@@ -177,7 +177,7 @@ function SettingsPage() {
 
                     <SettingRow 
                         label="Run in window mode" 
-                        className={(!isFlatpakEnv) ? "border-b-0" : ""}
+                        className={!isFlatpakEnv ? "border-b-0" : ""}
                     >
                         <Switch
                             checked={settings.windowMode}
