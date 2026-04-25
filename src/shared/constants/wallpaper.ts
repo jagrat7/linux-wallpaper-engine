@@ -59,7 +59,7 @@ export interface ApplyWallpaperOptions {
   disableMouse?: boolean
   disableParallax?: boolean
   noFullscreenPause?: boolean
-  windowed?: { x: number; y: number; width: number; height: number }
+  windowed?: { x: number; y: number; width: number; height: number } | 'emit-flag'
 }
 
 // Per-wallpaper setting overrides (all optional, falls back to global settings)

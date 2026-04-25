@@ -68,7 +68,8 @@ class WallpaperService implements IWallpaperService {
   // ── Stop ───────────────────────────────────────────────────────────────
 
   async stop(screen?: string): Promise<{ success: boolean }> {
-    if (screen) {
+    const settings = await settingsService.loadSettings()
+    if (screen && !settings.windowMode) {
       const { remaining } = this.state.release(screen)
       // Kill any orphaned processes for this screen
       try {
@@ -310,9 +311,11 @@ class WallpaperService implements IWallpaperService {
   }
 
   private async spawnWindowed(options: ApplyWallpaperOptions): Promise<MutationResult> {
-    const { x, y, width, height } = options.windowed!
-    const args = ['--window', `${x}x${y}x${width}x${height}`, '--bg', options.backgroundId, ...this.buildArgs(options)]
-
+    var args = ['--bg', options.backgroundId, ...this.buildArgs(options)]
+    if(options.windowed! !== 'emit-flag'){
+      const { x, y, width, height } = options.windowed!
+      args = ['--window', `${x}x${y}x${width}x${height}`, ...args]
+    }
     try {
       const screenKey = 'default'
       const existing = this.state.getProcess(screenKey)

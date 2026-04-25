@@ -106,7 +106,7 @@ export const playlistRouter = trpc.router({
       const settings = await settingsService.loadSettings()
       const settingsArgs = settingsService.settingsToArgs(settings)
       const args: string[] = []
-      if (targetScreen) {
+      if (targetScreen && !settings.windowMode) {
         args.push('--screen-root', targetScreen)
       }
       args.push('--playlist', input.playlistName)

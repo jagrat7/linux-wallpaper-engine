@@ -174,6 +174,17 @@ function SettingsPage() {
                             onCheckedChange={(v) => updateSetting("debugMode", v)}
                         />
                     </SettingRow>
+
+                    <SettingRow 
+                        label="Run in window mode" 
+                        className={(!isFlatpakEnv) ? "border-b-0" : ""}
+                    >
+                        <Switch
+                            checked={settings.windowMode}
+                            onCheckedChange={(v) => updateSetting("windowMode", v)}
+                        />
+                    </SettingRow>
+
                     {isFlatpakEnv && (
                         <SettingRow label="Bypass Flatpak sandbox" className="border-b-0">
                             <Switch
