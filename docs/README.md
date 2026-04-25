@@ -3,7 +3,7 @@
 
 [![GitHub Downloads](https://img.shields.io/github/downloads/jagrat7/linux-wallpaper-engine/total?style=for-the-badge&logo=linux&logoColor=white&label=Downloads)](https://github.com/jagrat7/linux-wallpaper-engine/releases) [![GitHub Release](https://img.shields.io/github/v/release/jagrat7/linux-wallpaper-engine?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/jagrat7/linux-wallpaper-engine/releases/latest) [![GitHub Stars](https://img.shields.io/github/stars/jagrat7/linux-wallpaper-engine?style=for-the-badge&logo=starship&logoColor=white)](https://github.com/jagrat7/linux-wallpaper-engine/stargazers)
 
-This is app aims to be a 1:1 linux replacement for [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/). It uses [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) to apply the wallpapers on linux and [steamworks.js](https://github.com/ceifa/steamworks.js) to interact with the Steam Workshop.
+This app aims to be a fully functionallinux implementation of [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/). It uses [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) to apply the wallpapers on linux and [steamworks.js](https://github.com/ceifa/steamworks.js) to interact with the Steam Workshop.
 
 ![Overview](preview.gif)
 
