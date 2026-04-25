@@ -52,6 +52,7 @@ const settingsSchema = z.object({
 
   // Debug & Flatpak
   debugMode: z.boolean().optional(),
+  windowMode: z.boolean().optional(),
   flatpakBypass: z.boolean().optional(),
 
   // Persisted filter & sort preferences
