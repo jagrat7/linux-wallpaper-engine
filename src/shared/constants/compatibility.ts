@@ -1,10 +1,10 @@
 // Wallpaper compatibility status
 export const COMPATIBILITY_OPTIONS = [
-  { label: 'Perfect', value: 'perfect', color: 'green', textColor: 'text-green-500', bgColor: 'bg-green-500' },
-  { label: 'Minor Issues', value: 'minor', color: 'yellow', textColor: 'text-yellow-500', bgColor: 'bg-yellow-500' },
-  { label: 'Major Issues', value: 'major', color: 'orange', textColor: 'text-orange-500', bgColor: 'bg-orange-500' },
-  { label: 'Broken', value: 'broken', color: 'red', textColor: 'text-red-500', bgColor: 'bg-red-500' },
-  { label: 'Unknown', value: 'unknown', color: 'gray', textColor: 'text-muted-foreground', bgColor: 'bg-muted-foreground/50' },
+  { label: 'Perfect', value: 'perfect', severity: 1, color: 'green', textColor: 'text-green-500', bgColor: 'bg-green-500' },
+  { label: 'Minor Issues', value: 'minor', severity: 2, color: 'yellow', textColor: 'text-yellow-500', bgColor: 'bg-yellow-500' },
+  { label: 'Major Issues', value: 'major', severity: 3, color: 'orange', textColor: 'text-orange-500', bgColor: 'bg-orange-500' },
+  { label: 'Broken', value: 'broken', severity: 4, color: 'red', textColor: 'text-red-500', bgColor: 'bg-red-500' },
+  { label: 'Unknown', value: 'unknown', severity: 0, color: 'gray', textColor: 'text-muted-foreground', bgColor: 'bg-muted-foreground/50' },
 ] as const
 export type CompatibilityStatus = typeof COMPATIBILITY_OPTIONS[number]['value']
 
@@ -12,6 +12,10 @@ export type CompatibilityStatus = typeof COMPATIBILITY_OPTIONS[number]['value']
 export const COMPATIBILITY_CONFIG = Object.fromEntries(
   COMPATIBILITY_OPTIONS.map(opt => [opt.value, opt])
 ) as Record<CompatibilityStatus, typeof COMPATIBILITY_OPTIONS[number]>
+
+export const COMPATIBILITY_SEVERITY = Object.fromEntries(
+  COMPATIBILITY_OPTIONS.map(opt => [opt.value, opt.severity])
+) as Record<CompatibilityStatus, typeof COMPATIBILITY_OPTIONS[number]['severity']>
 
 // Compatibility scan progress
 export interface ScanProgress {

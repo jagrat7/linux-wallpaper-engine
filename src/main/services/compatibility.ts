@@ -8,6 +8,7 @@ import {
   BROKEN_PATTERNS,
   MINOR_PATTERNS,
   COMPAT_IGNORE_PATTERNS,
+  COMPATIBILITY_SEVERITY,
 } from '../../shared/constants/compatibility'
 import { storeService } from './store'
 import { invalidationService } from './invalidation'
@@ -76,21 +77,22 @@ class CompatibilityService {
       })
     }
 
-    proc.on('exit', (code) => {
-      clearTimeout(silenceTimer)
-      if (code !== null && code !== 0) {
-        classify(true)
-      }
+    proc.on('exit', (_code, signal) => {
+      if (signal) return
+      classify(true)
     })
-
-    // No stderr at all → classify as perfect
-    const silenceTimer = setTimeout(() => classify(false), 3500)
   }
 
   private updateAutoCompatibility(wallpaperPath: string, status: CompatibilityStatus, errors: string[]): void {
     const all = this.overridesStore.get('overrides')
     const existing = all[wallpaperPath] ?? {}
-    if (existing.compatibility) return
+    const existingCompatibility = existing.compatibility
+    const hasAutoResult = existing.autoErrors !== undefined
+    const shouldUpdate = !existingCompatibility
+      || (hasAutoResult && COMPATIBILITY_SEVERITY[status] > COMPATIBILITY_SEVERITY[existingCompatibility])
+
+    if (!shouldUpdate) return
+
     all[wallpaperPath] = {
       ...existing,
       compatibility: status,
@@ -104,8 +106,11 @@ class CompatibilityService {
   setCompatibility(wallpaperPath: string, status: CompatibilityStatus): void {
     const all = this.overridesStore.get('overrides')
     const existing = all[wallpaperPath] ?? {}
+    const manualOverrides = { ...existing }
+    delete manualOverrides.autoErrors
+
     all[wallpaperPath] = {
-      ...existing,
+      ...manualOverrides,
       compatibility: status,
       lastTested: Date.now(),
     }
