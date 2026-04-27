@@ -181,7 +181,8 @@ Then simply consume the package:
 
 Contributions and feedback are welcome! Checkout [Discussions](https://github.com/jagrat7/linux-wallpaper-engine/discussions) to vote on features, share ideas, or ask questions. You can also open an [issue](https://github.com/jagrat7/linux-wallpaper-engine/issues) or submit a pull request. See [CONTRIBUTING.md](../.github/CONTRIBUTING.md) for more info.
 
-## Stars
+<br />
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=jagrat7/linux-wallpaper-engine&type=date&theme=dark&legend=top-left" />
   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=jagrat7/linux-wallpaper-engine&type=date&legend=top-left" />
