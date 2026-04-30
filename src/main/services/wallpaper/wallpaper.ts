@@ -325,6 +325,10 @@ class WallpaperService implements IWallpaperService {
 
       const proc = this.spawn(args, options.backgroundId)
       this.state.register([screenKey], proc, options)
+
+      if (await this.exitedEarly(proc)) {
+        return { success: false }
+      }
       return { success: true }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Failed to apply wallpaper' }
@@ -356,6 +360,9 @@ class WallpaperService implements IWallpaperService {
       this.state.register(screens, proc, options)
       this.captureDebugLogs(proc, screens[0], args)
 
+      if (await this.exitedEarly(proc)) {
+        return { success: false }
+      }
       return { success: true }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Failed to apply wallpaper' }
@@ -372,7 +379,30 @@ class WallpaperService implements IWallpaperService {
     })
     proc.unref()
     compatibilityService.monitorProcess(proc, backgroundId)
+    proc.once('exit', () => {
+      const { screens } = this.state.cleanupExitedProcess(proc)
+      if (screens.length > 0) {
+        invalidationService.emit('wallpaper.stopped')
+      }
+    })
     return proc
+  }
+
+  // Wait briefly to detect if the spawned process exits immediately (failed apply).
+  private async exitedEarly(proc: import('node:child_process').ChildProcess, graceMs = 100): Promise<boolean> {
+    if (proc.exitCode !== null || proc.signalCode !== null) return true
+    return await new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => {
+        proc.off('exit', onExit)
+        resolve(false)
+      }, graceMs)
+      const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+        clearTimeout(timer)
+        console.warn(`[wallpaper] process exited early (code=${code}, signal=${signal ?? 'none'})`)
+        resolve(true)
+      }
+      proc.once('exit', onExit)
+    })
   }
 
   private registerProcess(screen: string, proc: import('node:child_process').ChildProcess, args: string[], options: ApplyWallpaperOptions): void {

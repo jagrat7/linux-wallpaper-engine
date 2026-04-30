@@ -160,6 +160,7 @@ export function WallpaperGrid() {
                         >
                             <Suspense fallback={<Skeleton className="w-80 h-96 rounded-xl" />}>
                                 <WallpaperDetails
+                                    key={selectedWallpaper.id}
                                     wallpaper={selectedWallpaper}
                                     onClose={() => setSelectedWallpaper(null)}
                                     onUnsubscribe={handleUnsubscribe}

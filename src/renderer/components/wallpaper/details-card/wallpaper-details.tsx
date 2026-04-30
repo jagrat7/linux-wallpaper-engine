@@ -11,7 +11,7 @@ import { UnsubscribeButton } from "@/components/workshop/unsubscribe-button"
 import { useSetAtom } from "jotai"
 import { addUnsubscribedWorkshopIdAtom } from "@/contexts/atoms/workshop-atoms"
 import { BackendNotInstalledDialog } from "../backend-not-installed-dialog"
-import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE } from "../../../../shared/constants/wallpaper"
+import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, WALLPAPER_APPLY_FAILED_MESSAGE } from "../../../../shared/constants/wallpaper"
 
 export { WallpaperDetailsShell } from "./wallpaper-details-shell"
 export { WallpaperMetadata } from "./wallpaper-metadata"
@@ -52,16 +52,21 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
         if (!backgroundId) return
 
         setIsApplying(true)
+        setErrorMessage(null)
         try {
             const result = await applyMutation.mutateAsync({
                 backgroundId,
                 screen,
             })
+            // Clear applying state in the same tick as any error update so the
+            // button and error message stay in sync.
+            setIsApplying(false)
             if (!result.success) {
                 if (result.error === BACKEND_NOT_INSTALLED_ERROR_MESSAGE) {
                     setShowBackendDialog(true)
                     return
                 }
+                setErrorMessage(WALLPAPER_APPLY_FAILED_MESSAGE)
             }
 
             await utils.wallpaper.getActiveWallpaper.invalidate()
@@ -72,15 +77,16 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
                 const primary = displays?.find(d => d.primary) ?? displays?.[0]
                 setDebugScreen(screen ?? primary?.name ?? 'default')
             }
-        } finally {
+        } catch {
             setIsApplying(false)
+            setErrorMessage(WALLPAPER_APPLY_FAILED_MESSAGE)
         }
     }
 
     const handleStop = async (screen?: string) => {
-        await stopMutation.mutateAsync({ screen })
-        await utils.wallpaper.getActiveWallpaper.invalidate()
-        await utils.playlist.active.invalidate()
+            await stopMutation.mutateAsync({ screen })
+            await utils.wallpaper.getActiveWallpaper.invalidate()
+            await utils.playlist.active.invalidate()
     }
 
     const handleUnsubscribe = async () => {
