@@ -4,8 +4,9 @@ import { playlistService } from '../../services/playlists/playlist'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { settingsService } from '../../services/settings'
 import { displayService } from '../../services/display'
-import { hostSpawn } from '../../utils/host'
+import { hostCommandExists, hostSpawn } from '../../utils/host'
 import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants/playlist'
+import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE } from '../../../shared/constants/wallpaper'
 
 const playlistSettingsSchema = z.object({
   delay: z.number().min(1),
@@ -84,6 +85,10 @@ export const playlistRouter = trpc.router({
 
       if (playlist.items.length === 0) {
         return { success: false, error: 'Playlist has no wallpapers' }
+      }
+
+      if (!await hostCommandExists('linux-wallpaperengine')) {
+        return { success: false, error: BACKEND_NOT_INSTALLED_ERROR_MESSAGE }
       }
 
       // Persist lastAppliedAt so the frontend can sort by recency

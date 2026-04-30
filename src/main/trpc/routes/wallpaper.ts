@@ -86,18 +86,6 @@ export const wallpaperRouter = trpc.router({
       return wallpaperService.stop(input?.screen)
     }),
 
-  // Take a screenshot of a wallpaper
-  screenshot: trpc.procedure
-    .input(
-      z.object({
-        backgroundPath: z.string(),
-        outputPath: z.string(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      return wallpaperService.diagnose({ kind: 'screenshot', backgroundPath: input.backgroundPath, outputPath: input.outputPath })
-    }),
-
   // Get currently active wallpapers
   getActiveWallpaper: trpc.procedure.query(async () => {
     const { active } = await wallpaperService.query()

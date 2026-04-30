@@ -34,7 +34,6 @@ export type OverrideMutation =
 export type ServiceAction =
   | { kind: 'getLogs'; screen: string }
   | { kind: 'clearLogs'; screen: string }
-  | { kind: 'screenshot'; backgroundPath: string; outputPath: string }
   | { kind: 'invalidateCache' }
   | { kind: 'cleanup' }
 

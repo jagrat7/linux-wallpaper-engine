@@ -5,9 +5,9 @@ import { glob } from 'glob'
 import { displayService } from '../display'
 import { settingsService } from '../settings'
 import { storeService } from '../store'
-import { hostSpawn, hostExecAsync, isFlatpak } from '../../utils/host'
+import { hostSpawn, hostExecAsync, hostCommandExists, isFlatpak } from '../../utils/host'
 import { CACHE_TTL, STEAM_PATHS, WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
-import type { ApplyWallpaperOptions, Wallpaper, WallpaperOverrides } from '../../../shared/constants/wallpaper'
+import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, type ApplyWallpaperOptions, type Wallpaper, type WallpaperOverrides } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
 import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry } from './wallpaper.utils'
@@ -126,9 +126,6 @@ class WallpaperService implements IWallpaperService {
         this.state.clearDebugLogs(action.screen)
         return
 
-      case 'screenshot':
-        return this.takeScreenshot(action.backgroundPath, action.outputPath)
-
       case 'invalidateCache':
         this.wallpaperCache = null
         this.cacheTimestamp = null
@@ -143,12 +140,7 @@ class WallpaperService implements IWallpaperService {
   // ── Private: catalog ───────────────────────────────────────────────────
 
   private async checkBackendInstalled(): Promise<boolean> {
-    try {
-      await hostExecAsync('which linux-wallpaperengine')
-      return true
-    } catch {
-      return false
-    }
+    return hostCommandExists('linux-wallpaperengine')
   }
 
   private async getWallpapers(): Promise<Wallpaper[]> {
@@ -277,6 +269,11 @@ class WallpaperService implements IWallpaperService {
   // ── Private: process spawning ──────────────────────────────────────────
 
   private async applyWallpaper(options: ApplyWallpaperOptions): Promise<MutationResult> {
+    const backendInstalled = await this.checkBackendInstalled()
+    if (!backendInstalled) {
+      return { success: false, error: BACKEND_NOT_INSTALLED_ERROR_MESSAGE }
+    }
+
     if (options.windowed) {
       const result = await this.spawnWindowed(options)
       if (result.success) {
@@ -561,17 +558,6 @@ class WallpaperService implements IWallpaperService {
     proc.on('exit', (code, signal) => {
       logs.push(`[process] Exited with code ${code}${signal ? ` (signal: ${signal})` : ''}`)
     })
-  }
-
-  // ── Private: screenshot ────────────────────────────────────────────────
-
-  private async takeScreenshot(backgroundPath: string, outputPath: string): Promise<MutationResult & { path?: string }> {
-    try {
-      await hostExecAsync(`linux-wallpaperengine --screenshot "${outputPath}" "${backgroundPath}"`)
-      return { success: true, path: outputPath }
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to take screenshot' }
-    }
   }
 
   // ── Private: file watchers ─────────────────────────────────────────────

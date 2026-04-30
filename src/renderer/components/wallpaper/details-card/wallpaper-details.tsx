@@ -10,6 +10,8 @@ import { ErrorMessage } from "@/components/error-message"
 import { UnsubscribeButton } from "@/components/workshop/unsubscribe-button"
 import { useSetAtom } from "jotai"
 import { addUnsubscribedWorkshopIdAtom } from "@/contexts/atoms/workshop-atoms"
+import { BackendNotInstalledDialog } from "../backend-not-installed-dialog"
+import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE } from "../../../../shared/constants/wallpaper"
 
 export { WallpaperDetailsShell } from "./wallpaper-details-shell"
 export { WallpaperMetadata } from "./wallpaper-metadata"
@@ -26,6 +28,7 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
     const [isUnsubscribing, setIsUnsubscribing] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [debugScreen, setDebugScreen] = useState<string | null>(null)
+    const [showBackendDialog, setShowBackendDialog] = useState(false)
     const workshopId = wallpaper.workshopId ?? wallpaper.id
     const canUnsubscribe = !!wallpaper.workshopId
     const addUnsubscribedWorkshopId = useSetAtom(addUnsubscribedWorkshopIdAtom)
@@ -34,6 +37,7 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
     const unsubscribeMutation = trpc.workshop.unsubscribe.useMutation()
     const utils = trpc.useUtils()
 
+    const backgroundId = wallpaper.path ?? wallpaper.id
     const { data: settings } = trpc.settings.get.useQuery()
 
     const { data: activeWallpapers = [] } = trpc.wallpaper.getActiveWallpaper.useQuery(undefined, {
@@ -41,17 +45,25 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
     })
 
     const isActive = activeWallpapers.some(
-        w => w.wallpaper.backgroundId === (wallpaper.path ?? wallpaper.id)
+        w => w.wallpaper.backgroundId === backgroundId
     )
 
     const handleApply = async (screen?: string) => {
-        if (!wallpaper.path && !wallpaper.id) return
+        if (!backgroundId) return
+
         setIsApplying(true)
         try {
             const result = await applyMutation.mutateAsync({
-                backgroundId: wallpaper.path ?? wallpaper.id,
+                backgroundId,
                 screen,
             })
+            if (!result.success) {
+                if (result.error === BACKEND_NOT_INSTALLED_ERROR_MESSAGE) {
+                    setShowBackendDialog(true)
+                    return
+                }
+            }
+
             await utils.wallpaper.getActiveWallpaper.invalidate()
             await utils.playlist.active.invalidate()
 
@@ -128,6 +140,10 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
                     screen={debugScreen}
                 />
             )}
+            <BackendNotInstalledDialog
+                open={showBackendDialog}
+                onOpenChange={setShowBackendDialog}
+            />
 
             <CompatibilitySection wallpaperPath={wallpaper.path ?? ''} />
             <WallpaperOverrides wallpaper={wallpaper} />

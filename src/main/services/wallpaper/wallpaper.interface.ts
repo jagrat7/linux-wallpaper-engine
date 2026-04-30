@@ -27,6 +27,6 @@ export interface IWallpaperService {
   // Per-wallpaper override CRUD
   overrides(mutation: OverrideMutation): Promise<WallpaperOverrides | void>
 
-  // Debug logs, screenshots, cache invalidation, cleanup
+  // Debug logs, cache invalidation, cleanup
   diagnose(action: ServiceAction): Promise<DebugInfo | MutationResult | void>
 }

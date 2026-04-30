@@ -82,3 +82,12 @@ export const hostExecAsync = (
         : command
     return execPromise(cmd) as Promise<{ stdout: string; stderr: string }>
 }
+
+export const hostCommandExists = async (command: string): Promise<boolean> => {
+    try {
+        await hostExecAsync(`command -v ${command}`)
+        return true
+    } catch {
+        return false
+    }
+}

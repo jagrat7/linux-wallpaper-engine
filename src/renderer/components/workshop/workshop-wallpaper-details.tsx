@@ -2,7 +2,8 @@ import { useState, useEffect } from "react"
 import { trpc } from "@/lib/trpc"
 import { WallpaperDetailsShell } from "../wallpaper/details-card/wallpaper-details"
 import { WorkshopActionButtons } from "./action-buttons"
-import type { Wallpaper } from "../../../shared/constants/wallpaper"
+import { BackendNotInstalledDialog } from "@/components/wallpaper/backend-not-installed-dialog"
+import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, type Wallpaper } from "../../../shared/constants/wallpaper"
 import { useAtomValue, useSetAtom } from "jotai"
 import {
     addUnsubscribedWorkshopIdAtom,
@@ -18,6 +19,7 @@ interface WorkshopWallpaperDetailsProps {
 export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpaperDetailsProps) {
     const [isApplying, setIsApplying] = useState(false)
     const [isDownloading, setIsDownloading] = useState(false)
+    const [showBackendDialog, setShowBackendDialog] = useState(false)
     const workshopId = wallpaper.workshopId ?? wallpaper.id
     const unsubscribedWorkshopIds = useAtomValue(unsubscribedWorkshopIdsAtom)
     const addUnsubscribedWorkshopId = useSetAtom(addUnsubscribedWorkshopIdAtom)
@@ -82,10 +84,17 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
         if (!wallpaperPath) return
         setIsApplying(true)
         try {
-            await applyMutation.mutateAsync({
+            const result = await applyMutation.mutateAsync({
                 backgroundId: wallpaperPath,
                 screen,
             })
+            if (!result.success) {
+                if (result.error === BACKEND_NOT_INSTALLED_ERROR_MESSAGE) {
+                    setShowBackendDialog(true)
+                    return
+                }
+            }
+
             await utils.wallpaper.getActiveWallpaper.invalidate()
             await utils.playlist.active.invalidate()
         } finally {
@@ -117,6 +126,11 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
                     isActive={isActive}
                 />
             }
-        />
+        >
+            <BackendNotInstalledDialog
+                open={showBackendDialog}
+                onOpenChange={setShowBackendDialog}
+            />
+        </WallpaperDetailsShell>
     )
 }
