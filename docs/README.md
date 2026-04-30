@@ -110,7 +110,6 @@ Then simply consume the package:
     # ...
   ];
 }
-
 # or in a home-manager module...
 { inputs, pkgs, ... }:
 {
