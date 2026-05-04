@@ -413,6 +413,12 @@ class WallpaperService implements IWallpaperService {
     }
     proc.unref()
     compatibilityService.monitorProcess(proc, options.backgroundId)
+    proc.once('exit', () => {
+      const { screens } = this.state.cleanupExitedProcess(proc)
+      if (screens.length > 0) {
+        invalidationService.emit('wallpaper.stopped')
+      }
+    })
     this.state.register([screenKey], proc, options)
     this.captureDebugLogs(proc, screenKey, args)
   }
