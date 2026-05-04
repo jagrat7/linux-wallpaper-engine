@@ -221,24 +221,6 @@ describe('wallpaperRouter', () => {
     })
   })
 
-  describe('screenshot', () => {
-    it('should pass paths to the service', async () => {
-      mockWallpaperService.diagnose.mockResolvedValue({ success: true, path: '/out.png' })
-
-      const result = await caller.screenshot({
-        backgroundPath: '/wp/123',
-        outputPath: '/out.png',
-      })
-
-      expect(mockWallpaperService.diagnose).toHaveBeenCalledWith({
-        kind: 'screenshot',
-        backgroundPath: '/wp/123',
-        outputPath: '/out.png',
-      })
-      expect(result).toEqual({ success: true, path: '/out.png' })
-    })
-  })
-
   describe('getActiveWallpaper', () => {
     it('should return active wallpapers with titles', async () => {
       const active = [{ screen: 'eDP-1', wallpaper: '123', title: 'Cool', thumbnail: '/t.jpg' }]

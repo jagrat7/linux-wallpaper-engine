@@ -13,6 +13,9 @@ export type WallpaperFilterType = typeof FILTER_TYPE_OPTIONS[number]['value']
 export type WallpaperType = Exclude<WallpaperFilterType, 'all'>
 export type WindowGeometry = { x: number; y: number; width: number; height: number }
 
+export const BACKEND_NOT_INSTALLED_ERROR_MESSAGE = 'linux-wallpaperengine is not installed or is not available on PATH'
+export const WALLPAPER_APPLY_FAILED_MESSAGE = 'Wallpaper failed to apply. It may not be compatible.'
+
 export const AGE_RATINGS = {
   g: { label: 'G', workshopTag: 'Everyone' },
   pg13: { label: 'PG13', workshopTag: 'Questionable' },

@@ -1,5 +1,5 @@
 import type { ChildProcess } from 'node:child_process'
-import { hostSpawn } from '../utils/host'
+import { hostCommandExists, hostSpawn } from '../utils/host'
 import type { WallpaperOverrides } from '../../shared/constants/wallpaper'
 import {
   type CompatibilityStatus,
@@ -81,6 +81,11 @@ class CompatibilityService {
       if (signal) return
       classify(true)
     })
+
+    proc.on('error', (error) => {
+      stderrData += error.message
+      classify(true)
+    })
   }
 
   private updateAutoCompatibility(wallpaperPath: string, status: CompatibilityStatus, errors: string[]): void {
@@ -155,6 +160,11 @@ class CompatibilityService {
   async scanAll(wallpapers: { title: string; path: string }[]): Promise<{ total: number; scanned: number }> {
     if (this.scanProgress.running) {
       return { total: this.scanProgress.total, scanned: this.scanProgress.scanned }
+    }
+
+    const backendInstalled = await hostCommandExists('linux-wallpaperengine')
+    if (!backendInstalled) {
+      return { total: 0, scanned: 0 }
     }
 
     const overrides = this.overridesStore.get('overrides')

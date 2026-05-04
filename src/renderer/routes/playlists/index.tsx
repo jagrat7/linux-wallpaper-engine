@@ -8,6 +8,8 @@ import { PlaylistRow } from "@/components/playlist/playlist-row"
 import { PageHeader } from "@/components/page-header"
 import { Input } from "@/components/ui/input"
 import { DebugLogDialog } from "@/components/wallpaper/debug-log-dialog"
+import { BackendNotInstalledDialog } from "@/components/wallpaper/backend-not-installed-dialog"
+import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE } from "../../../shared/constants/wallpaper"
 
 export const Route = createFileRoute("/playlists/")({
     component: PlaylistsPage,
@@ -19,6 +21,7 @@ function PlaylistsPage() {
     const [debugScreen, setDebugScreen] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState("")
     const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const [showBackendDialog, setShowBackendDialog] = useState(false)
     const searchInputRef = useRef<HTMLInputElement>(null)
 
     const handleSearchOpen = () => {
@@ -59,6 +62,14 @@ function PlaylistsPage() {
         setApplyingPlaylist(playlistName)
         try {
             const result = await applyMutation.mutateAsync({ playlistName, screen })
+            if (!result.success) {
+                const error = "error" in result ? result.error : undefined
+                if (error === BACKEND_NOT_INSTALLED_ERROR_MESSAGE) {
+                    setShowBackendDialog(true)
+                }
+                return
+            }
+
             await Promise.all([
                 utils.playlist.active.invalidate(),
                 utils.playlist.list.invalidate(),
@@ -203,6 +214,10 @@ function PlaylistsPage() {
                     screen={debugScreen}
                 />
             )}
+            <BackendNotInstalledDialog
+                open={showBackendDialog}
+                onOpenChange={setShowBackendDialog}
+            />
         </div>
     )
 }

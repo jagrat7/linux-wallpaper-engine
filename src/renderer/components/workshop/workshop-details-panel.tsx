@@ -25,7 +25,7 @@ export function WorkshopDetailsPanel({ wallpaper, onClose, onExitComplete }: Wor
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
           <Suspense fallback={<Skeleton className="w-80 h-96 rounded-xl" />}>
-            <WorkshopWallpaperDetails wallpaper={wallpaper} onClose={onClose} />
+            <WorkshopWallpaperDetails key={wallpaper.id} wallpaper={wallpaper} onClose={onClose} />
           </Suspense>
         </motion.div>
       )}

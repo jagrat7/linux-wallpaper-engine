@@ -86,6 +86,28 @@ class WallpaperStateManager implements IStateManager {
     return { remaining }
   }
 
+  // Remove a process and all of its screens from the active state without
+  // killing it. Used when a process exits unexpectedly so it no longer shows
+  // as applied. No-op when state has already been released by an explicit stop.
+  cleanupExitedProcess(proc: ChildProcess): { screens: string[] } {
+    const group = this.processScreenGroups.get(proc)
+    if (!group) return { screens: [] }
+
+    const cleanedScreens: string[] = []
+    for (const screen of group) {
+      if (this.runningProcesses.get(screen) === proc) {
+        this.runningProcesses.delete(screen)
+      }
+      if (this.activeWallpapers.has(screen)) {
+        this.activeWallpapers.delete(screen)
+        cleanedScreens.push(screen)
+      }
+    }
+    this.processScreenGroups.delete(proc)
+    this.save()
+    return { screens: cleanedScreens }
+  }
+
   // ── Active wallpaper state ─────────────────────────────────────────────
 
   getActive(): ReadonlyMap<string, ApplyWallpaperOptions> {
