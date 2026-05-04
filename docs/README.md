@@ -72,8 +72,6 @@ flatpak install --user ./com.github.jagrat7.LinuxWallpaperEngine_stable_x86_64.f
 ```bash
 # Extract the archive (use your preferred tool: unzip, 7z, etc.)
 unzip linux-wallpaper-engine-<version>-linux-x64.zip
-
-# Run the executable
 cd linux-wallpaper-engine-linux-x64
 ./linux-wallpaper-engine
 ```
