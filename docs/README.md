@@ -27,7 +27,7 @@ You need to own and install [Wallpaper Engine](https://store.steampowered.com/ap
 
 You need to go to the [linux-wallpaperengine repo](https://github.com/Almamu/linux-wallpaperengine) page and follow the build instructions to compile and install it. Please read carefully and make sure it supports your OS and configuration — if it doesn't, this app is useless. Wayland works with compositors that support wlr-layer-shell-unstable, while X11 requires XRandr and `--screen-root <screen_name>` (as shown in `xrandr`) and currently does not work if a compositor or desktop environment (e.g. GNOME, KDE, Nautilus) is drawing the background.
 
-If you installed via build from source, you **need** to copy(or symlink) the binary that was produced in the build directory. So it is accessible in your PATH:
+If you installed via build from source, you need to copy(or symlink) the binary that was produced in the build directory. So it is accessible in your PATH:
 
 ```bash
 sudo cp /<path>/<to>/<your_build>/linux-wallpaperengine /usr/local/bin/linux-wallpaperengine
