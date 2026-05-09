@@ -5,6 +5,7 @@ import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { settingsService } from '../../services/settings'
 import { displayService } from '../../services/display'
 import { hostCommandExists, hostSpawn } from '../../utils/host'
+import { resolveWallpaperEngineAssetsDir } from '../../services/wallpaper/wallpaper.utils'
 import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants/playlist'
 import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE } from '../../../shared/constants/wallpaper'
 
@@ -110,12 +111,16 @@ export const playlistRouter = trpc.router({
       // Build command args for playlist mode with user settings
       const settings = await settingsService.loadSettings()
       const settingsArgs = settingsService.settingsToArgs(settings)
+      const assetsDir = settings.assetsDir ?? await resolveWallpaperEngineAssetsDir()
       const args: string[] = []
       if (targetScreen && !settings.windowMode) {
         args.push('--screen-root', targetScreen)
       }
       args.push('--playlist', input.playlistName)
       args.push(...settingsArgs)
+      if (!settings.assetsDir && assetsDir) {
+        args.push('--assets-dir', assetsDir)
+      }
 
       try {
         const debugMode = settingsService.getSetting('debugMode')

@@ -1,8 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import { STEAM_PATHS } from '../../../shared/constants/app'
 import type { SteamConfig } from '../../../shared/constants/playlist'
-import { expandPath } from '../wallpaper/wallpaper.utils'
+import { resolveSteamLibraryPaths } from '../wallpaper/wallpaper.utils'
 
 const DEFAULT_CONFIG: SteamConfig = {
   steamuser: {
@@ -12,9 +11,10 @@ const DEFAULT_CONFIG: SteamConfig = {
 }
 
 export async function findSteamConfigPath(): Promise<string | null> {
-  for (const basePath of STEAM_PATHS) {
-    const expanded = expandPath(basePath)
-    const configPath = path.join(expanded, 'steamapps/common/wallpaper_engine/config.json')
+  const steamLibraryPaths = await resolveSteamLibraryPaths()
+
+  for (const steamLibraryPath of steamLibraryPaths) {
+    const configPath = path.join(steamLibraryPath, 'steamapps/common/wallpaper_engine/config.json')
     try {
       await fs.access(configPath)
       return configPath
@@ -29,9 +29,10 @@ export async function ensureSteamConfigPath(): Promise<string> {
   const existing = await findSteamConfigPath()
   if (existing) return existing
 
-  for (const basePath of STEAM_PATHS) {
-    const expanded = expandPath(basePath)
-    const configDir = path.join(expanded, 'steamapps/common/wallpaper_engine')
+  const steamLibraryPaths = await resolveSteamLibraryPaths()
+
+  for (const steamLibraryPath of steamLibraryPaths) {
+    const configDir = path.join(steamLibraryPath, 'steamapps/common/wallpaper_engine')
     const configPath = path.join(configDir, 'config.json')
 
     try {
