@@ -6,11 +6,11 @@ import { displayService } from '../display'
 import { settingsService } from '../settings'
 import { storeService } from '../store'
 import { hostSpawn, hostExecAsync, hostCommandExists, isFlatpak } from '../../utils/host'
-import { CACHE_TTL, STEAM_PATHS, WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
+import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, type ApplyWallpaperOptions, type Wallpaper, type WallpaperOverrides } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
-import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry } from './wallpaper.utils'
+import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, type TimedCache } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
 import type { MutationResult, ActiveWallpaperEntry, ApplyTarget, OverrideMutation, ServiceAction, DebugInfo } from './wallpaper.types'
@@ -19,7 +19,7 @@ class WallpaperService implements IWallpaperService {
   private static instance: WallpaperService | null = null
 
   private wallpaperCache: Wallpaper[] | null = null
-  private cacheTimestamp: number | null = null
+  private wallpaperCacheEntry: TimedCache<Wallpaper[]> | null = null
   private overridesStore = storeService.wallpaperOverrides
   private fsWatchers: fsSync.FSWatcher[] = []
   private reapplyTimer: ReturnType<typeof setTimeout> | null = null
@@ -128,7 +128,7 @@ class WallpaperService implements IWallpaperService {
 
       case 'invalidateCache':
         this.wallpaperCache = null
-        this.cacheTimestamp = null
+        this.wallpaperCacheEntry = null
         return
 
       case 'cleanup':
@@ -144,14 +144,8 @@ class WallpaperService implements IWallpaperService {
   }
 
   private async getWallpapers(): Promise<Wallpaper[]> {
-    const now = Date.now()
-    const cacheExpired = !this.cacheTimestamp || (now - this.cacheTimestamp) > CACHE_TTL
-
-    if (!this.wallpaperCache || cacheExpired) {
-      this.wallpaperCache = await this.scanWallpapers()
-      this.cacheTimestamp = now
-    }
-
+    this.wallpaperCacheEntry = await resolveTimedCache(this.wallpaperCacheEntry, () => this.scanWallpapers())
+    this.wallpaperCache = this.wallpaperCacheEntry.value
     return this.wallpaperCache
   }
 
@@ -160,9 +154,9 @@ class WallpaperService implements IWallpaperService {
     const wallpapers: Wallpaper[] = []
     const seen: Set<string> = new Set()
 
-    for (const basePath of STEAM_PATHS) {
-      const expanded = expandPath(basePath)
+    const steamLibraryPaths = await resolveSteamLibraryPaths()
 
+    for (const expanded of steamLibraryPaths) {
       const workshopPath = path.join(expanded, 'steamapps/workshop/content', String(WALLPAPER_ENGINE_APP_ID))
       try {
         await fs.access(workshopPath)
@@ -308,7 +302,7 @@ class WallpaperService implements IWallpaperService {
   }
 
   private async spawnWindowed(options: ApplyWallpaperOptions): Promise<MutationResult> {
-    let args = ['--bg', options.backgroundId, ...this.buildArgs(options)]
+    let args = ['--bg', options.backgroundId, ...await this.buildArgs(options)]
     // 'emit-flag' means run in app-level window mode with no backend geometry flag.
     if (options.windowed !== 'emit-flag' && options.windowed) {
       const { x, y, width, height } = options.windowed
@@ -344,7 +338,7 @@ class WallpaperService implements IWallpaperService {
       args.push('--screen-root', screen)
     }
     args.push('--bg', options.backgroundId)
-    args.push(...this.buildArgs(options))
+    args.push(...await this.buildArgs(options))
 
     try {
       // Kill orphaned processes
@@ -535,7 +529,7 @@ class WallpaperService implements IWallpaperService {
 
   // ── Private: CLI args builder ──────────────────────────────────────────
 
-  private buildArgs(options: ApplyWallpaperOptions): string[] {
+  private async buildArgs(options: ApplyWallpaperOptions): Promise<string[]> {
     const args: string[] = []
     const all = this.overridesStore.get('overrides')
     const overrides = all[options.backgroundId] ?? {}
@@ -546,6 +540,7 @@ class WallpaperService implements IWallpaperService {
     const disableMouse = overrides.disableMouse ?? options.disableMouse
     const disableParallax = overrides.disableParallax ?? options.disableParallax
     const scaling = overrides.scaling ?? options.scaling
+    const assetsDir = settingsService.getSetting('assetsDir') ?? await resolveWallpaperEngineAssetsDir()
 
     if (options.silent) {
       args.push('--silent')
@@ -560,6 +555,7 @@ class WallpaperService implements IWallpaperService {
     if (disableParallax) args.push('--disable-parallax')
     if (options.noFullscreenPause) args.push('--no-fullscreen-pause')
     if (scaling && scaling !== 'default') args.push('--scaling', scaling)
+    if (assetsDir) args.push('--assets-dir', assetsDir)
 
     return args
   }
@@ -607,7 +603,7 @@ class WallpaperService implements IWallpaperService {
           clearTimeout(debounce)
           debounce = setTimeout(() => {
             this.wallpaperCache = null
-            this.cacheTimestamp = null
+            this.wallpaperCacheEntry = null
             invalidationService.emit('wallpaper.getWallpapers')
           }, 500)
         })

@@ -1,9 +1,15 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
+import { CACHE_TTL, STEAM_ROOT_PATHS } from '../../../shared/constants/app'
 import type { ApplyWallpaperOptions, WallpaperType } from '../../../shared/constants/wallpaper'
 import { hostExecAsync } from '../../utils/host'
 
 type ImageType = "jpeg" | "png" | "bmp"
+export type TimedCache<T> = {
+  value: T
+  timestamp: number
+  key?: string
+}
 
 const IMAGE_HEADERS_IDENTIFIERS = {
   jpeg: 0xffd8,
@@ -12,6 +18,23 @@ const IMAGE_HEADERS_IDENTIFIERS = {
 };
 const MAX_BYTES = 8192;
 const WINDOW_SIZE_PATTERN = /^(\d+)x(\d+)$/
+let steamLibraryPathsCache: TimedCache<string[]> | null = null
+
+export async function resolveTimedCache<T>(
+  cache: TimedCache<T> | null,
+  load: () => Promise<T>,
+  key?: string,
+): Promise<TimedCache<T>> {
+  if (cache && (!key || cache.key === key) && (Date.now() - cache.timestamp) <= CACHE_TTL) {
+    return cache
+  }
+
+  return {
+    value: await load(),
+    timestamp: Date.now(),
+    key,
+  }
+}
 
 export const parseWindowGeometry = (size: string | null | undefined): ApplyWallpaperOptions['windowed'] => {
   const match = size?.trim().match(WINDOW_SIZE_PATTERN)
@@ -100,6 +123,44 @@ export function expandPath(p: string): string {
     return path.join(process.env.HOME ?? '', p.slice(1))
   }
   return p
+}
+
+export async function resolveSteamLibraryPaths(basePaths = STEAM_ROOT_PATHS): Promise<string[]> {
+  steamLibraryPathsCache = await resolveTimedCache(steamLibraryPathsCache, async () => {
+    const libraries = new Set<string>()
+
+    for (const basePath of basePaths) {
+      const expanded = expandPath(basePath)
+      libraries.add(expanded)
+
+      const libraryFoldersPath = path.join(expanded, 'steamapps/libraryfolders.vdf')
+      try {
+        const data = await fs.readFile(libraryFoldersPath, 'utf-8')
+        const matches = data.matchAll(/"path"\s+"([^"]+)"/g)
+        for (const match of matches) {
+          libraries.add(match[1].replace(/\\\\/g, '\\'))
+        }
+      } catch { /* path may not be a Steam root */ }
+    }
+
+    return [...libraries]
+  }, basePaths.join('\0'))
+
+  return steamLibraryPathsCache.value
+}
+
+export async function resolveWallpaperEngineAssetsDir(basePaths?: string[]): Promise<string | null> {
+  const steamLibraryPaths = await resolveSteamLibraryPaths(basePaths)
+
+  for (const steamLibraryPath of steamLibraryPaths) {
+    const assetsDir = path.join(steamLibraryPath, 'steamapps/common/wallpaper_engine/assets')
+    try {
+      await fs.access(assetsDir)
+      return assetsDir
+    } catch { /* path doesn't exist */ }
+  }
+
+  return null
 }
 
 export function parseWallpaperType(rawType?: string): WallpaperType {
