@@ -125,3 +125,11 @@ export const APP_VERSION = packageJson.version
 export const WALLPAPER_ENGINE_APP_ID = 431960
 
 export const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+export const STEAM_ROOT_PATHS = [
+  '~/.local/share/Steam',
+  '~/.steam/steam',
+  '~/.var/app/com.valvesoftware.Steam/.local/share/Steam',
+  '~/.var/app/com.valvesoftware.Steam/.data/Steam',
+  '~/.var/app/com.valvesoftware.Steam/.steam/steam',
+]

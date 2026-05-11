@@ -6,11 +6,11 @@ import { displayService } from '../display'
 import { settingsService } from '../settings'
 import { storeService } from '../store'
 import { hostSpawn, hostExecAsync, hostCommandExists, isFlatpak } from '../../utils/host'
-import { CACHE_TTL, WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
+import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, type ApplyWallpaperOptions, type Wallpaper, type WallpaperOverrides } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
-import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir } from './wallpaper.utils'
+import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, type TimedCache } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
 import type { MutationResult, ActiveWallpaperEntry, ApplyTarget, OverrideMutation, ServiceAction, DebugInfo } from './wallpaper.types'
@@ -19,7 +19,7 @@ class WallpaperService implements IWallpaperService {
   private static instance: WallpaperService | null = null
 
   private wallpaperCache: Wallpaper[] | null = null
-  private cacheTimestamp: number | null = null
+  private wallpaperCacheEntry: TimedCache<Wallpaper[]> | null = null
   private overridesStore = storeService.wallpaperOverrides
   private fsWatchers: fsSync.FSWatcher[] = []
   private reapplyTimer: ReturnType<typeof setTimeout> | null = null
@@ -128,7 +128,7 @@ class WallpaperService implements IWallpaperService {
 
       case 'invalidateCache':
         this.wallpaperCache = null
-        this.cacheTimestamp = null
+        this.wallpaperCacheEntry = null
         return
 
       case 'cleanup':
@@ -144,14 +144,8 @@ class WallpaperService implements IWallpaperService {
   }
 
   private async getWallpapers(): Promise<Wallpaper[]> {
-    const now = Date.now()
-    const cacheExpired = !this.cacheTimestamp || (now - this.cacheTimestamp) > CACHE_TTL
-
-    if (!this.wallpaperCache || cacheExpired) {
-      this.wallpaperCache = await this.scanWallpapers()
-      this.cacheTimestamp = now
-    }
-
+    this.wallpaperCacheEntry = await resolveTimedCache(this.wallpaperCacheEntry, () => this.scanWallpapers())
+    this.wallpaperCache = this.wallpaperCacheEntry.value
     return this.wallpaperCache
   }
 
@@ -609,7 +603,7 @@ class WallpaperService implements IWallpaperService {
           clearTimeout(debounce)
           debounce = setTimeout(() => {
             this.wallpaperCache = null
-            this.cacheTimestamp = null
+            this.wallpaperCacheEntry = null
             invalidationService.emit('wallpaper.getWallpapers')
           }, 500)
         })
