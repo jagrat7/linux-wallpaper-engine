@@ -42,10 +42,14 @@ jobs:
       - name: Configure AUR SSH
         env:
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        shell: bash
         run: |
           test -n "$AUR_SSH_PRIVATE_KEY"
           install -dm700 "$HOME/.ssh"
-          printf '%s' "$AUR_SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/aur"
+
+          normalized_key="${AUR_SSH_PRIVATE_KEY//$'\r'/}"
+          normalized_key="${normalized_key//\\n/$'\n'}"
+          printf '%s\n' "$normalized_key" > "$HOME/.ssh/aur"
           chmod 600 "$HOME/.ssh/aur"
           ssh-keygen -y -f "$HOME/.ssh/aur" > /dev/null
 
