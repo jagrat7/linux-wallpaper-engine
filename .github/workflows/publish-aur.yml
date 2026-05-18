@@ -1,0 +1,78 @@
+name: Publish AUR package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: GitHub release tag to publish to AUR
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  AUR_PACKAGE: linux-wallpaper-engine-ux
+  AUR_REPO: ssh://aur@aur.archlinux.org/linux-wallpaper-engine-ux.git
+
+jobs:
+  publish:
+    name: Publish AUR package
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+
+    steps:
+      - name: Install tools
+        run: pacman -Sy --noconfirm git openssh pacman-contrib
+
+      - name: Resolve release
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          tag="${RELEASE_TAG}"
+          version="${tag#v}"
+
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Configure AUR SSH
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          test -n "$AUR_SSH_PRIVATE_KEY"
+          install -dm700 ~/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+
+      - name: Update AUR package
+        env:
+          GIT_AUTHOR_NAME: jagrat7
+          GIT_AUTHOR_EMAIL: actions@github.com
+          GIT_COMMITTER_NAME: jagrat7
+          GIT_COMMITTER_EMAIL: actions@github.com
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur -o IdentitiesOnly=yes"
+
+          git clone "$AUR_REPO" "$AUR_PACKAGE"
+          cd "$AUR_PACKAGE"
+
+          sed -i "s/^pkgver=.*/pkgver=$RELEASE_VERSION/" PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+
+          updpkgsums
+          makepkg --printsrcinfo > .SRCINFO
+
+          if git diff --quiet; then
+            echo "AUR package already matches v$RELEASE_VERSION"
+            exit 0
+          fi
+
+          git add PKGBUILD .SRCINFO
+          git commit -m "Release $RELEASE_VERSION"
+          git push
