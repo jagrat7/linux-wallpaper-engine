@@ -22,6 +22,12 @@ This app aims to be a fully functional linux implementation of [Wallpaper Engine
 ### 1. Wallpaper Engine (Steam)
 
 You need to own and install [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/) on Steam. Open Wallpaper Engine via Steam so the wallpapers are downloaded to your system.
+> [!NOTE]
+> If you use Arch btw, you can install everything with the command below and your done. It will install [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) which will take a few minutes to build.
+>
+> ```bash
+> yay -S linux-wallpaper-engine-ux
+> ```
 
 ### 2. Install linux-wallpaperengine
 
@@ -34,11 +40,13 @@ sudo cp /<path>/<to>/<your_build>/linux-wallpaperengine /usr/local/bin/linux-wal
 ```
 
 Verify the installation:
+
 ```bash
 linux-wallpaperengine --help
 ```
 
 Test if it is working on your system by applying a wallpaper with the cli. For example (you will need to find your own path to the wallpaper file and the screen name):
+
 ```bash
 linux-wallpaperengine --screen-root DP-2 --bg /home/$USER/.local/share/Steam/steamapps/workshop/content/431960/<wallpaper_id>
 ```
@@ -74,6 +82,12 @@ flatpak install --user ./com.github.jagrat7.LinuxWallpaperEngine_stable_x86_64.f
 unzip linux-wallpaper-engine-<version>-linux-x64.zip
 cd linux-wallpaper-engine-linux-x64
 ./linux-wallpaper-engine
+```
+
+#### Arch Linux (AUR)
+
+```bash
+yay -S linux-wallpaper-engine-ux
 ```
 
 #### Nix / NixOS (Flakes)

@@ -16,6 +16,7 @@
     "built": "DEBUG=* ELECTRON_ENABLE_LOGGING=1 './out/Linux Wallpaper Engine-linux-x64/linux-wallpaper-engine'",
     "built:v": "DEBUG=* ELECTRON_ENABLE_LOGGING=1 './out/Linux Wallpaper Engine-linux-x64/linux-wallpaper-engine' --enable-logging --v=1",
     "publish": "source .env && electron-forge publish",
+    "publish:script": "bash scripts/publish.sh",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern demo-video .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
