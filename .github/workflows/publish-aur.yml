@@ -15,6 +15,7 @@ permissions:
 env:
   AUR_PACKAGE: linux-wallpaper-engine-ux
   AUR_REPO: ssh://aur@aur.archlinux.org/linux-wallpaper-engine-ux.git
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
   publish:
@@ -23,67 +24,49 @@ jobs:
     container: archlinux:base-devel
 
     steps:
-      - name: Install tools
-        run: pacman -Sy --noconfirm git openssh pacman-contrib
-
-      - name: Resolve release
-        id: release
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      - name: Set up environment
         run: |
-          tag="${RELEASE_TAG}"
-          version="${tag#v}"
+          pacman -Sy --noconfirm git openssh pacman-contrib
+          useradd -m builder
 
-          {
-            echo "tag=$tag"
-            echo "version=$version"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Configure AUR SSH
+      - name: Configure SSH
         env:
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-        shell: bash
         run: |
           test -n "$AUR_SSH_PRIVATE_KEY"
-          install -dm700 "$HOME/.ssh"
-
-          normalized_key="${AUR_SSH_PRIVATE_KEY//$'\r'/}"
-          normalized_key="${normalized_key//\\n/$'\n'}"
-          printf '%s\n' "$normalized_key" > "$HOME/.ssh/aur"
-          chmod 600 "$HOME/.ssh/aur"
-          ssh-keygen -y -f "$HOME/.ssh/aur" > /dev/null
-
-          ssh-keyscan -t ed25519,ecdsa,rsa aur.archlinux.org > "$HOME/.ssh/aur_known_hosts"
-          ssh-keygen -lf "$HOME/.ssh/aur_known_hosts" | grep -Eq \
+          install -dm700 -o builder -g builder /home/builder/.ssh
+          printf '%s\n' "${AUR_SSH_PRIVATE_KEY//$'\r'/}" > /home/builder/.ssh/aur
+          ssh-keyscan -t ed25519,ecdsa,rsa aur.archlinux.org > /home/builder/.ssh/known_hosts
+          ssh-keygen -lf /home/builder/.ssh/known_hosts | grep -Eq \
             'SHA256:(RFzBCUItH9LZS0cKB5UE6ceAYhBD5C8GeOBip8Z11\+4|uTa/0PndEgPZTf76e1DFqXKJEXKsn7m9ivhLQtzGOCI|5s5cIyReIfNNVGRFdDbe3hdYiI5OelHGpw2rOUud3Q8)'
-          mv "$HOME/.ssh/aur_known_hosts" "$HOME/.ssh/known_hosts"
-          chmod 644 "$HOME/.ssh/known_hosts"
-          ssh-keygen -F aur.archlinux.org -f "$HOME/.ssh/known_hosts"
+          chown builder:builder /home/builder/.ssh/aur /home/builder/.ssh/known_hosts
+          chmod 600 /home/builder/.ssh/aur
+          chmod 644 /home/builder/.ssh/known_hosts
 
       - name: Update AUR package
-        env:
-          GIT_AUTHOR_NAME: jagrat7
-          GIT_AUTHOR_EMAIL: actions@github.com
-          GIT_COMMITTER_NAME: jagrat7
-          GIT_COMMITTER_EMAIL: actions@github.com
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
-          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+          version="${RELEASE_TAG#v}"
+          sudo -u builder -H AUR_REPO="$AUR_REPO" AUR_PACKAGE="$AUR_PACKAGE" VERSION="$version" \
+            bash -euo pipefail <<'EOF'
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+          export GIT_AUTHOR_NAME=jagrat7 GIT_AUTHOR_EMAIL=actions@github.com
+          export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME" GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
 
+          cd "$HOME"
           git clone "$AUR_REPO" "$AUR_PACKAGE"
           cd "$AUR_PACKAGE"
 
-          sed -i "s/^pkgver=.*/pkgver=$RELEASE_VERSION/" PKGBUILD
+          sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
           sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
-
           updpkgsums
           makepkg --printsrcinfo > .SRCINFO
 
           if git diff --quiet; then
-            echo "AUR package already matches v$RELEASE_VERSION"
+            echo "AUR package already matches v$VERSION"
             exit 0
           fi
 
           git add PKGBUILD .SRCINFO
-          git commit -m "Release $RELEASE_VERSION"
+          git commit -m "Release $VERSION"
           git push
+          EOF
