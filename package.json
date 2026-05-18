@@ -1,7 +1,7 @@
 {
   "name": "linux-wallpaper-engine",
   "productName": "Linux Wallpaper Engine",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "A modern desktop GUI for linux-wallpaperengine — browse, manage, and apply your Steam Wallpaper Engine wallpapers on Linux.",
   "homepage": "https://github.com/jagrat7/linux-wallpaper-engine",
   "repository": {
