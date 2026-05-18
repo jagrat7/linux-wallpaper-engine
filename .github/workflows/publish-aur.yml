@@ -45,8 +45,9 @@ jobs:
         run: |
           test -n "$AUR_SSH_PRIVATE_KEY"
           install -dm700 "$HOME/.ssh"
-          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > "$HOME/.ssh/aur"
+          printf '%s' "$AUR_SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/aur"
           chmod 600 "$HOME/.ssh/aur"
+          ssh-keygen -y -f "$HOME/.ssh/aur" > /dev/null
 
           ssh-keyscan -t ed25519,ecdsa,rsa aur.archlinux.org > "$HOME/.ssh/aur_known_hosts"
           ssh-keygen -lf "$HOME/.ssh/aur_known_hosts" | grep -Eq \
