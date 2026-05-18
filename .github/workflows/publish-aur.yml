@@ -44,14 +44,16 @@ jobs:
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
         run: |
           test -n "$AUR_SSH_PRIVATE_KEY"
-          install -dm700 ~/.ssh
-          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur
-          chmod 600 ~/.ssh/aur
+          install -dm700 "$HOME/.ssh"
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > "$HOME/.ssh/aur"
+          chmod 600 "$HOME/.ssh/aur"
 
-          ssh-keyscan aur.archlinux.org > ~/.ssh/aur_known_hosts
-          ssh-keygen -lf ~/.ssh/aur_known_hosts | grep -Eq \
+          ssh-keyscan -t ed25519,ecdsa,rsa aur.archlinux.org > "$HOME/.ssh/aur_known_hosts"
+          ssh-keygen -lf "$HOME/.ssh/aur_known_hosts" | grep -Eq \
             'SHA256:(RFzBCUItH9LZS0cKB5UE6ceAYhBD5C8GeOBip8Z11\+4|uTa/0PndEgPZTf76e1DFqXKJEXKsn7m9ivhLQtzGOCI|5s5cIyReIfNNVGRFdDbe3hdYiI5OelHGpw2rOUud3Q8)'
-          mv ~/.ssh/aur_known_hosts ~/.ssh/known_hosts
+          mv "$HOME/.ssh/aur_known_hosts" "$HOME/.ssh/known_hosts"
+          chmod 644 "$HOME/.ssh/known_hosts"
+          ssh-keygen -F aur.archlinux.org -f "$HOME/.ssh/known_hosts"
 
       - name: Update AUR package
         env:
@@ -61,7 +63,7 @@ jobs:
           GIT_COMMITTER_EMAIL: actions@github.com
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
-          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur -o IdentitiesOnly=yes"
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
 
           git clone "$AUR_REPO" "$AUR_PACKAGE"
           cd "$AUR_PACKAGE"
