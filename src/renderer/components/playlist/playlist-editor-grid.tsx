@@ -124,7 +124,9 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                             variant="outline"
                             size="sm"
                             className="gap-1.5"
-                            onClick={editor.handleDeselectAll}
+                            onClick={() =>
+                                editor.handleDeselectAll(filteredWallpapers.map(w => w.path))
+                            }
                         >
                             <XCircle className="size-4" />
                             Deselect All

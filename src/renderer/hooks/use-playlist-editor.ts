@@ -119,9 +119,13 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
         })
     }, [form])
 
-    const handleDeselectAll = useCallback(() => {
-        setSelectedPaths([])
-        form.setFieldValue("wallpapers", [])
+    const handleDeselectAll = useCallback((paths: string[]) => {
+        const pathSet = new Set(paths)
+        setSelectedPaths(prev => {
+            const next = prev.filter(p => !pathSet.has(p))
+            form.setFieldValue("wallpapers", next)
+            return next
+        })
     }, [form])
 
     const handleBack = useCallback(() => {
