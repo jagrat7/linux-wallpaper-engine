@@ -1,4 +1,4 @@
-import { ArrowLeft, Save, Check } from "lucide-react"
+import { ArrowLeft, Save, Check, CheckCheck, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/wallpaper/search"
 import { FiltersDropdown } from "../wallpaper/filters-dropdown"
@@ -47,6 +47,12 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
     const selectedWallpaperData = useMemo(
         () => transformedWallpapers.filter(w => editor.selectedSet.has(w.path)),
         [transformedWallpapers, editor.selectedSet],
+    )
+
+    // True when every currently-visible wallpaper is already selected
+    const allFilteredSelected = useMemo(
+        () => filteredWallpapers.length > 0 && filteredWallpapers.every(w => editor.selectedSet.has(w.path)),
+        [filteredWallpapers, editor.selectedSet],
     )
 
     // Stable overlay renderer — only re-creates when selection changes
@@ -102,9 +108,9 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                     onRemove={editor.handleRemoveWallpaper}
                 />
 
-                {/* Search + filters */}
-                <div className="flex max-w-xl items-center gap-2">
-                    <SearchInput className="flex-1" />
+                {/* Search + filters + select-all */}
+                <div className="flex items-center gap-2">
+                    <SearchInput className="flex-1 max-w-md" />
                     <div className="flex items-center gap-1.5">
                         <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
                             <FiltersDropdown />
@@ -113,6 +119,29 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                             <SortDropdown />
                         </div>
                     </div>
+                    {allFilteredSelected ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={editor.handleDeselectAll}
+                        >
+                            <XCircle className="size-4" />
+                            Deselect All
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() =>
+                                editor.handleSelectAll(filteredWallpapers.map(w => w.path))
+                            }
+                        >
+                            <CheckCheck className="size-4" />
+                            Select All
+                        </Button>
+                    )}
                 </div>
             </div>
 
