@@ -8,7 +8,8 @@ import type { WorkshopDiscoverOptions, WorkshopDiscoverResult, WorkshopItem as A
 import { createWorkshopConnectionError } from './workshop.errors'
 import { buildFilterCombinations, mapWorkshopItems, mergeWorkshopItemsBySource, parseWorkshopId, settleWorkshopPageResults, shuffleDiscoverSectionConfigs, toSafeNumber } from './workshop.utils'
 import { decodeWorkshopCursor } from '../../../shared/utils/workshop-cursor'
-import { DISCOVER_PAGE, DISCOVER_SECTION_LIMIT, UGC_QUERY_TYPE_RANKED_BY_TREND, UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH, UGC_TYPE_ITEMS_READY_TO_USE, CURATED_DISCOVER_SECTION_CONFIGS, PINNED_DISCOVER_SECTION_CONFIGS, WORKSHOP_SORT_TO_QUERY_TYPE, WORKSHOP_TREND_DAYS, WORKSHOP_MAX_RESULTS } from '../../../shared/constants/workshop'
+import { DISCOVER_PAGE, DISCOVER_SECTION_LIMIT, UGC_QUERY_TYPE_RANKED_BY_TREND, UGC_QUERY_TYPE_RANKED_BY_TEXT_SEARCH, UGC_TYPE_ITEMS_READY_TO_USE, CURATED_DISCOVER_SECTION_CONFIGS, PINNED_DISCOVER_SECTION_CONFIGS, WORKSHOP_SORT_TO_QUERY_TYPE, WORKSHOP_TREND_DAYS, WORKSHOP_MAX_RESULTS, ITEM_STATE_INSTALLED } from '../../../shared/constants/workshop'
+import { invalidationService } from '../invalidation'
 
 type SteamworksModule = typeof import('steamworks.js')
 type SteamClient = ReturnType<SteamworksModule['init']>
@@ -26,6 +27,7 @@ class WorkshopService implements IWorkshopService {
     private connectionEmitter = new EventEmitter()
     private autoConnectTimer: ReturnType<typeof setInterval> | null = null
     private subscriberCount = 0
+    private hasSyncedOnInit = false
 
     static getInstance(): WorkshopService {
         if (!WorkshopService.instance) {
@@ -282,6 +284,32 @@ class WorkshopService implements IWorkshopService {
         }
     }
 
+    async syncSubscribedItems(): Promise<void> {
+        let client: SteamClient
+        try {
+            client = await this.getClient()
+        } catch {
+            return
+        }
+
+        const subscribedIds = client.workshop.getSubscribedItems()
+        let downloadCount = 0
+
+        for (const itemId of subscribedIds) {
+            const itemState = client.workshop.state(itemId)
+            const isInstalled = (itemState & ITEM_STATE_INSTALLED) !== 0
+
+            if (!isInstalled) {
+                client.workshop.download(itemId, false)
+                downloadCount += 1
+            }
+        }
+
+        if (downloadCount > 0) {
+            invalidationService.emit('wallpaper.getWallpapers')
+        }
+    }
+
     private async resolveWorkshopContext(workshopId: string): Promise<{ client: SteamClient; itemId: bigint } | null> {
         const itemId = parseWorkshopId(workshopId)
 
@@ -311,6 +339,12 @@ class WorkshopService implements IWorkshopService {
                 const client = steamworksModule.init(WALLPAPER_ENGINE_APP_ID)
                 this.client = client
                 this.connectionEmitter.emit('connection', 'connected')
+
+                if (!this.hasSyncedOnInit) {
+                    this.hasSyncedOnInit = true
+                    this.syncSubscribedItems()
+                }
+
                 return client
             })
             .catch(() => {
