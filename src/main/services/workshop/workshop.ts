@@ -292,21 +292,25 @@ class WorkshopService implements IWorkshopService {
             return
         }
 
-        const subscribedIds = client.workshop.getSubscribedItems()
-        let downloadCount = 0
+        try {
+            const subscribedIds = client.workshop.getSubscribedItems()
+            let downloadCount = 0
 
-        for (const itemId of subscribedIds) {
-            const itemState = client.workshop.state(itemId)
-            const isInstalled = (itemState & ITEM_STATE_INSTALLED) !== 0
+            for (const itemId of subscribedIds) {
+                const itemState = client.workshop.state(itemId)
+                const isInstalled = (itemState & ITEM_STATE_INSTALLED) !== 0
 
-            if (!isInstalled) {
-                client.workshop.download(itemId, false)
-                downloadCount += 1
+                if (!isInstalled) {
+                    client.workshop.download(itemId, false)
+                    downloadCount += 1
+                }
             }
-        }
 
-        if (downloadCount > 0) {
-            invalidationService.emit('wallpaper.getWallpapers')
+            if (downloadCount > 0) {
+                invalidationService.emit('wallpaper.getWallpapers')
+            }
+        } catch {
+            // Steam API calls may fail if the client disconnects mid-sync
         }
     }
 
