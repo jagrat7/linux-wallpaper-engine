@@ -23,7 +23,7 @@ This app aims to be a fully functional linux implementation of [Wallpaper Engine
 
 You need to own and install [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/) on Steam. Open Wallpaper Engine via Steam so the wallpapers are downloaded to your system.
 > [!NOTE]
-> If you use Arch btw, you can install everything with the command below and you can skip step 2 & 3. It will install [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) which will take a few minutes to build.
+> If you use Arch btw, you can install everything with the command below and you can skip steps 2 & 3. It will install [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) which will take a few minutes to build.
 >
 > ```bash
 > yay -S linux-wallpaper-engine-ux
