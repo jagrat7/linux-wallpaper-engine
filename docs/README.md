@@ -84,6 +84,8 @@ cd linux-wallpaper-engine-linux-x64
 ./linux-wallpaper-engine
 ```
 
+Recommended OS-specific installations:
+
 #### Arch Linux (AUR)
 
 ```bash
