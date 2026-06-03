@@ -20,7 +20,6 @@ describe('createTrayStartupCoordinator', () => {
     const coordinator = createTrayStartupCoordinator({
       createTray,
       getStatusNotifierWatcherStatus,
-      isLinux: true,
       retryDelayMs: 1000,
     })
 
@@ -43,29 +42,11 @@ describe('createTrayStartupCoordinator', () => {
     const coordinator = createTrayStartupCoordinator({
       createTray,
       getStatusNotifierWatcherStatus,
-      isLinux: true,
     })
 
     coordinator.start()
     await vi.advanceTimersByTimeAsync(0)
 
-    expect(createTray).toHaveBeenCalledTimes(1)
-  })
-
-  it('creates the tray immediately outside Linux', async () => {
-    const createTray = vi.fn()
-    const getStatusNotifierWatcherStatus = vi.fn()
-
-    const coordinator = createTrayStartupCoordinator({
-      createTray,
-      getStatusNotifierWatcherStatus,
-      isLinux: false,
-    })
-
-    coordinator.start()
-    await vi.advanceTimersByTimeAsync(0)
-
-    expect(getStatusNotifierWatcherStatus).not.toHaveBeenCalled()
     expect(createTray).toHaveBeenCalledTimes(1)
   })
 
@@ -76,7 +57,6 @@ describe('createTrayStartupCoordinator', () => {
     const coordinator = createTrayStartupCoordinator({
       createTray,
       getStatusNotifierWatcherStatus,
-      isLinux: true,
       retryDelayMs: 1000,
     })
 
@@ -96,7 +76,6 @@ describe('createTrayStartupCoordinator', () => {
     const coordinator = createTrayStartupCoordinator({
       createTray,
       getStatusNotifierWatcherStatus,
-      isLinux: true,
       maxAttempts: 1,
       retryDelayMs: 1000,
     })

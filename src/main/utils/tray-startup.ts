@@ -10,7 +10,6 @@ export interface TrayStartupCoordinator {
 interface TrayStartupCoordinatorOptions {
   createTray: () => void
   getStatusNotifierWatcherStatus: () => Promise<StatusNotifierWatcherStatus>
-  isLinux: boolean
   maxAttempts?: number
   retryDelayMs?: number
   setTimeoutFn?: typeof setTimeout
@@ -21,7 +20,6 @@ interface TrayStartupCoordinatorOptions {
 export const createTrayStartupCoordinator = ({
   createTray,
   getStatusNotifierWatcherStatus,
-  isLinux,
   maxAttempts = 60,
   retryDelayMs = 1000,
   setTimeoutFn = setTimeout,
@@ -48,13 +46,11 @@ export const createTrayStartupCoordinator = ({
     isChecking = true
 
     try {
-      const watcherStatus = isLinux
-        ? await getStatusNotifierWatcherStatus()
-        : 'unknown'
+      const watcherStatus = await getStatusNotifierWatcherStatus()
 
       if (stopped || isCreated) return
 
-      if (isLinux && watcherStatus === 'missing' && attempts < maxAttempts) {
+      if (watcherStatus === 'missing' && attempts < maxAttempts) {
         scheduleRetry()
         return
       }
@@ -64,7 +60,7 @@ export const createTrayStartupCoordinator = ({
     } catch (error) {
       if (stopped || isCreated) return
 
-      if (isLinux && attempts < maxAttempts) {
+      if (attempts < maxAttempts) {
         scheduleRetry()
         return
       }

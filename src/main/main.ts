@@ -126,7 +126,6 @@ const ensureTray = (mainWindow: BrowserWindow): void => {
     trayStartup = createTrayStartupCoordinator({
       createTray: () => initializeTray(mainWindow),
       getStatusNotifierWatcherStatus,
-      isLinux: process.platform === 'linux',
       onError: error => console.warn('Failed to initialize system tray:', error),
     })
   }

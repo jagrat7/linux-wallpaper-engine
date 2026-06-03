@@ -14,8 +14,6 @@ const NAME_HAS_OWNER_COMMAND = [
 ].join(' ')
 
 export const getStatusNotifierWatcherStatus = async (): Promise<StatusNotifierWatcherStatus> => {
-  if (process.platform !== 'linux') return 'unknown'
-
   try {
     const { stdout } = await hostExecAsync(NAME_HAS_OWNER_COMMAND)
     if (stdout.includes('true')) return 'available'
