@@ -4,23 +4,13 @@ import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
 import { appRouter } from './trpc/router.ts'
 import { settingsService as settings } from './services/settings.ts'
-import { hostExecAsync, setFlatpakBypass } from './utils/host.ts'
+import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
-
-const STATUS_NOTIFIER_WATCHER = 'org.kde.StatusNotifierWatcher'
-const STATUS_NOTIFIER_WATCHER_COMMAND = [
-  'gdbus call --session',
-  '--dest org.freedesktop.DBus',
-  '--object-path /org/freedesktop/DBus',
-  '--method org.freedesktop.DBus.NameHasOwner',
-  STATUS_NOTIFIER_WATCHER,
-].join(' ')
-const TRAY_STARTUP_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 16000, 30000] as const
+import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
-let trayStartupRetry: ReturnType<typeof setTimeout> | null = null
-let isTrayStartupChecking = false
+let trayStartupRetry: TrayStartupRetry | null = null
 let isQuitting = false
 
 const resolveAssetPath = (assetName: string): string => {
@@ -128,37 +118,16 @@ const initializeTray = (mainWindow: BrowserWindow): void => {
   tray.on('click', toggleMainWindow)
 }
 
-const isStatusNotifierWatcherMissing = async (): Promise<boolean> => {
-  try {
-    const { stdout } = await hostExecAsync(STATUS_NOTIFIER_WATCHER_COMMAND)
-    return stdout.includes('false')
-  } catch {
-    return false
+const ensureTray = (mainWindow: BrowserWindow): void => {
+  if (trayStartupRetry === null) {
+    trayStartupRetry = createTrayStartupRetry({
+      createTray: () => initializeTray(mainWindow),
+      hasTray: () => tray !== null,
+      shouldStop: () => isQuitting,
+    })
   }
-}
 
-const ensureTray = (mainWindow: BrowserWindow, attempt = 0): void => {
-  if (isQuitting || tray !== null || trayStartupRetry !== null || isTrayStartupChecking) return
-
-  isTrayStartupChecking = true
-  void isStatusNotifierWatcherMissing()
-    .then((watcherMissing) => {
-      if (tray !== null || isQuitting) return
-
-      const delay = TRAY_STARTUP_RETRY_DELAYS_MS[attempt]
-      if (watcherMissing && delay !== undefined) {
-        trayStartupRetry = setTimeout(() => {
-          trayStartupRetry = null
-          ensureTray(mainWindow, attempt + 1)
-        }, delay)
-        return
-      }
-
-      initializeTray(mainWindow)
-    })
-    .finally(() => {
-      isTrayStartupChecking = false
-    })
+  trayStartupRetry.start()
 }
 
 // This method will be called when Electron has finished
@@ -203,7 +172,7 @@ app.whenReady().then(() => {
 app.on('before-quit', () => {
   isQuitting = true
   if (trayStartupRetry !== null) {
-    clearTimeout(trayStartupRetry)
+    trayStartupRetry.stop()
     trayStartupRetry = null
   }
   if (tray) {
