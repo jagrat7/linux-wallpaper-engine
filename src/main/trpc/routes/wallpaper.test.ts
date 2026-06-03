@@ -34,6 +34,7 @@ vi.mock('../../services/settings', () => ({
 }))
 
 vi.mock('../../services/compatibility', () => ({
+  compatibilityService: mockCompatibilityInstance,
   CompatibilityService: {
     getInstance: () => mockCompatibilityInstance,
   },
