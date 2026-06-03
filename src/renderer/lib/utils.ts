@@ -84,3 +84,14 @@ export function toWallpaper(item: WorkshopItem): Wallpaper {
     path: "",
   }
 }
+
+/** Walk up the DOM to the nearest scrollable ancestor (the app-shell <main>). */
+export function findScrollParent(node: HTMLElement | null): HTMLElement | null {
+    let el = node?.parentElement ?? null
+    while (el) {
+        const { overflowY } = getComputedStyle(el)
+        if (overflowY === "auto" || overflowY === "scroll") return el
+        el = el.parentElement
+    }
+    return null
+}

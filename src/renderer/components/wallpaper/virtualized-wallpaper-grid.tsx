@@ -6,12 +6,12 @@ import { EmptyState } from "@/components/empty-state"
 import { WallpaperCard } from "./wallpaper-card"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
+import { findScrollParent } from "@/lib/utils"
 
-const SKELETON_COUNT = 12
 const GAP = 16 // matches gap-4 (1rem)
 const MIN_CARD_WIDTH = 200 // target min card width; drives responsive column count
-const MAX_COLS = 8
-const OVERSCAN = 3
+const MAX_COLS = 8 // cap columns so cards don't shrink on ultrawide displays
+const OVERSCAN = 3 // rows rendered beyond the viewport to smooth scrolling
 
 interface VirtualizedWallpaperGridProps {
     wallpapers: Wallpaper[]
@@ -25,16 +25,7 @@ interface VirtualizedWallpaperGridProps {
     emptySubMessage?: string
 }
 
-/** Walk up the DOM to the nearest scrollable ancestor (the app-shell <main>). */
-function findScrollParent(node: HTMLElement | null): HTMLElement | null {
-    let el = node?.parentElement ?? null
-    while (el) {
-        const { overflowY } = getComputedStyle(el)
-        if (overflowY === "auto" || overflowY === "scroll") return el
-        el = el.parentElement
-    }
-    return null
-}
+
 
 export function VirtualizedWallpaperGrid({
     wallpapers,
@@ -50,6 +41,7 @@ export function VirtualizedWallpaperGrid({
     const parentRef = useRef<HTMLDivElement>(null)
     const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null)
     const [width, setWidth] = useState(0)
+    const [viewportHeight, setViewportHeight] = useState(0)
     const [scrollMargin, setScrollMargin] = useState(0)
 
     // Resolve the scroll container once mounted.
@@ -66,6 +58,7 @@ export function VirtualizedWallpaperGrid({
         const measure = () => {
             setWidth(node.clientWidth)
             if (scrollEl) {
+                setViewportHeight(scrollEl.clientHeight)
                 const parentRect = node.getBoundingClientRect()
                 const scrollRect = scrollEl.getBoundingClientRect()
                 setScrollMargin(scrollEl.scrollTop + parentRect.top - scrollRect.top)
@@ -86,6 +79,10 @@ export function VirtualizedWallpaperGrid({
     const rowHeight = cardWidth + GAP // cards are square (aspect-square)
     const rowCount = Math.ceil(wallpapers.length / columns)
 
+    // Fill the visible viewport with skeletons rather than a fixed count.
+    const skeletonRows = rowHeight > 0 ? Math.ceil((viewportHeight || rowHeight * 3) / rowHeight) : 3
+    const skeletonCount = columns * skeletonRows
+
     const virtualizer = useVirtualizer({
         count: rowCount,
         getScrollElement: () => scrollEl,
@@ -99,59 +96,65 @@ export function VirtualizedWallpaperGrid({
         virtualizer.measure()
     }, [virtualizer, columns, rowHeight])
 
-    if (isLoading) {
-        return (
-            <div
-                className="grid gap-4"
-                style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${MIN_CARD_WIDTH}px, 1fr))` }}
-            >
-                {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-                    <Skeleton key={i} className="aspect-square rounded-xl" />
-                ))}
-            </div>
-        )
-    }
+    const skeleton = (
+        <div
+            className="grid gap-4"
+            style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${MIN_CARD_WIDTH}px, 1fr))` }}
+        >
+            {Array.from({ length: skeletonCount }).map((_, i) => (
+                <Skeleton key={i} className="aspect-square rounded-xl" />
+            ))}
+        </div>
+    )
 
-    if (wallpapers.length === 0) {
-        return <EmptyState icon={EmptyIcon} title={emptyMessage} description={emptySubMessage} />
-    }
+    const rows = (
+        <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+                const start = virtualRow.index * columns
+                const rowItems = wallpapers.slice(start, start + columns)
+                return (
+                    <div
+                        key={virtualRow.key}
+                        data-index={virtualRow.index}
+                        ref={virtualizer.measureElement}
+                        className="grid gap-4"
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                            paddingBottom: GAP,
+                        }}
+                    >
+                        {rowItems.map((wallpaper) => (
+                            <WallpaperCard
+                                key={wallpaper.id}
+                                wallpaper={wallpaper}
+                                selected={selectedId === wallpaper.id}
+                                onClick={onCardClick}
+                                compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
+                                showCompatibilityDot={showCompatibilityDot}
+                            />
+                        ))}
+                    </div>
+                )
+            })}
+        </div>
+    )
 
+    // The parentRef div is now always mounted so the layout effects above can
+    // resolve the scroll parent and attach the ResizeObserver on first mount.
     return (
         <div ref={parentRef}>
-            <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
-                {virtualizer.getVirtualItems().map((virtualRow) => {
-                    const start = virtualRow.index * columns
-                    const rowItems = wallpapers.slice(start, start + columns)
-                    return (
-                        <div
-                            key={virtualRow.key}
-                            data-index={virtualRow.index}
-                            ref={virtualizer.measureElement}
-                            className="grid gap-4"
-                            style={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                width: "100%",
-                                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
-                                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                                paddingBottom: GAP,
-                            }}
-                        >
-                            {rowItems.map((wallpaper) => (
-                                <WallpaperCard
-                                    key={wallpaper.id}
-                                    wallpaper={wallpaper}
-                                    selected={selectedId === wallpaper.id}
-                                    onClick={onCardClick}
-                                    compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
-                                    showCompatibilityDot={showCompatibilityDot}
-                                />
-                            ))}
-                        </div>
-                    )
-                })}
-            </div>
+            {isLoading ? (
+                skeleton
+            ) : wallpapers.length === 0 ? (
+                <EmptyState icon={EmptyIcon} title={emptyMessage} description={emptySubMessage} />
+            ) : (
+                rows
+            )}
         </div>
     )
 }
