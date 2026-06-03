@@ -15,6 +15,7 @@ import {
     CarouselContent,
     CarouselItem,
     CarouselButtons,
+    type CarouselApi,
 } from "@/components/ui/carousel"
 import type { Playlist } from "../../../shared/constants/playlist"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
@@ -46,11 +47,30 @@ export function PlaylistRow({
         .map(path => wallpapers.find(w => w.path === path))
         .filter(Boolean) as Wallpaper[]
 
+    // Translate vertical wheel/trackpad scroll into horizontal carousel movement
+    const [carouselApi, setCarouselApi] = React.useState<CarouselApi>()
+
+    React.useEffect(() => {
+        if (!carouselApi) return
+        const root = carouselApi.rootNode()
+        const onWheel = (event: WheelEvent) => {
+            const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+            if (delta === 0) return
+            const forward = delta > 0
+            if (forward ? carouselApi.canScrollNext() : carouselApi.canScrollPrev()) {
+                event.preventDefault()
+                if (forward) carouselApi.scrollNext()
+                else carouselApi.scrollPrev()
+            }
+        }
+        root.addEventListener("wheel", onWheel, { passive: false })
+        return () => root.removeEventListener("wheel", onWheel)
+    }, [carouselApi])
+
     return (
         <div
-            onDoubleClick={onEdit}
             className={cn(
-                "group glass p-1 rounded-xl min-h-[200px] transition-all overflow-hidden cursor-pointer select-none"
+                "group glass p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none"
             )}
         >
             {/* Header with info */}
@@ -116,6 +136,7 @@ export function PlaylistRow({
                         loop: false,
                         dragFree: true,
                     }}
+                    setApi={setCarouselApi}
                     className="w-full h-full"
                 >
                     <CarouselContent className="p-3 -ml-3 gap-3">
