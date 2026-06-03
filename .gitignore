@@ -117,8 +117,9 @@ docs/testing.md
 /.cocoindex_code/
 
 /.agents/
-/.windsurf/
+/.devin/
 
+jean.json
 
 /public
 
