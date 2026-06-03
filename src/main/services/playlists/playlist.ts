@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises'
 import type { Playlist } from '../../../shared/constants/playlist'
 import { storeService, type ActivePlaylistInfo } from '../store'
 import { invalidationService } from '../invalidation'
-import { findSteamConfigPath, ensureSteamConfigPath, readSteamConfig, writeSteamConfig } from './playlist.utils'
+import { findSteamConfigPath, ensureSteamConfigPath, readSteamConfig, writeSteamConfig, shuffleItemsForRandomStart } from './playlist.utils'
 
 class PlaylistService {
   private static instance: PlaylistService | null = null
@@ -147,19 +147,20 @@ class PlaylistService {
     }
   }
 
-  /** Lightweight timestamp update — skips item-path validation so it can't silently fail. */
-  async stampLastApplied(name: string): Promise<void> {
-    try {
-      const configPath = await this.getConfigPath()
-      const config = await readSteamConfig(configPath)
-      const playlist = config.steamuser?.general?.playlists?.find(p => p.name === name)
-      if (!playlist) return
+  async preparePlaylistForStart(name: string): Promise<Playlist | null> {
+    const configPath = await this.getConfigPath()
+    const config = await readSteamConfig(configPath)
+    const playlist = config.steamuser?.general?.playlists?.find(p => p.name === name)
+    if (!playlist) return null
 
-      playlist.lastAppliedAt = Date.now()
-      await writeSteamConfig(configPath, config)
-    } catch {
-      // Best-effort — don't block the apply flow
+    playlist.lastAppliedAt = Date.now()
+
+    if (playlist.settings.order === 'random' && playlist.items.length > 1) {
+      playlist.items = shuffleItemsForRandomStart(playlist.items)
     }
+
+    await writeSteamConfig(configPath, config)
+    return playlist
   }
 
   // ── Active playlist state ──────────────────────────────────────────────

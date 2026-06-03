@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
+import { randomInt } from 'node:crypto'
 import type { SteamConfig } from '../../../shared/constants/playlist'
 import { resolveSteamLibraryPaths } from '../wallpaper/wallpaper.utils'
 
@@ -72,4 +73,26 @@ export async function writeSteamConfig(configPath: string, config: SteamConfig):
     // Ignore backup errors
   }
   await fs.writeFile(configPath, JSON.stringify(config, null, 2))
+}
+
+type RandomIndex = (maxExclusive: number) => number
+
+export function shuffleItemsForRandomStart<T>(items: readonly T[], getRandomIndex: RandomIndex = randomInt): T[] {
+  const shuffled = [...items]
+
+  for (let currentIndex = shuffled.length - 1; currentIndex > 0; currentIndex--) {
+    const selectedIndex = getRandomIndex(currentIndex + 1)
+    const selectedItem = shuffled[selectedIndex]
+    shuffled[selectedIndex] = shuffled[currentIndex]
+    shuffled[currentIndex] = selectedItem
+  }
+
+  if (shuffled.length > 1 && shuffled[0] === items[0]) {
+    const selectedIndex = getRandomIndex(shuffled.length - 1) + 1
+    const selectedItem = shuffled[selectedIndex]
+    shuffled[selectedIndex] = shuffled[0]
+    shuffled[0] = selectedItem
+  }
+
+  return shuffled
 }
