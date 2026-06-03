@@ -1,5 +1,6 @@
-import { ArrowLeft, Save, Check, CheckCheck, XCircle } from "lucide-react"
+import { ArrowLeft, Save, Check, CheckCheck, XCircle, ListChecks } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
 import { SearchInput } from "@/components/wallpaper/search"
 import { FiltersDropdown } from "../wallpaper/filters-dropdown"
 import { SortDropdown } from "../wallpaper/sort-dropdown"
@@ -59,8 +60,8 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
     const renderCardOverlay = useCallback((wallpaper: Wallpaper) => {
         if (!editor.selectedSet.has(wallpaper.path)) return null
         return (
-            <div className="absolute bottom-2 right-2 size-6 rounded-full bg-primary flex items-center justify-center ring-2 ring-primary-foreground/20">
-                <Check className="size-3.5 text-primary-foreground" />
+            <div className="absolute bottom-2 right-2 flex size-6 items-center justify-center rounded-full bg-primary shadow-md shadow-black/30 ring-2 ring-primary-foreground/30 animate-in zoom-in-50 fade-in duration-150 ease-out motion-reduce:animate-none">
+                <Check className="size-3.5 text-primary-foreground" strokeWidth={3} />
             </div>
         )
     }, [editor.selectedSet])
@@ -110,6 +111,19 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
 
                 {/* Search + filters + select-all */}
                 <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
+                        <IconButton
+                            icon={allFilteredSelected ? XCircle : CheckCheck}
+                            size="sm"
+                            pressed={allFilteredSelected}
+                            onClick={() =>
+                                allFilteredSelected
+                                    ? editor.handleDeselectAll(filteredWallpapers.map(w => w.path))
+                                    : editor.handleSelectAll(filteredWallpapers.map(w => w.path))
+                            }
+                            title={allFilteredSelected ? "Deselect All" : "Select All"}
+                        />
+                    </div>
                     <SearchInput className="flex-1 max-w-md" />
                     <div className="flex items-center gap-1.5">
                         <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
@@ -119,31 +133,6 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                             <SortDropdown />
                         </div>
                     </div>
-                    {allFilteredSelected ? (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5"
-                            onClick={() =>
-                                editor.handleDeselectAll(filteredWallpapers.map(w => w.path))
-                            }
-                        >
-                            <XCircle className="size-4" />
-                            Deselect All
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5"
-                            onClick={() =>
-                                editor.handleSelectAll(filteredWallpapers.map(w => w.path))
-                            }
-                        >
-                            <CheckCheck className="size-4" />
-                            Select All
-                        </Button>
-                    )}
                 </div>
             </div>
 
@@ -153,6 +142,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                 isLoading={isLoading}
                 compatibilityMap={compatibilityMap}
                 showCompatibilityDot={appSettings?.showCompatibilityDot ?? true}
+                isSelected={(w) => editor.selectedSet.has(w.path)}
                 onCardClick={editor.handleToggleWallpaper}
                 emptyMessage="No wallpapers found"
                 emptySubMessage={searchQuery ? "Try a different search term" : "Install wallpapers first"}
