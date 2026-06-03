@@ -8,6 +8,13 @@ import { hostExecAsync, setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
 
 const STATUS_NOTIFIER_WATCHER = 'org.kde.StatusNotifierWatcher'
+const STATUS_NOTIFIER_WATCHER_COMMAND = [
+  'gdbus call --session',
+  '--dest org.freedesktop.DBus',
+  '--object-path /org/freedesktop/DBus',
+  '--method org.freedesktop.DBus.NameHasOwner',
+  STATUS_NOTIFIER_WATCHER,
+].join(' ')
 const TRAY_STARTUP_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 16000, 30000] as const
 
 // Global ref to tray to avoid GC
@@ -121,58 +128,33 @@ const initializeTray = (mainWindow: BrowserWindow): void => {
   tray.on('click', toggleMainWindow)
 }
 
-const hasStatusNotifierWatcher = async (): Promise<boolean | null> => {
+const isStatusNotifierWatcherMissing = async (): Promise<boolean> => {
   try {
-    const { stdout } = await hostExecAsync([
-      'gdbus call --session',
-      '--dest org.freedesktop.DBus',
-      '--object-path /org/freedesktop/DBus',
-      '--method org.freedesktop.DBus.NameHasOwner',
-      STATUS_NOTIFIER_WATCHER,
-    ].join(' '))
-
-    if (stdout.includes('true')) return true
-    if (stdout.includes('false')) return false
+    const { stdout } = await hostExecAsync(STATUS_NOTIFIER_WATCHER_COMMAND)
+    return stdout.includes('false')
   } catch {
-    return null
+    return false
   }
-
-  return null
-}
-
-const retryTrayStartup = (mainWindow: BrowserWindow, attempt: number): void => {
-  if (isQuitting || tray !== null) return
-
-  const delay = TRAY_STARTUP_RETRY_DELAYS_MS[attempt]
-  if (delay === undefined) {
-    initializeTray(mainWindow)
-    return
-  }
-
-  trayStartupRetry = setTimeout(() => {
-    trayStartupRetry = null
-    ensureTray(mainWindow, attempt + 1)
-  }, delay)
 }
 
 const ensureTray = (mainWindow: BrowserWindow, attempt = 0): void => {
   if (isQuitting || tray !== null || trayStartupRetry !== null || isTrayStartupChecking) return
 
   isTrayStartupChecking = true
-  void hasStatusNotifierWatcher()
-    .then((hasWatcher) => {
+  void isStatusNotifierWatcherMissing()
+    .then((watcherMissing) => {
       if (tray !== null || isQuitting) return
 
-      if (hasWatcher === false) {
-        retryTrayStartup(mainWindow, attempt)
+      const delay = TRAY_STARTUP_RETRY_DELAYS_MS[attempt]
+      if (watcherMissing && delay !== undefined) {
+        trayStartupRetry = setTimeout(() => {
+          trayStartupRetry = null
+          ensureTray(mainWindow, attempt + 1)
+        }, delay)
         return
       }
 
       initializeTray(mainWindow)
-    })
-    .catch((error: unknown) => {
-      console.warn('Failed to initialize system tray:', error)
-      retryTrayStartup(mainWindow, attempt)
     })
     .finally(() => {
       isTrayStartupChecking = false
