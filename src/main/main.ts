@@ -6,9 +6,12 @@ import { appRouter } from './trpc/router.ts'
 import { settingsService as settings } from './services/settings.ts'
 import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
+import { getStatusNotifierWatcherStatus } from './utils/status-notifier.ts'
+import { createTrayStartupCoordinator, type TrayStartupCoordinator } from './utils/tray-startup.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
+let trayStartup: TrayStartupCoordinator | null = null
 let isQuitting = false
 
 const resolveAssetPath = (assetName: string): string => {
@@ -116,6 +119,21 @@ const initializeTray = (mainWindow: BrowserWindow): void => {
   tray.on('click', toggleMainWindow)
 }
 
+const ensureTray = (mainWindow: BrowserWindow): void => {
+  if (tray !== null) return
+
+  if (trayStartup === null) {
+    trayStartup = createTrayStartupCoordinator({
+      createTray: () => initializeTray(mainWindow),
+      getStatusNotifierWatcherStatus,
+      isLinux: process.platform === 'linux',
+      onError: error => console.warn('Failed to initialize system tray:', error),
+    })
+  }
+
+  trayStartup.start()
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -136,14 +154,14 @@ app.whenReady().then(() => {
   const mainWindow = createWindow()
 
   if (settings.getSetting('enableSystemTray'))
-    initializeTray(mainWindow)
+    ensureTray(mainWindow)
 
   mainWindow.on('close', (e) => {
     if (shouldMinimizeOnClose() && !isQuitting) {
       e.preventDefault()
       mainWindow.hide()
       if (tray === null)
-        initializeTray(mainWindow)
+        ensureTray(mainWindow)
     }
   })
 
@@ -157,6 +175,8 @@ app.whenReady().then(() => {
 // Dispose tray before quitting
 app.on('before-quit', () => {
   isQuitting = true
+  trayStartup?.stop()
+  trayStartup = null
   if (tray) {
     tray.destroy()
     tray = null
