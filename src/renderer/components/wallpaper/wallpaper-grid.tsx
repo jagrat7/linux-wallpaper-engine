@@ -1,14 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { type Wallpaper } from "./wallpaper-card"
 import { GridHeader } from "./wallpaper-grid-header"
-import { WallpaperGridLayout } from "./wallpaper-grid-layout"
+import { VirtualizedWallpaperGrid } from "./virtualized-wallpaper-grid"
 import { AlertCircle, FolderOpen } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
 import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
-import { useState, useMemo, useEffect, lazy, Suspense } from "react"
+import { useMemo, useEffect, lazy, Suspense } from "react"
 import { useAtomValue } from "jotai"
 import { unsubscribedWorkshopIdsAtom } from "@/contexts/atoms/workshop-atoms"
 
@@ -17,7 +17,6 @@ const WallpaperDetails = lazy(() => import("./details-card/wallpaper-details").t
 // TODO: Fix wallpaper details size so that is consistent width with a column
 export function WallpaperGrid() {
     const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
-    const [detailsVisible, setDetailsVisible] = useState(false)
     const unsubscribedWorkshopIds = useAtomValue(unsubscribedWorkshopIdsAtom)
     const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useWallpaperSearch()
     const { setSelectedUrl } = useWallpaperBackground()
@@ -119,24 +118,19 @@ export function WallpaperGrid() {
         )
     }
 
-    const gridCols = detailsVisible
-        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
-        : "grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
-
     return (
         <div className="flex flex-col h-full">
             <GridHeader onRefresh={handleRefresh} isLoading={isFetching} />
 
             <div className="flex items-start gap-6 flex-1">
                 <div className="flex-1 h-fit transition-all duration-300">
-                    <WallpaperGridLayout
+                    <VirtualizedWallpaperGrid
                         wallpapers={wallpapers}
                         isLoading={isLoading}
                         compatibilityMap={compatibilityMap}
                         showCompatibilityDot={appSettings?.showCompatibilityDot ?? true}
                         selectedId={selectedWallpaper?.id}
                         onCardClick={toggleWallpaper}
-                        gridClassName={gridCols}
                         emptyIcon={FolderOpen}
                         emptyMessage="No wallpapers found"
                         emptySubMessage={
@@ -147,7 +141,7 @@ export function WallpaperGrid() {
                     />
                 </div>
 
-                <AnimatePresence mode="wait" onExitComplete={() => setDetailsVisible(false)}>
+                <AnimatePresence mode="wait">
                     {selectedWallpaper && (
                         <motion.div
                             key={selectedWallpaper.id}
@@ -156,7 +150,6 @@ export function WallpaperGrid() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -40 }}
                             transition={{ duration: 0.3, ease: "easeOut" }}
-                            onAnimationStart={() => setDetailsVisible(true)}
                         >
                             <Suspense fallback={<Skeleton className="w-80 h-96 rounded-xl" />}>
                                 <WallpaperDetails
