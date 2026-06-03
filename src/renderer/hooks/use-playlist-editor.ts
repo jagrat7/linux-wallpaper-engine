@@ -111,6 +111,23 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
         })
     }, [form])
 
+    const handleSelectAll = useCallback((paths: string[]) => {
+        setSelectedPaths(prev => {
+            const merged = Array.from(new Set([...prev, ...paths]))
+            form.setFieldValue("wallpapers", merged)
+            return merged
+        })
+    }, [form])
+
+    const handleDeselectAll = useCallback((paths: string[]) => {
+        const pathSet = new Set(paths)
+        setSelectedPaths(prev => {
+            const next = prev.filter(p => !pathSet.has(p))
+            form.setFieldValue("wallpapers", next)
+            return next
+        })
+    }, [form])
+
     const handleBack = useCallback(() => {
         navigate({ to: "/playlists" })
     }, [navigate])
@@ -129,6 +146,8 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
         isSaving: form.state.isSubmitting,
         handleToggleWallpaper,
         handleRemoveWallpaper,
+        handleSelectAll,
+        handleDeselectAll,
         handleBack,
     }
 }
