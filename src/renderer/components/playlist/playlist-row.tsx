@@ -1,5 +1,5 @@
 import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images, CircleCheck } from "lucide-react"
-import * as React from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/empty-state"
@@ -48,9 +48,9 @@ export function PlaylistRow({
         .filter(Boolean) as Wallpaper[]
 
     // Translate vertical wheel/trackpad scroll into horizontal carousel movement
-    const [carouselApi, setCarouselApi] = React.useState<CarouselApi>()
+    const [carouselApi, setCarouselApi] = useState<CarouselApi>()
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (!carouselApi) return
         const root = carouselApi.rootNode()
         const onWheel = (event: WheelEvent) => {
