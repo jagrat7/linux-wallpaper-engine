@@ -15,6 +15,7 @@ interface WallpaperGridLayoutProps {
     compatibilityMap?: Record<string, CompatibilityStatus>
     showCompatibilityDot?: boolean
     selectedId?: string
+    isSelected?: (wallpaper: Wallpaper) => boolean
     onCardClick: (wallpaper: Wallpaper) => void
     gridClassName?: string
     emptyIcon?: LucideIcon
@@ -29,6 +30,7 @@ export function WallpaperGridLayout({
     compatibilityMap,
     showCompatibilityDot = true,
     selectedId,
+    isSelected,
     onCardClick,
     gridClassName,
     emptyIcon: EmptyIcon = FolderOpen,
@@ -58,7 +60,7 @@ export function WallpaperGridLayout({
                 <div key={wallpaper.id} className="relative">
                     <WallpaperCard
                         wallpaper={wallpaper}
-                        selected={selectedId === wallpaper.id}
+                        selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
                         onClick={onCardClick}
                         compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
                         showCompatibilityDot={showCompatibilityDot}
