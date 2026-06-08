@@ -15,10 +15,15 @@ export function StatusBar({ className }: StatusBarProps) {
 
     const { data: displays = [] } = trpc.display.list.useQuery()
     const { data: settings } = trpc.settings.get.useQuery()
+    const { data: activePlaylists = [] } = trpc.playlist.active.useQuery(undefined, {
+        refetchInterval: 5000,
+        refetchOnMount: true,
+    })
 
 
 
     const stopMutation = trpc.wallpaper.stopWalpaper.useMutation()
+    const stopPlaylistMutation = trpc.playlist.stop.useMutation()
     const updateSettingsMutation = trpc.settings.update.useMutation()
     const utils = trpc.useUtils()
 
@@ -35,8 +40,17 @@ export function StatusBar({ className }: StatusBarProps) {
 
     const handleStop = async () => {
         if (!activeWallpaper) return
-        await stopMutation.mutateAsync({ screen: activeWallpaper.screen })
+        const activePlaylist = activePlaylists.find(entry => entry.screen === activeWallpaper.screen)
+        if (activePlaylist) {
+            await stopPlaylistMutation.mutateAsync({
+                playlistName: activePlaylist.name,
+                screen: activeWallpaper.screen,
+            })
+        } else {
+            await stopMutation.mutateAsync({ screen: activeWallpaper.screen })
+        }
         utils.wallpaper.getActiveWallpaper.invalidate()
+        utils.playlist.active.invalidate()
     }
 
     const handleMuteToggle = async () => {

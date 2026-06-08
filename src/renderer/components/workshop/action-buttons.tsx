@@ -16,10 +16,10 @@ interface WorkshopActionButtonsProps {
     onDownload: () => void
     onUnsubscribe: () => void
     onApply: (screen?: string) => Promise<void>
-    onStop: (screen?: string) => Promise<void>
+    onStop: (screen?: string | string[]) => Promise<void>
     isApplying: boolean
     isUnsubscribing?: boolean
-    isActive: boolean
+    activeScreens?: string[]
 }
 
 export function WorkshopActionButtons({
@@ -32,7 +32,7 @@ export function WorkshopActionButtons({
     onStop,
     isApplying,
     isUnsubscribing = false,
-    isActive,
+    activeScreens,
 }: WorkshopActionButtonsProps) {
     const isSubscribed = wallpaperPath != null
 
@@ -66,7 +66,7 @@ export function WorkshopActionButtons({
                 onApply={onApply}
                 onStop={onStop}
                 isApplying={isApplying}
-                isActive={isActive}
+                activeScreens={activeScreens}
                 className="flex-1"
             />
             <UnsubscribeButton onClick={onUnsubscribe} disabled={isUnsubscribing} />

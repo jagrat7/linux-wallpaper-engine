@@ -22,7 +22,7 @@ export interface IWallpaperService {
   apply(target: ApplyTarget): Promise<MutationResult>
 
   // Stop one screen or all
-  stop(screen?: string): Promise<{ success: boolean }>
+  stop(screen?: string | string[]): Promise<MutationResult>
 
   // Per-wallpaper override CRUD
   overrides(mutation: OverrideMutation): Promise<WallpaperOverrides | void>

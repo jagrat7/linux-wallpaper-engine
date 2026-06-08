@@ -8,6 +8,7 @@ import type {
 export interface MutationResult {
   success: boolean
   error?: string
+  screens?: string[]
 }
 
 export interface ActiveWallpaperEntry {
@@ -41,5 +42,5 @@ export type ServiceAction =
 
 export type ApplyTarget =
   | { kind: 'wallpaper'; options: ApplyWallpaperOptions }
-  | { kind: 'register'; screen: string; proc: import('node:child_process').ChildProcess; args: string[]; options: ApplyWallpaperOptions }
+  | { kind: 'register'; screen?: string; screens?: string[]; proc: import('node:child_process').ChildProcess; args: string[]; options: ApplyWallpaperOptions }
   | { kind: 'reapply' }

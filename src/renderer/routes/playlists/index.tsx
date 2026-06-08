@@ -55,7 +55,6 @@ function PlaylistsPage() {
     const deleteMutation = trpc.playlist.delete.useMutation()
     const applyMutation = trpc.playlist.start.useMutation()
     const stopMutation = trpc.playlist.stop.useMutation()
-    const stopWallpaperMutation = trpc.wallpaper.stopWalpaper.useMutation()
     const utils = trpc.useUtils()
 
     const handleApply = async (playlistName: string, screen?: string) => {
@@ -85,11 +84,13 @@ function PlaylistsPage() {
         }
     }
 
-    const handleStop = async (screen?: string) => {
-        if (screen) {
-            await stopWallpaperMutation.mutateAsync({ screen })
+    const handleStop = async (playlistName: string, screen?: string | string[]) => {
+        if (Array.isArray(screen)) {
+            await stopMutation.mutateAsync({ playlistName })
+        } else if (screen) {
+            await stopMutation.mutateAsync({ playlistName, screen })
         } else {
-            await stopMutation.mutateAsync()
+            await stopMutation.mutateAsync({ playlistName })
         }
         await utils.playlist.active.invalidate()
         await utils.wallpaper.getActiveWallpaper.invalidate()
@@ -188,7 +189,9 @@ function PlaylistsPage() {
                 <div className="flex flex-col gap-4">
                     {filteredPlaylists.map((playlist) => {
                         const isApplying = applyingPlaylist === playlist.name
-                        const isActive = activePlaylist?.name === playlist.name
+                        const activeScreens = activePlaylist
+                            ?.filter(entry => entry.name === playlist.name)
+                            .map(entry => entry.screen) ?? []
 
                         return (
                             <PlaylistRow
@@ -196,9 +199,9 @@ function PlaylistsPage() {
                                 playlist={playlist}
                                 wallpapers={wallpapers}
                                 isApplying={isApplying}
-                                isActive={isActive}
+                                activeScreens={activeScreens}
                                 onApply={(screen) => handleApply(playlist.name, screen)}
-                                onStop={handleStop}
+                                onStop={(screen) => handleStop(playlist.name, screen)}
                                 onEdit={() => handleEdit(playlist)}
                                 onDelete={() => handleDelete(playlist.name)}
                             />

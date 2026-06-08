@@ -11,7 +11,7 @@ const { mockPlaylistService, mockWallpaperService, mockSettingsService, mockDisp
     updatePlaylist: vi.fn(),
     deletePlaylist: vi.fn(),
     stampLastApplied: vi.fn(),
-    getActivePlaylist: vi.fn(),
+    getActivePlaylists: vi.fn(),
     setActivePlaylist: vi.fn(),
     clearActivePlaylist: vi.fn(),
   },
@@ -84,7 +84,10 @@ beforeEach(() => {
   mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
   mockSettingsService.settingsToArgs.mockReturnValue([])
   mockSettingsService.getSetting.mockReturnValue(false)
-  mockDisplayService.detectDisplays.mockResolvedValue([{ name: 'HDMI-1', primary: true }])
+  mockDisplayService.detectDisplays.mockResolvedValue([
+    { name: 'HDMI-1', primary: true },
+    { name: 'DP-1', primary: false },
+  ])
   mockHost.hostCommandExists.mockResolvedValue(true)
   mockHost.hostSpawn.mockReturnValue(new EventEmitter())
   mockWallpaperUtils.resolveWallpaperEngineAssetsDir.mockResolvedValue('/assets')
@@ -104,6 +107,29 @@ describe('playlistRouter', () => {
         '--assets-dir',
         '/assets',
       ], expect.any(Object))
+      expect(mockWallpaperService.apply).toHaveBeenCalledWith(expect.objectContaining({
+        kind: 'register',
+        screens: ['HDMI-1'],
+      }))
+      expect(mockPlaylistService.setActivePlaylist).toHaveBeenCalledWith('Random Mix', ['HDMI-1'])
+    })
+
+    it('starts a playlist on all detected screens when no screen is selected', async () => {
+      await caller.start({ playlistName: 'Random Mix' })
+
+      expect(mockHost.hostSpawn).toHaveBeenCalledWith('linux-wallpaperengine', [
+        '--screen-root',
+        'HDMI-1',
+        '--screen-root',
+        'DP-1',
+        '--playlist',
+        'Random Mix',
+        '--assets-dir',
+        '/assets',
+      ], expect.any(Object))
+      expect(mockWallpaperService.stop).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
+      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
+      expect(mockPlaylistService.setActivePlaylist).toHaveBeenCalledWith('Random Mix', ['HDMI-1', 'DP-1'])
     })
 
     it('does not stamp or spawn when the backend is missing', async () => {
@@ -114,6 +140,48 @@ describe('playlistRouter', () => {
       expect(result.success).toBe(false)
       expect(mockPlaylistService.stampLastApplied).not.toHaveBeenCalled()
       expect(mockHost.hostSpawn).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('stop', () => {
+    it('stops only matching playlist screens', async () => {
+      mockPlaylistService.getActivePlaylists.mockReturnValue([
+        { name: 'Random Mix', screen: 'HDMI-1' },
+        { name: 'Other Mix', screen: 'DP-1' },
+      ])
+
+      await caller.stop({ playlistName: 'Random Mix' })
+
+      expect(mockWallpaperService.stop).toHaveBeenCalledWith(['HDMI-1'])
+      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1'])
+    })
+
+    it('restarts remaining screens with playlist args and current settings when stopping one screen', async () => {
+      mockPlaylistService.getActivePlaylists.mockReturnValue([
+        { name: 'Random Mix', screen: 'HDMI-1' },
+        { name: 'Random Mix', screen: 'DP-1' },
+      ])
+      mockSettingsService.settingsToArgs.mockReturnValue(['--fps', '30'])
+
+      await caller.stop({ playlistName: 'Random Mix', screen: 'HDMI-1' })
+
+      expect(mockWallpaperService.stop).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
+      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
+      expect(mockHost.hostSpawn).toHaveBeenCalledWith('linux-wallpaperengine', [
+        '--screen-root',
+        'DP-1',
+        '--playlist',
+        'Random Mix',
+        '--fps',
+        '30',
+        '--assets-dir',
+        '/assets',
+      ], expect.any(Object))
+      expect(mockWallpaperService.apply).toHaveBeenCalledWith(expect.objectContaining({
+        kind: 'register',
+        screens: ['DP-1'],
+      }))
+      expect(mockPlaylistService.setActivePlaylist).toHaveBeenCalledWith('Random Mix', ['DP-1'])
     })
   })
 })

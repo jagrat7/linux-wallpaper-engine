@@ -4,13 +4,16 @@ import type { Wallpaper, WallpaperOverrides } from '../../../shared/constants/wa
 
 // --- Mocks ---------------------------------------------------------------
 
-const { mockWallpaperService, mockSettingsService, mockCompatibilityInstance } = vi.hoisted(() => ({
+const { mockWallpaperService, mockPlaylistService, mockSettingsService, mockCompatibilityInstance } = vi.hoisted(() => ({
   mockWallpaperService: {
     query: vi.fn(),
     apply: vi.fn(),
     stop: vi.fn(),
     overrides: vi.fn(),
     diagnose: vi.fn(),
+  },
+  mockPlaylistService: {
+    clearActivePlaylist: vi.fn(),
   },
   mockSettingsService: {
     loadSettings: vi.fn(),
@@ -27,6 +30,10 @@ const { mockWallpaperService, mockSettingsService, mockCompatibilityInstance } =
 
 vi.mock('../../services/wallpaper/wallpaper', () => ({
   wallpaperService: mockWallpaperService,
+}))
+
+vi.mock('../../services/playlists/playlist', () => ({
+  playlistService: mockPlaylistService,
 }))
 
 vi.mock('../../services/settings', () => ({
@@ -204,14 +211,24 @@ describe('wallpaperRouter', () => {
       const result = await caller.setWallpaper({ backgroundId: '1' })
       expect(result).toEqual({ success: false, error: 'spawn failed' })
     })
+
+    it('should clear active playlist entries only for affected screens', async () => {
+      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
+      mockWallpaperService.apply.mockResolvedValue({ success: true, screens: ['HDMI-1'] })
+
+      await caller.setWallpaper({ backgroundId: '1', screen: 'HDMI-1' })
+
+      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1'])
+    })
   })
 
   describe('stopWalpaper', () => {
     it('should stop a specific screen', async () => {
-      mockWallpaperService.stop.mockResolvedValue({ success: true })
+      mockWallpaperService.stop.mockResolvedValue({ success: true, screens: ['HDMI-1'] })
       const result = await caller.stopWalpaper({ screen: 'HDMI-1' })
       expect(mockWallpaperService.stop).toHaveBeenCalledWith('HDMI-1')
-      expect(result).toEqual({ success: true })
+      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1'])
+      expect(result).toEqual({ success: true, screens: ['HDMI-1'] })
     })
 
     it('should stop all when no screen given', async () => {
