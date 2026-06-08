@@ -80,18 +80,13 @@ type RandomIndex = (maxExclusive: number) => number
 export function shuffleItemsForRandomStart<T>(items: readonly T[], getRandomIndex: RandomIndex = randomInt): T[] {
   const shuffled = [...items]
 
+  // Unbiased Fisher–Yates. Every item — including the original first one —
+  // has an equal chance of ending up at the front.
   for (let currentIndex = shuffled.length - 1; currentIndex > 0; currentIndex--) {
     const selectedIndex = getRandomIndex(currentIndex + 1)
     const selectedItem = shuffled[selectedIndex]
     shuffled[selectedIndex] = shuffled[currentIndex]
     shuffled[currentIndex] = selectedItem
-  }
-
-  if (shuffled.length > 1 && shuffled[0] === items[0]) {
-    const selectedIndex = getRandomIndex(shuffled.length - 1) + 1
-    const selectedItem = shuffled[selectedIndex]
-    shuffled[selectedIndex] = shuffled[0]
-    shuffled[0] = selectedItem
   }
 
   return shuffled

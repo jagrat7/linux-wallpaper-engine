@@ -6,18 +6,7 @@ describe('shuffleItemsForRandomStart', () => {
     expect(shuffleItemsForRandomStart(['one'], () => 0)).toEqual(['one'])
   })
 
-  it('moves a non-leading item to the front when the shuffle leaves the first item first', () => {
-    const items = ['first', 'second', 'third']
-    const randomIndexes = [0, 0, 1]
-
-    const result = shuffleItemsForRandomStart(items, () => randomIndexes.shift() ?? 0)
-
-    expect(result[0]).toBe('second')
-    expect(result).toEqual(expect.arrayContaining(items))
-    expect(items).toEqual(['first', 'second', 'third'])
-  })
-
-  it('returns a shuffled copy when the first item already changes', () => {
+  it('produces a deterministic permutation for given random indexes without mutating the input', () => {
     const items = ['first', 'second', 'third']
     const randomIndexes = [0, 1]
 
@@ -25,5 +14,19 @@ describe('shuffleItemsForRandomStart', () => {
 
     expect(result).toEqual(['third', 'second', 'first'])
     expect(items).toEqual(['first', 'second', 'third'])
+  })
+
+  it('gives every item a chance at the front, including the original first', () => {
+    const items = ['a', 'b', 'c', 'd', 'e']
+    const firstCounts = new Map<string, number>()
+
+    for (let i = 0; i < 20000; i++) {
+      const first = shuffleItemsForRandomStart(items)[0]
+      firstCounts.set(first, (firstCounts.get(first) ?? 0) + 1)
+    }
+
+    for (const item of items) {
+      expect(firstCounts.get(item) ?? 0).toBeGreaterThan(0)
+    }
   })
 })
