@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { randomInt } from 'node:crypto'
-import type { SteamConfig } from '../../../shared/constants/playlist'
+import type { PlaylistOrder, SteamConfig } from '../../../shared/constants/playlist'
 import { resolveSteamLibraryPaths } from '../wallpaper/wallpaper.utils'
 
 const DEFAULT_CONFIG: SteamConfig = {
@@ -77,17 +77,41 @@ export async function writeSteamConfig(configPath: string, config: SteamConfig):
 
 type RandomIndex = (maxExclusive: number) => number
 
-export function shuffleItemsForRandomStart<T>(items: readonly T[], getRandomIndex: RandomIndex = randomInt): T[] {
+/** Unbiased Fisher–Yates. Every item has an equal chance of ending up first. */
+function shuffle(items: readonly string[], getRandomIndex: RandomIndex): string[] {
   const shuffled = [...items]
-
-  // Unbiased Fisher–Yates. Every item — including the original first one —
-  // has an equal chance of ending up at the front.
   for (let currentIndex = shuffled.length - 1; currentIndex > 0; currentIndex--) {
     const selectedIndex = getRandomIndex(currentIndex + 1)
     const selectedItem = shuffled[selectedIndex]
     shuffled[selectedIndex] = shuffled[currentIndex]
     shuffled[currentIndex] = selectedItem
   }
-
   return shuffled
+}
+
+/**
+ * EXPERIMENTAL — workaround for an upstream linux-wallpaperengine bug.
+ *
+ * Why this exists: when a playlist is launched with `--playlist`, the backend
+ * shuffles internally but then seeks back to `playlist.items.front()` on
+ * startup, so a "random" playlist always opens on the same (first) wallpaper.
+ * See jagrat7/linux-wallpaper-engine#81 and upstream Almamu/linux-wallpaperengine.
+ *
+ * How it works around it: for random playlists we pre-shuffle the persisted
+ * item order before the backend reads config.json, so whatever the backend
+ * forces as `items[0]` is itself random. Returns the input unchanged for
+ * non-random or single-item playlists. Pure — does not mutate `items`.
+ *
+ * CAUTION: this reorders the items the backend persists, not just the start
+ * index. It is a stopgap, not the intended design — remove it (and its single
+ * call site in playlist.ts) once upstream stops seeking to items.front().
+ */
+export function experimentalRandomizeStartItem(
+  items: string[],
+  order: PlaylistOrder,
+  getRandomIndex: RandomIndex = randomInt,
+): string[] {
+  if (order !== 'random') return items
+  if (items.length <= 1) return items
+  return shuffle(items, getRandomIndex)
 }

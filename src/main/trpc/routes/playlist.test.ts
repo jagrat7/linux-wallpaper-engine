@@ -10,7 +10,7 @@ const { mockPlaylistService, mockWallpaperService, mockSettingsService, mockDisp
     createPlaylist: vi.fn(),
     updatePlaylist: vi.fn(),
     deletePlaylist: vi.fn(),
-    preparePlaylistForStart: vi.fn(),
+    stampLastApplied: vi.fn(),
     getActivePlaylist: vi.fn(),
     setActivePlaylist: vi.fn(),
     clearActivePlaylist: vi.fn(),
@@ -78,9 +78,7 @@ const makePlaylist = (overrides: Partial<Playlist> = {}): Playlist => ({
 beforeEach(() => {
   vi.clearAllMocks()
   mockPlaylistService.getPlaylist.mockResolvedValue(makePlaylist())
-  mockPlaylistService.preparePlaylistForStart.mockResolvedValue(makePlaylist({
-    items: ['/wallpapers/second', '/wallpapers/first', '/wallpapers/third'],
-  }))
+  mockPlaylistService.stampLastApplied.mockResolvedValue(undefined)
   mockWallpaperService.stop.mockResolvedValue({ success: true })
   mockWallpaperService.apply.mockResolvedValue({ success: true })
   mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
@@ -94,10 +92,10 @@ beforeEach(() => {
 
 describe('playlistRouter', () => {
   describe('start', () => {
-    it('prepares the playlist before spawning linux-wallpaperengine', async () => {
+    it('stamps the playlist and spawns linux-wallpaperengine', async () => {
       await caller.start({ playlistName: 'Random Mix', screen: 'HDMI-1' })
 
-      expect(mockPlaylistService.preparePlaylistForStart).toHaveBeenCalledWith('Random Mix')
+      expect(mockPlaylistService.stampLastApplied).toHaveBeenCalledWith('Random Mix')
       expect(mockHost.hostSpawn).toHaveBeenCalledWith('linux-wallpaperengine', [
         '--screen-root',
         'HDMI-1',
@@ -108,25 +106,13 @@ describe('playlistRouter', () => {
       ], expect.any(Object))
     })
 
-    it('registers the prepared first wallpaper as active metadata', async () => {
-      await caller.start({ playlistName: 'Random Mix', screen: 'HDMI-1' })
-
-      expect(mockWallpaperService.apply).toHaveBeenCalledWith(expect.objectContaining({
-        kind: 'register',
-        options: {
-          backgroundId: '/wallpapers/second',
-          screen: 'HDMI-1',
-        },
-      }))
-    })
-
-    it('does not prepare a playlist when the backend is missing', async () => {
+    it('does not stamp or spawn when the backend is missing', async () => {
       mockHost.hostCommandExists.mockResolvedValue(false)
 
       const result = await caller.start({ playlistName: 'Random Mix', screen: 'HDMI-1' })
 
       expect(result.success).toBe(false)
-      expect(mockPlaylistService.preparePlaylistForStart).not.toHaveBeenCalled()
+      expect(mockPlaylistService.stampLastApplied).not.toHaveBeenCalled()
       expect(mockHost.hostSpawn).not.toHaveBeenCalled()
     })
   })

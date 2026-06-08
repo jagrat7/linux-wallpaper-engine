@@ -92,10 +92,8 @@ export const playlistRouter = trpc.router({
         return { success: false, error: BACKEND_NOT_INSTALLED_ERROR_MESSAGE }
       }
 
-      const preparedPlaylist = await playlistService.preparePlaylistForStart(input.playlistName)
-      if (!preparedPlaylist) {
-        return { success: false, error: 'Playlist not found' }
-      }
+      // Persist lastAppliedAt so the frontend can sort by recency
+      await playlistService.stampLastApplied(input.playlistName)
 
       // Get target screen
       let targetScreen = input.screen
@@ -140,7 +138,7 @@ export const playlistRouter = trpc.router({
           proc,
           args,
           options: {
-            backgroundId: preparedPlaylist.items[0],
+            backgroundId: playlist.items[0],
             screen: settings.windowMode ? undefined : targetScreen,
           },
         })
