@@ -1,4 +1,4 @@
-import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images, CircleCheck } from "lucide-react"
+import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images } from "lucide-react"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -25,9 +25,9 @@ interface PlaylistRowProps {
     playlist: Playlist
     wallpapers: Wallpaper[]
     isApplying: boolean
-    isActive: boolean
+    activeScreens: string[]
     onApply: (screen?: string) => Promise<void>
-    onStop: (screen?: string) => Promise<void>
+    onStop: (screen?: string | string[]) => Promise<void>
     onEdit: () => void
     onDelete: () => void
 }
@@ -36,7 +36,7 @@ export function PlaylistRow({
     playlist,
     wallpapers,
     isApplying,
-    isActive,
+    activeScreens,
     onApply,
     onStop,
     onEdit,
@@ -99,7 +99,7 @@ export function PlaylistRow({
                         onApply={onApply}
                         onStop={onStop}
                         isApplying={isApplying}
-                        isActive={isActive}
+                        activeScreens={activeScreens}
                         size="sm"
                     />
 
@@ -147,7 +147,7 @@ export function PlaylistRow({
                             >
 
                                 <div className="relative size-32 sm:size-36 md:size-40 lg:size-44 xl:size-48 rounded-lg overflow-hidden ring-1 ring-border/50 transition-all">
-                                    {!isActive && <div className="absolute inset-0 bg-gradient-to-t from-card/40 via-card/10 to-card/10 transition-opacity duration-300 group-hover:opacity-0 z-10" />}
+                                    {activeScreens.length === 0 && <div className="absolute inset-0 bg-gradient-to-t from-card/40 via-card/10 to-card/10 transition-opacity duration-300 group-hover:opacity-0 z-10" />}
 
                                     <img
                                         src={`local-file://${wallpaper.thumbnail ?? wallpaper.path}`}

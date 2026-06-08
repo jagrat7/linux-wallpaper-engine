@@ -10,6 +10,7 @@ export interface ActivePlaylistInfo {
 
 export interface ActiveWallpapersSchema {
   activeWallpapers: Record<string, ApplyWallpaperOptions>
+  activePlaylists: Record<string, ActivePlaylistInfo>
   activePlaylist: ActivePlaylistInfo | null
 }
 
@@ -34,6 +35,7 @@ class StoreService {
       name: 'active-wallpapers',
       defaults: {
         activeWallpapers: {},
+        activePlaylists: {},
         activePlaylist: null,
       },
     })

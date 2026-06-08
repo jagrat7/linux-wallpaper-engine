@@ -86,6 +86,44 @@ class WallpaperStateManager implements IStateManager {
     return { remaining }
   }
 
+  releaseMany(screens: string[]): { remaining: Array<{ screen: string, options: ApplyWallpaperOptions }>, released: string[] } {
+    const targets = new Set(screens)
+    const remaining: Array<{ screen: string, options: ApplyWallpaperOptions }> = []
+    const released: string[] = []
+    const procs = new Set<ChildProcess>()
+
+    for (const screen of targets) {
+      const proc = this.runningProcesses.get(screen)
+      if (proc) procs.add(proc)
+      if (this.activeWallpapers.has(screen)) released.push(screen)
+    }
+
+    for (const proc of procs) {
+      const group = this.processScreenGroups.get(proc)
+      if (group) {
+        for (const screen of group) {
+          if (targets.has(screen)) continue
+          const opts = this.activeWallpapers.get(screen)
+          if (opts) remaining.push({ screen, options: opts })
+        }
+        for (const screen of group) {
+          if (this.runningProcesses.get(screen) === proc) {
+            this.runningProcesses.delete(screen)
+          }
+        }
+        this.processScreenGroups.delete(proc)
+      }
+      try { proc.kill('SIGKILL') } catch { /* already dead */ }
+    }
+
+    for (const screen of targets) {
+      this.activeWallpapers.delete(screen)
+    }
+    this.save()
+
+    return { remaining, released }
+  }
+
   // Remove a process and all of its screens from the active state without
   // killing it. Used when a process exits unexpectedly so it no longer shows
   // as applied. No-op when state has already been released by an explicit stop.

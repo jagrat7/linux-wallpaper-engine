@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
+import { playlistService } from '../../services/playlists/playlist'
 import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 import type { DebugInfo } from '../../services/wallpaper/wallpaper.types'
 import { settingsService } from '../../services/settings'
@@ -76,14 +77,22 @@ export const wallpaperRouter = trpc.router({
         windowed: settings.windowMode ? parseWindowGeometry(settings.windowGeometry) : input.windowed,
       }
 
-      return wallpaperService.apply({ kind: 'wallpaper', options })
+      const result = await wallpaperService.apply({ kind: 'wallpaper', options })
+      if (result.success && result.screens) {
+        playlistService.clearActivePlaylist(result.screens)
+      }
+      return result
     }),
 
   // Stop wallpaper(s)
   stopWalpaper: trpc.procedure
     .input(z.object({ screen: z.string().optional() }).optional())
     .mutation(async ({ input }) => {
-      return wallpaperService.stop(input?.screen)
+      const result = await wallpaperService.stop(input?.screen)
+      if (result.success && result.screens) {
+        playlistService.clearActivePlaylist(result.screens)
+      }
+      return result
     }),
 
   // Get currently active wallpapers

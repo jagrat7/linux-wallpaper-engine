@@ -44,9 +44,9 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
         refetchInterval: 5000,
     })
 
-    const isActive = activeWallpapers.some(
-        w => w.wallpaper.backgroundId === backgroundId
-    )
+    const activeScreens = activeWallpapers
+        .filter(w => w.wallpaper.backgroundId === backgroundId)
+        .map(w => w.screen)
 
     const handleApply = async (screen?: string) => {
         if (!backgroundId) return
@@ -83,10 +83,11 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
         }
     }
 
-    const handleStop = async (screen?: string) => {
-            await stopMutation.mutateAsync({ screen })
-            await utils.wallpaper.getActiveWallpaper.invalidate()
-            await utils.playlist.active.invalidate()
+    const handleStop = async (screen?: string | string[]) => {
+        const screens = Array.isArray(screen) ? screen : [screen]
+        await Promise.all(screens.map(screen => stopMutation.mutateAsync({ screen })))
+        await utils.wallpaper.getActiveWallpaper.invalidate()
+        await utils.playlist.active.invalidate()
     }
 
     const handleUnsubscribe = async () => {
@@ -121,7 +122,7 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
                             onApply={handleApply}
                             onStop={handleStop}
                             isApplying={isApplying}
-                            isActive={isActive}
+                            activeScreens={activeScreens}
                             className="flex-1"
                         />
                         {canUnsubscribe && (

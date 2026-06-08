@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils"
 
 interface ApplyButtonProps {
     onApply: (screen?: string) => Promise<void>
-    onStop?: (screen?: string) => Promise<void>
+    onStop?: (screen?: string | string[]) => Promise<void>
     isApplying: boolean
-    isActive?: boolean
+    activeScreens?: string[]
     label?: string
     applyingLabel?: string
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm"
@@ -26,13 +26,15 @@ export function ApplyButton({
     onApply,
     onStop,
     isApplying,
-    isActive = false,
+    activeScreens = [],
     label = "Apply",
     applyingLabel = "Applying...",
     size = "default",
     className,
 }: ApplyButtonProps) {
     const { data: displays } = trpc.display.list.useQuery()
+    const activeScreenSet = React.useMemo(() => new Set(activeScreens), [activeScreens])
+    const isActive = activeScreenSet.size > 0
 
     return (
         <div className={className}>
@@ -44,7 +46,7 @@ export function ApplyButton({
                         "gap-2 rounded-r-none flex-1",
                         isActive && "text-destructive hover:bg-destructive/10 hover:text-destructive"
                     )}
-                    onClick={() => isActive && onStop ? onStop() : onApply()}
+                    onClick={() => isActive && onStop ? onStop(activeScreens) : onApply()}
                     disabled={isApplying}
                 >
                     {isApplying ? (
@@ -75,22 +77,25 @@ export function ApplyButton({
                     <DropdownMenuContent align="start" className="w-48">
                         {displays && displays.length > 0 && (
                             <>
-                                {displays.map((display) => (
-                                    <DropdownMenuItem
-                                        key={display.name}
-                                        onClick={() => isActive && onStop ? onStop(display.name) : onApply(display.name)}
-                                    >
-                                        {isActive ? <Square className="size-4" /> : <Monitor className="size-4" />}
-                                        {isActive ? `Stop on ${display.name}` : display.name}
-                                        {display.primary && (
-                                            <span className="ml-auto text-xs text-muted-foreground">Primary</span>
-                                        )}
-                                    </DropdownMenuItem>
-                                ))}
+                                {displays.map((display) => {
+                                    const isDisplayActive = activeScreenSet.has(display.name)
+                                    return (
+                                        <DropdownMenuItem
+                                            key={display.name}
+                                            onClick={() => isDisplayActive && onStop ? onStop(display.name) : onApply(display.name)}
+                                        >
+                                            {isDisplayActive ? <Square className="size-4" /> : <Monitor className="size-4" />}
+                                            {isDisplayActive ? `Stop on ${display.name}` : display.name}
+                                            {display.primary && (
+                                                <span className="ml-auto text-xs text-muted-foreground">Primary</span>
+                                            )}
+                                        </DropdownMenuItem>
+                                    )
+                                })}
                                 <DropdownMenuSeparator />
                             </>
                         )}
-                        <DropdownMenuItem onClick={() => isActive && onStop ? onStop() : onApply()}>
+                        <DropdownMenuItem onClick={() => isActive && onStop ? onStop(activeScreens) : onApply()}>
                             {isActive ? <Square className="size-4" /> : <Monitor className="size-4" />}
                             {isActive ? "Stop all" : "All displays"}
                         </DropdownMenuItem>

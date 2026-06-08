@@ -18,6 +18,71 @@ const playlistSettingsSchema = z.object({
   videosequence: z.boolean(),
 })
 
+async function startPlaylistProcess(playlistName: string, screens: string[], stampLastApplied: boolean) {
+  const playlist = await playlistService.getPlaylist(playlistName)
+  if (!playlist) {
+    return { success: false, error: 'Playlist not found' }
+  }
+
+  if (playlist.items.length === 0) {
+    return { success: false, error: 'Playlist has no wallpapers' }
+  }
+
+  if (!await hostCommandExists('linux-wallpaperengine')) {
+    return { success: false, error: BACKEND_NOT_INSTALLED_ERROR_MESSAGE }
+  }
+
+  if (stampLastApplied) {
+    await playlistService.stampLastApplied(playlistName)
+  }
+
+  const settings = await settingsService.loadSettings()
+  const screenKeys = settings.windowMode ? ['default'] : screens
+  const settingsArgs = settingsService.settingsToArgs(settings)
+  const assetsDir = settings.assetsDir ?? await resolveWallpaperEngineAssetsDir()
+  const args: string[] = []
+  if (!settings.windowMode) {
+    for (const screen of screenKeys) {
+      args.push('--screen-root', screen)
+    }
+  }
+  args.push('--playlist', playlistName)
+  args.push(...settingsArgs)
+  if (!settings.assetsDir && assetsDir) {
+    args.push('--assets-dir', assetsDir)
+  }
+
+  try {
+    const debugMode = settingsService.getSetting('debugMode')
+    const proc = hostSpawn('linux-wallpaperengine', args, {
+      detached: true,
+      stdio: debugMode
+        ? ['ignore', 'pipe', 'pipe']
+        : ['ignore', 'ignore', 'pipe'],
+    })
+
+    await wallpaperService.apply({
+      kind: 'register',
+      screens: screenKeys,
+      proc,
+      args,
+      options: {
+        backgroundId: playlist.items[0],
+        screen: settings.windowMode ? undefined : screens.length === 1 ? screens[0] : undefined,
+      },
+    })
+
+    playlistService.setActivePlaylist(playlistName, screenKeys)
+
+    return { success: true }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to apply playlist',
+    }
+  }
+}
+
 export const playlistRouter = trpc.router({
   // List all playlists
   list: trpc.procedure.query(async () => {
@@ -64,13 +129,42 @@ export const playlistRouter = trpc.router({
     }),
 
   // Stop the currently active playlist
-  stop: trpc.procedure.mutation(async () => {
-    const active = playlistService.getActivePlaylist()
-    if (!active) return { success: true }
-    await wallpaperService.stop(active.screen)
-    playlistService.clearActivePlaylist()
-    return { success: true }
-  }),
+  stop: trpc.procedure
+    .input(z.object({
+      screen: z.string().optional(),
+      playlistName: z.string().optional(),
+    }).optional())
+    .mutation(async ({ input }) => {
+      const active = playlistService.getActivePlaylists()
+      const targetScreens = active
+        .filter(entry => (!input?.screen || entry.screen === input.screen) && (!input?.playlistName || entry.name === input.playlistName))
+        .map(entry => entry.screen)
+      if (targetScreens.length === 0) return { success: true }
+
+      const targetScreenSet = new Set(targetScreens)
+      const affectedPlaylistNames = new Set(
+        active
+          .filter(entry => targetScreenSet.has(entry.screen))
+          .map(entry => entry.name)
+      )
+
+      for (const playlistName of affectedPlaylistNames) {
+        const playlistScreens = active
+          .filter(entry => entry.name === playlistName)
+          .map(entry => entry.screen)
+        const remainingScreens = playlistScreens.filter(screen => !targetScreenSet.has(screen))
+
+        await wallpaperService.stop(playlistScreens)
+        playlistService.clearActivePlaylist(playlistScreens)
+
+        if (remainingScreens.length > 0) {
+          const result = await startPlaylistProcess(playlistName, remainingScreens, false)
+          if (!result.success) return result
+        }
+      }
+
+      return { success: true }
+    }),
 
   // Start playlist on screen
   start: trpc.procedure
@@ -79,83 +173,21 @@ export const playlistRouter = trpc.router({
       screen: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const playlist = await playlistService.getPlaylist(input.playlistName)
-      if (!playlist) {
-        return { success: false, error: 'Playlist not found' }
-      }
-
-      if (playlist.items.length === 0) {
-        return { success: false, error: 'Playlist has no wallpapers' }
-      }
-
-      if (!await hostCommandExists('linux-wallpaperengine')) {
-        return { success: false, error: BACKEND_NOT_INSTALLED_ERROR_MESSAGE }
-      }
-
-      // Persist lastAppliedAt so the frontend can sort by recency
-      await playlistService.stampLastApplied(input.playlistName)
-
-      // Get target screen
-      let targetScreen = input.screen
-      if (!targetScreen) {
-        const displays = await displayService.detectDisplays()
-        const primary = displays.find(d => d.primary) ?? displays[0]
-        if (primary) {
-          targetScreen = primary.name
-        }
-      }
-
-      // Stop existing wallpaper on this screen first
-      await wallpaperService.stop(targetScreen)
-
-      // Build command args for playlist mode with user settings
       const settings = await settingsService.loadSettings()
-      const settingsArgs = settingsService.settingsToArgs(settings)
-      const assetsDir = settings.assetsDir ?? await resolveWallpaperEngineAssetsDir()
-      const args: string[] = []
-      if (targetScreen && !settings.windowMode) {
-        args.push('--screen-root', targetScreen)
-      }
-      args.push('--playlist', input.playlistName)
-      args.push(...settingsArgs)
-      if (!settings.assetsDir && assetsDir) {
-        args.push('--assets-dir', assetsDir)
-      }
+      const targetScreens = input.screen
+        ? [input.screen]
+        : settings.windowMode
+          ? ['default']
+          : (await displayService.detectDisplays()).map(d => d.name)
 
-      try {
-        const debugMode = settingsService.getSetting('debugMode')
-        const proc = hostSpawn('linux-wallpaperengine', args, {
-          detached: true,
-          stdio: debugMode
-            ? ['ignore', 'pipe', 'pipe']
-            : ['ignore', 'ignore', 'pipe'],
-        })
+      await wallpaperService.stop(targetScreens)
+      playlistService.clearActivePlaylist(targetScreens)
 
-        const screenKey = settings.windowMode ? 'default' : (targetScreen ?? 'default')
-        await wallpaperService.apply({
-          kind: 'register',
-          screen: screenKey,
-          proc,
-          args,
-          options: {
-            backgroundId: playlist.items[0],
-            screen: settings.windowMode ? undefined : targetScreen,
-          },
-        })
-
-        playlistService.setActivePlaylist(input.playlistName, screenKey)
-
-        return { success: true }
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to apply playlist',
-        }
-      }
+      return startPlaylistProcess(input.playlistName, targetScreens, true)
     }),
 
   // Get currently active playlist info
   active: trpc.procedure.query(() => {
-    return playlistService.getActivePlaylist()
+    return playlistService.getActivePlaylists()
   }),
 })

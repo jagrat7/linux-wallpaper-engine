@@ -62,9 +62,9 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
         }
     }, [isDownloading, wallpaperPath])
 
-    const isActive = activeWallpapers.some(
-        w => w.wallpaper.backgroundId === wallpaperPath
-    )
+    const activeScreens = activeWallpapers
+        .filter(w => w.wallpaper.backgroundId === wallpaperPath)
+        .map(w => w.screen)
 
     const handleDownload = () => {
         subscribeMutation.mutate({ workshopId })
@@ -110,8 +110,9 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
         }
     }
 
-    const handleStop = async (screen?: string) => {
-        await stopMutation.mutateAsync({ screen })
+    const handleStop = async (screen?: string | string[]) => {
+        const screens = Array.isArray(screen) ? screen : [screen]
+        await Promise.all(screens.map(screen => stopMutation.mutateAsync({ screen })))
         await utils.wallpaper.getActiveWallpaper.invalidate()
         await utils.playlist.active.invalidate()
     }
@@ -132,7 +133,7 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
                         onStop={handleStop}
                         isApplying={isApplying}
                         isUnsubscribing={unsubscribeMutation.isPending}
-                        isActive={isActive}
+                        activeScreens={activeScreens}
                     />
                     <ErrorMessage
                         message={errorMessage}
