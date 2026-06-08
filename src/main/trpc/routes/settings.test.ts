@@ -29,12 +29,12 @@ vi.mock('../../services/wallpaper/wallpaper', () => ({
   wallpaperService: mockWallpaperService,
 }))
 
-vi.mock('../../services/flatpak', () => ({
+vi.mock('../../utils/host', () => ({
   isFlatpak: (...args: unknown[]) => mockIsFlatpak(...args),
   setFlatpakBypass: (...args: unknown[]) => mockSetFlatpakBypass(...args),
 }))
 
-vi.mock('../../services/autostart', () => ({
+vi.mock('../../utils/autostart', () => ({
   setAutostart: (...args: unknown[]) => mockSetAutostart(...args),
 }))
 

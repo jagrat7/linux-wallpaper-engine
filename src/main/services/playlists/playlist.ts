@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises'
 import type { Playlist } from '../../../shared/constants/playlist'
 import { storeService, type ActivePlaylistInfo } from '../store'
 import { invalidationService } from '../invalidation'
-import { findSteamConfigPath, ensureSteamConfigPath, readSteamConfig, writeSteamConfig } from './playlist.utils'
+import { findSteamConfigPath, ensureSteamConfigPath, readSteamConfig, writeSteamConfig, experimentalRandomizeStartItem } from './playlist.utils'
 
 class PlaylistService {
   private static instance: PlaylistService | null = null
@@ -155,6 +155,7 @@ class PlaylistService {
       const playlist = config.steamuser?.general?.playlists?.find(p => p.name === name)
       if (!playlist) return
 
+      playlist.items = experimentalRandomizeStartItem(playlist.items, playlist.settings.order)
       playlist.lastAppliedAt = Date.now()
       await writeSteamConfig(configPath, config)
     } catch {
