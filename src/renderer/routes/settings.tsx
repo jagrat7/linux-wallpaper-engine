@@ -12,15 +12,10 @@ import {
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
 import { SettingsSection } from "@/components/settings/settings-section"
-import { SettingRow } from "@/components/settings/setting-row"
+import { SettingRow } from "@/components/settings/controls/setting-row"
+import { SelectControl } from "@/components/settings/controls/select-control"
+import { SliderControl } from "@/components/settings/controls/slider-control"
 import { trpc } from "@/lib/trpc"
 import { useTheme } from "@/components/theme-provider"
 import { THEME_OPTIONS } from "../../shared/constants/theme"
@@ -289,19 +284,13 @@ function SettingsPage() {
                     description="Volume and audio processing"
                 >
                     <SettingRow label="Volume">
-                        <div className="flex items-center gap-3">
-                            <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                value={settings.volume}
-                                onChange={(e) => updateSetting("volume", Number(e.target.value))}
-                                className="w-32 accent-primary"
-                            />
-                            <span className="text-sm text-muted-foreground w-10">
-                                {settings.volume}%
-                            </span>
-                        </div>
+                        <SliderControl
+                            min={0}
+                            max={100}
+                            value={settings.volume}
+                            onChange={(value) => updateSetting("volume", value)}
+                            suffix="%"
+                        />
                     </SettingRow>
                     <SettingRow label="Mute audio">
                         <Switch
@@ -330,38 +319,23 @@ function SettingsPage() {
                     description="Default display behavior"
                 >
                     <SettingRow label="Maximum FPS">
-                        <Select
+                        <SelectControl
+                            options={getFpsOptions(maxRefreshData?.maxRefreshRate ?? 60, settings.fps).map((fps) => ({
+                                label: `${fps} FPS`,
+                                value: String(fps),
+                            }))}
                             value={String(settings.fps)}
-                            onValueChange={(value) => updateSetting("fps", Number(value))}
-                        >
-                            <SelectTrigger className="w-28">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {getFpsOptions(maxRefreshData?.maxRefreshRate ?? 60, settings.fps).map((fps) => (
-                                    <SelectItem key={fps} value={String(fps)}>
-                                        {fps} FPS
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            onChange={(value) => updateSetting("fps", Number(value))}
+                            triggerClassName="w-28"
+                        />
                     </SettingRow>
                     <SettingRow label="Default scaling">
-                        <Select
+                        <SelectControl
+                            options={SCALING_OPTIONS}
                             value={settings.defaultScaling}
-                            onValueChange={(value) => updateSetting("defaultScaling", value as AppSettings["defaultScaling"])}
-                        >
-                            <SelectTrigger className="w-28">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {SCALING_OPTIONS.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            onChange={(value) => updateSetting("defaultScaling", value as AppSettings["defaultScaling"])}
+                            triggerClassName="w-28"
+                        />
                     </SettingRow>
                     <SettingRow label="Disable mouse interaction">
                         <Switch
@@ -385,25 +359,16 @@ function SettingsPage() {
                     className="max-2xl:mb-4"
                 >
                     <SettingRow label="Theme">
-                        <Select
+                        <SelectControl
+                            options={THEME_OPTIONS}
                             value={mode}
-                            onValueChange={(value) => {
+                            onChange={(value) => {
                                 const newTheme = value as AppSettings["theme"]
                                 setMode(newTheme) // Apply theme immediately
                                 updateSetting("theme", newTheme)
                             }}
-                        >
-                            <SelectTrigger className="w-28">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {THEME_OPTIONS.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            triggerClassName="w-28"
+                        />
                     </SettingRow>
                     <SettingRow label="Show compatibility dot">
                         <Switch

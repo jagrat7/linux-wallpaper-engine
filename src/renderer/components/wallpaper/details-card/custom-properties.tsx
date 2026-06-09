@@ -1,15 +1,11 @@
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { SettingRow } from "@/components/settings/setting-row"
+import { SettingRow } from "@/components/settings/controls/setting-row"
+import { SelectControl } from "@/components/settings/controls/select-control"
+import { SliderControl } from "@/components/settings/controls/slider-control"
+import { ColorControl } from "@/components/settings/controls/color-control"
 import { trpc } from "@/lib/trpc"
-import type { WallpaperProperty } from "../../../shared/constants/wallpaper"
+import type { WallpaperProperty } from "../../../../shared/constants/wallpaper"
 
 interface CustomPropertiesProps {
     wallpaperPath: string
@@ -115,46 +111,34 @@ function PropertyControl({ property, value, onChange }: { property: WallpaperPro
             const max = property.max ?? Math.max(min + 1, Number(value) || 0)
             const step = property.step && property.step > 0 ? property.step : (max - min) / 100
             return (
-                <div className="flex items-center gap-3">
-                    <input
-                        type="range"
-                        min={min}
-                        max={max}
-                        step={step}
-                        value={Number(value) || 0}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="w-24 accent-primary"
-                    />
-                    <span className="w-10 text-right text-xs text-muted-foreground">
-                        {Number(value) || 0}
-                    </span>
-                </div>
+                <SliderControl
+                    min={min}
+                    max={max}
+                    step={step}
+                    value={Number(value) || 0}
+                    onChange={(v) => onChange(String(v))}
+                />
             )
         }
 
         case "combo":
             return (
-                <Select value={value} onValueChange={onChange}>
-                    <SelectTrigger className="w-36">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {(property.options ?? []).map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {cleanLabel(option.label, option.value)}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <SelectControl
+                    options={(property.options ?? []).map((option) => ({
+                        label: cleanLabel(option.label, option.value),
+                        value: option.value,
+                    }))}
+                    value={value}
+                    onChange={onChange}
+                    triggerClassName="w-36"
+                />
             )
 
         case "color":
             return (
-                <input
-                    type="color"
+                <ColorControl
                     value={propertyColorToHex(value)}
-                    onChange={(e) => onChange(hexToPropertyColor(e.target.value))}
-                    className="h-7 w-12 cursor-pointer rounded border border-input bg-transparent"
+                    onChange={(hex) => onChange(hexToPropertyColor(hex))}
                 />
             )
 

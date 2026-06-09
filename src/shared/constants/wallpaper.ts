@@ -1,5 +1,5 @@
 import type { CompatibilityStatus } from './compatibility'
-import type { ScalingOption } from './display'
+import { SCALING_OPTIONS, type ScalingOption } from './display'
 
 // Single source of truth for wallpaper filter/type options
 export const FILTER_TYPE_OPTIONS = [
@@ -79,6 +79,19 @@ export interface WallpaperOverrides {
   autoErrors?: string[]
   lastTested?: number
 }
+
+// Per-wallpaper engine flag overrides: each row falls back to a global app
+// setting (globalKey), then to a static default. `control` is the runtime
+// discriminant for which UI control to render. Adding a new overridable
+// flag is one entry here (plus its WallpaperOverrides field and zod schema).
+export const ENGINE_OVERRIDE_FIELDS = [
+  { control: 'select', key: 'scaling', globalKey: 'defaultScaling', label: 'Scaling', options: SCALING_OPTIONS, fallback: 'fill' },
+  { control: 'slider', key: 'volume', globalKey: 'volume', label: 'Volume', min: 0, max: 100, suffix: '%', fallback: 100 },
+  { control: 'switch', key: 'audioProcessing', globalKey: 'audioProcessing', label: 'Audio reactive effects', fallback: true },
+  { control: 'switch', key: 'disableMouse', globalKey: 'disableMouse', label: 'Disable mouse interaction', fallback: false },
+  { control: 'switch', key: 'disableParallax', globalKey: 'disableParallax', label: 'Disable parallax effect', fallback: false },
+] as const
+export type EngineOverrideField = typeof ENGINE_OVERRIDE_FIELDS[number]
 
 // Property types from project.json `general.properties` that get a UI control.
 // Other types (text headings, groups, scenetexture, file) are display-only or unsupported.

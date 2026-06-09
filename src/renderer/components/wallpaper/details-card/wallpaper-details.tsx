@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { type Wallpaper } from "../wallpaper-card"
-import { WallpaperOverrides } from "../wallpaper-overrides"
+import { WallpaperOverrides } from "./wallpaper-overrides"
 import { trpc } from "@/lib/trpc"
 import { ApplyButton } from "../apply-button"
 import { DebugLogDialog } from "../debug-log-dialog"
