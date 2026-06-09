@@ -103,13 +103,23 @@ class WallpaperService implements IWallpaperService {
       case 'get':
         return all[mutation.wallpaperPath] ?? {}
 
-      case 'save':
-        all[mutation.wallpaperPath] = mutation.overrides
+      case 'save': {
+        // compatibility/autoErrors/lastTested live in the same record but are managed
+        // by the compatibility service and stripped by the tRPC schema — carry them
+        // forward so saving user overrides can't erase a wallpaper's scan results.
+        const existing = all[mutation.wallpaperPath]
+        all[mutation.wallpaperPath] = {
+          ...mutation.overrides,
+          ...(existing?.compatibility !== undefined && { compatibility: existing.compatibility }),
+          ...(existing?.autoErrors !== undefined && { autoErrors: existing.autoErrors }),
+          ...(existing?.lastTested !== undefined && { lastTested: existing.lastTested }),
+        }
         this.overridesStore.set('overrides', all)
         if (this.state.isActive(mutation.wallpaperPath)) {
           this.debouncedReapply()
         }
         return
+      }
 
       case 'reset':
         delete all[mutation.wallpaperPath]
@@ -549,6 +559,7 @@ class WallpaperService implements IWallpaperService {
     const disableMouse = overrides.disableMouse ?? options.disableMouse
     const disableParallax = overrides.disableParallax ?? options.disableParallax
     const scaling = overrides.scaling ?? options.scaling
+    const customProperties = overrides.customProperties ?? {}
     const assetsDir = settingsService.getSetting('assetsDir') ?? await resolveWallpaperEngineAssetsDir()
 
     if (options.silent) {
@@ -565,6 +576,9 @@ class WallpaperService implements IWallpaperService {
     if (options.noFullscreenPause) args.push('--no-fullscreen-pause')
     if (scaling && scaling !== 'default') args.push('--scaling', scaling)
     if (assetsDir) args.push('--assets-dir', assetsDir)
+    for (const [name, value] of Object.entries(customProperties)) {
+      args.push('--set-property', `${name}=${value}`)
+    }
 
     return args
   }

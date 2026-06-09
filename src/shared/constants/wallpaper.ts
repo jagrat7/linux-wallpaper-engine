@@ -73,7 +73,26 @@ export interface WallpaperOverrides {
   scaling?: ScalingOption
   disableMouse?: boolean
   disableParallax?: boolean
+  // Passed to the backend as --set-property name=value (see --list-properties)
+  customProperties?: Record<string, string>
   compatibility?: CompatibilityStatus
   autoErrors?: string[]
   lastTested?: number
+}
+
+// Property types from project.json `general.properties` that get a UI control.
+// Other types (text headings, groups, scenetexture, file) are display-only or unsupported.
+export const PROPERTY_CONTROL_TYPES = ['bool', 'slider', 'combo', 'color', 'textinput'] as const
+
+// A customizable property exposed by a wallpaper's project.json.
+// `value` is the wallpaper's default, serialized to --set-property string form.
+export interface WallpaperProperty {
+  name: string
+  type: typeof PROPERTY_CONTROL_TYPES[number]
+  text: string
+  value: string
+  min?: number
+  max?: number
+  step?: number
+  options?: Array<{ label: string; value: string }>
 }

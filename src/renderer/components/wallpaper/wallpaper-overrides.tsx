@@ -1,6 +1,7 @@
 import { ChevronDown, RotateCcw, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
+import { CustomProperties } from "./custom-properties"
 import {
     Select,
     SelectContent,
@@ -173,6 +174,15 @@ export function WallpaperOverrides({ wallpaper }: WallpaperOverridesProps) {
                             onCheckedChange={(checked) => updateOverride("disableParallax", checked)}
                         />
                     </SettingRow>
+
+                    {/* Per-wallpaper custom properties (--set-property) */}
+                    <CustomProperties
+                        wallpaperPath={wallpaper.path ?? ""}
+                        values={overrides?.customProperties}
+                        onChange={(values) =>
+                            values ? updateOverride("customProperties", values) : clearOverride("customProperties")
+                        }
+                    />
 
                     {hasOverrides && (
                         <Button
