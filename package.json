@@ -26,11 +26,22 @@
   },
   "keywords": [
     "wallpaper",
-    "linux",
-    "electron",
     "wallpaper-engine",
+    "dynamic-wallpaper",
+    "animated-wallpaper",
+    "dynamic",
+    "live-wallpaper",
+    "linux",
+    "linux-desktop",
     "desktop",
-    "engine"
+    "steam",
+    "steam-workshop",
+    "workshop",
+    "playlist",
+    "wayland",
+    "x11",
+    "hyprland",
+    "flatpak"
   ],
   "author": {
     "name": "jagrat7"
