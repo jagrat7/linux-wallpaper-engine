@@ -9,28 +9,32 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAtom } from "jotai"
-import { lastAppliedScreenAtom } from "@/contexts/atoms/display-atoms"
+import { lastAppliedTargetAtom, type LastAppliedTarget } from "@/contexts/atoms/display-atoms"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
 
 // Decide which screen the main apply button should target.
-// lastScreen is the user's remembered pick (null = all displays).
+// lastApplied is the user's remembered pick (null = all displays),
+// which only counts for the wallpaper/playlist it was applied to.
 // Returns a screen name to target one display, or null for all.
 function resolveTargetScreen(
     displays: { name: string }[] | undefined,
-    lastScreen: string | null,
+    lastApplied: LastAppliedTarget | null,
+    itemId: string,
 ): string | null {
-    if (!lastScreen) return null
+    // The remembered screen belongs to a different wallpaper/playlist
+    if (!lastApplied || lastApplied.itemId !== itemId) return null
     // Trust the stored pick while displays are still loading so the
     // button label stays stable across app restarts
-    if (!displays) return lastScreen
+    if (!displays) return lastApplied.screen
     // Single display: targeting is meaningless, use the all-displays default
     if (displays.length <= 1) return null
     // Stored screen may have been unplugged — fall back to all displays
-    return displays.some(d => d.name === lastScreen) ? lastScreen : null
+    return displays.some(d => d.name === lastApplied.screen) ? lastApplied.screen : null
 }
 
 interface ApplyButtonProps {
+    itemId: string
     onApply: (screen?: string) => Promise<void>
     onStop?: (screen?: string | string[]) => Promise<void>
     isApplying: boolean
@@ -42,6 +46,7 @@ interface ApplyButtonProps {
 }
 
 export function ApplyButton({
+    itemId,
     onApply,
     onStop,
     isApplying,
@@ -52,15 +57,20 @@ export function ApplyButton({
     className,
 }: ApplyButtonProps) {
     const { data: displays } = trpc.display.list.useQuery()
-    const [lastScreen, setLastScreen] = useAtom(lastAppliedScreenAtom)
+    const [lastApplied, setLastApplied] = useAtom(lastAppliedTargetAtom)
     const activeScreenSet = React.useMemo(() => new Set(activeScreens), [activeScreens])
     const isActive = activeScreenSet.size > 0
 
-    const targetScreen = resolveTargetScreen(displays, lastScreen)
+    const targetScreen = resolveTargetScreen(displays, lastApplied, itemId)
+    // Show which screen Stop targets when it's not simply "everything"
+    const stopLabel =
+        displays && displays.length > 1 && activeScreens.length === 1
+            ? `Stop · ${activeScreens[0]}`
+            : "Stop"
 
     // Remember the user's pick so the main button targets it next time
     const handleApplyTo = (screen?: string) => {
-        setLastScreen(screen ?? null)
+        setLastApplied(screen ? { screen, itemId } : null)
         return onApply(screen)
     }
 
@@ -84,7 +94,7 @@ export function ApplyButton({
                     ) : (
                         <Monitor className="size-4" />
                     )}
-                    {isApplying ? applyingLabel : isActive ? "Stop" : targetScreen ? `${label} · ${targetScreen}` : label}
+                    {isApplying ? applyingLabel : isActive ? stopLabel : targetScreen ? `${label} · ${targetScreen}` : label}
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

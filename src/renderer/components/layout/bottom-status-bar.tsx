@@ -134,7 +134,7 @@ export function StatusBar({ className }: StatusBarProps) {
                                 // current title is unknown — show the playlist itself instead
                                 <button
                                     type="button"
-                                    onClick={() => navigate({ to: "/playlists/editor", search: { name: activePlaylist.name } })}
+                                    onClick={() => navigate({ to: "/playlists" })}
                                     className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
                                     title={`Playlist active: ${activePlaylist.name}`}
                                 >

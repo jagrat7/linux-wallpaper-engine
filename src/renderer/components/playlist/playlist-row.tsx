@@ -96,6 +96,7 @@ export function PlaylistRow({
                 <div className="flex items-center gap-2">
                     {/* Apply / Stop button */}
                     <ApplyButton
+                        itemId={`playlist:${playlist.name}`}
                         onApply={onApply}
                         onStop={onStop}
                         isApplying={isApplying}
