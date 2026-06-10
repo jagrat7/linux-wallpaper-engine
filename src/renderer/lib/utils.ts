@@ -85,6 +85,43 @@ export function toWallpaper(item: WorkshopItem): Wallpaper {
   }
 }
 
+// ── Wallpaper property helpers ─────────────────────────────────────────
+
+// Labels arrive as HTML fragments (`<strong>Label:</strong>`), localization
+// keys, or author shorthand like "rain on/off" — normalize to clean
+// title-cased text.
+export function cleanLabel(text: string, fallback: string): string {
+  const cleaned = text.replace(/<[^>]+>/g, "").trim()
+  const base = !cleaned || cleaned.startsWith("ui_") ? fallback : cleaned
+  return base
+    .replace(/\s*\bon\s*\/\s*off\b/gi, "")
+    .replace(/[\s:]+$/, "")
+    .replace(/(^|\s)([a-z])/g, (_, space: string, letter: string) => space + letter.toUpperCase())
+    .trim() || fallback
+}
+
+/** Convert 0-255 rgb channels into a `#rrggbb` hex string. */
+export function rgbToHex(r: number, g: number, b: number): string {
+  const channel = (v: number) =>
+    Math.round(Math.min(Math.max(v, 0), 255)).toString(16).padStart(2, "0")
+  return `#${channel(r)}${channel(g)}${channel(b)}`
+}
+
+// Color properties use space-separated float triplets in 0-1 range ("0.14 0.23 0.4").
+export function propertyColorToHex(value: string): string {
+  const [r, g, b] = value.split(/[\s,]+/).map(Number)
+  return rgbToHex((r || 0) * 255, (g || 0) * 255, (b || 0) * 255)
+}
+
+export function hexToPropertyColor(hex: string): string {
+  // 5 decimals matches the precision wallpapers ship in project.json and
+  // round-trips through propertyColorToHex back to the same hex value.
+  return [1, 3, 5]
+    .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((f) => String(Number(f.toFixed(5))))
+    .join(" ")
+}
+
 /** Walk up the DOM to the nearest scrollable ancestor (the app-shell <main>). */
 export function findScrollParent(node: HTMLElement | null): HTMLElement | null {
     let el = node?.parentElement ?? null

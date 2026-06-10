@@ -7,6 +7,7 @@ import type { DebugInfo } from '../../services/wallpaper/wallpaper.types'
 import { settingsService } from '../../services/settings'
 import { compatibilityService } from '../../services/compatibility'
 import { parseWindowGeometry } from '../../services/wallpaper/wallpaper.utils'
+import { listProperties } from '../../services/wallpaper/properties'
 
 export const wallpaperRouter = trpc.router({
   // Check if linux-wallpaperengine is installed
@@ -32,6 +33,13 @@ export const wallpaperRouter = trpc.router({
     .input(z.object({ path: z.string() }))
     .query(async ({ input }) => {
       return wallpaperService.overrides({ op: 'get', wallpaperPath: input.path })
+    }),
+
+  // List a wallpaper's customizable properties (read from its project.json)
+  listProperties: trpc.procedure
+    .input(z.object({ path: z.string() }))
+    .query(async ({ input }) => {
+      return listProperties(input.path)
     }),
 
   // Apply a wallpaper
@@ -112,6 +120,7 @@ export const wallpaperRouter = trpc.router({
           scaling: z.enum(['default', 'stretch', 'fit', 'fill']).optional(),
           disableMouse: z.boolean().optional(),
           disableParallax: z.boolean().optional(),
+          customProperties: z.record(z.string(), z.string()).optional(),
         }),
       }),
     )
