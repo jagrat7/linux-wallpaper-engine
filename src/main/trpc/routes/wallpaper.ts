@@ -8,7 +8,6 @@ import { settingsService } from '../../services/settings'
 import { compatibilityService } from '../../services/compatibility'
 import { parseWindowGeometry } from '../../services/wallpaper/wallpaper.utils'
 import { listProperties } from '../../services/wallpaper/properties'
-
 export const wallpaperRouter = trpc.router({
   // Check if linux-wallpaperengine is installed
   checkBackend: trpc.procedure.query(async () => {
@@ -16,10 +15,10 @@ export const wallpaperRouter = trpc.router({
     return { installed: backendInstalled }
   }),
 
-  // Get all wallpapers
+  // Get all wallpapers and apply history (from a single service query)
   getWallpapers: trpc.procedure.query(async () => {
-    const { wallpapers } = await wallpaperService.query()
-    return wallpapers
+    const { wallpapers, appliedHistory } = await wallpaperService.query()
+    return { wallpapers, appliedHistory }
   }),
 
   // Invalidate wallpaper cache so the next query triggers a fresh scan

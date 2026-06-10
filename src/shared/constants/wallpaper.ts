@@ -48,6 +48,8 @@ export interface Wallpaper {
   tags: string[]
   installed: boolean
   path: string
+  // Last applied timestamp from the renderer-side appliedHistory merge; absent if never applied
+  lastAppliedAt?: number
 }
 
 // Options for applying a wallpaper via the backend

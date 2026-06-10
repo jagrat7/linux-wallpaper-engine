@@ -1,10 +1,35 @@
-import { Square, Volume2, VolumeX, Monitor } from "lucide-react"
+import { Square, Volume2, VolumeX, Monitor, ListVideo } from "lucide-react"
+import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
 
+// Single source of truth for the bar height; app-shell exposes it as --status-bar-h
+export const STATUS_BAR_HEIGHT = "2.5rem"
+
 interface StatusBarProps {
     className?: string
+}
+
+interface ScreenWallpaper {
+    screen: string
+    title: string
+}
+
+interface ScreenPlaylist {
+    screen: string
+    name: string
+}
+
+// Tooltip shown on the multi-screen badge, summarizing what runs where
+function buildScreensTooltip(activeWallpapers: ScreenWallpaper[], activePlaylists: ScreenPlaylist[]): string {
+    // Playlist screens rotate internally, so the tracked wallpaper title is stale — show the playlist instead
+    return activeWallpapers
+        .map(({ screen, title }) => {
+            const playlist = activePlaylists.find(entry => entry.screen === screen)
+            return playlist ? `${screen}: playlist "${playlist.name}"` : `${screen}: ${title}`
+        })
+        .join("\n")
 }
 
 export function StatusBar({ className }: StatusBarProps) {
@@ -26,6 +51,7 @@ export function StatusBar({ className }: StatusBarProps) {
     const stopPlaylistMutation = trpc.playlist.stop.useMutation()
     const updateSettingsMutation = trpc.settings.update.useMutation()
     const utils = trpc.useUtils()
+    const navigate = useNavigate()
 
     // Get the primary display or first display
     const primaryDisplay = displays.find(d => d.primary) ?? displays[0]
@@ -37,6 +63,21 @@ export function StatusBar({ className }: StatusBarProps) {
 
     // Get the wallpaper title from the API response
     const wallpaperTitle = activeWallpaper?.title ?? 'Unknown'
+
+    // Playlist driving the shown wallpaper's screen, if any
+    const activePlaylist = activePlaylists.find(entry => entry.screen === activeWallpaper?.screen)
+
+    const hasMultipleScreens = displays.length > 1
+    const otherActiveCount = activeWallpapers.filter(w => w.screen !== activeWallpaper?.screen).length
+    const screensTooltip = buildScreensTooltip(activeWallpapers, activePlaylists)
+
+    const handleOpenDetails = () => {
+        if (!activeWallpaper) return
+        // backgroundId is the wallpaper's absolute path; the grid matches on the folder name id
+        const wallpaperId = activeWallpaper.wallpaper.backgroundId.split("/").filter(Boolean).pop()
+        if (!wallpaperId) return
+        navigate({ to: "/", search: { wallpaper: wallpaperId } })
+    }
 
     const handleStop = async () => {
         if (!activeWallpaper) return
@@ -66,20 +107,58 @@ export function StatusBar({ className }: StatusBarProps) {
     }
 
     return (
-        <footer className={cn("flex h-10 items-center justify-between border-t border-border bg-sidebar px-4", className)}>
+        <footer
+            className={cn("flex items-center justify-between border-t border-border bg-sidebar px-4", className)}
+            style={{ height: STATUS_BAR_HEIGHT }}
+        >
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Monitor className="size-3.5" />
                     <span>{primaryDisplay?.name ?? "No Display"}</span>
+                    {hasMultipleScreens && (
+                        <span
+                            className="rounded-full bg-secondary px-1.5 py-0.5 text-xs"
+                            title={screensTooltip}
+                        >
+                            {activeWallpapers.length}/{displays.length} active
+                        </span>
+                    )}
                 </div>
                 <div className="h-4 w-px bg-border" />
                 <div className="flex items-center gap-2">
                     {activeWallpaper ? (
                         <>
                             <div className="size-2 rounded-full bg-success" />
-                            <span className="text-sm text-muted-foreground">
-                                {wallpaperTitle}
-                            </span>
+                            {activePlaylist ? (
+                                // The backend rotates playlist wallpapers internally, so the
+                                // current title is unknown — show the playlist itself instead
+                                <button
+                                    type="button"
+                                    onClick={() => navigate({ to: "/playlists/editor", search: { name: activePlaylist.name } })}
+                                    className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                                    title={`Playlist active: ${activePlaylist.name}`}
+                                >
+                                    <ListVideo className="size-3.5" />
+                                    {activePlaylist.name}
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleOpenDetails}
+                                    className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                                    title="Show wallpaper details"
+                                >
+                                    {wallpaperTitle}
+                                </button>
+                            )}
+                            {otherActiveCount > 0 && (
+                                <span
+                                    className="text-xs text-muted-foreground/70"
+                                    title={screensTooltip}
+                                >
+                                    +{otherActiveCount} more
+                                </span>
+                            )}
                         </>
                     ) : (
                         <>

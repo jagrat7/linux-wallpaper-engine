@@ -95,18 +95,18 @@ describe('wallpaperRouter', () => {
   describe('getWallpapers', () => {
     it('should call the service without search input', async () => {
       const wallpapers = [makeWallpaper()]
-      mockWallpaperService.query.mockResolvedValue({ wallpapers, backendInstalled: true, active: [] })
+      mockWallpaperService.query.mockResolvedValue({ wallpapers, backendInstalled: true, active: [], appliedHistory: {} })
 
       const result = await caller.getWallpapers()
 
       expect(mockWallpaperService.query).toHaveBeenCalledWith()
-      expect(result).toEqual(wallpapers)
+      expect(result).toEqual({ wallpapers, appliedHistory: {} })
     })
 
     it('should return an empty list when there are no wallpapers', async () => {
-      mockWallpaperService.query.mockResolvedValue({ wallpapers: [], backendInstalled: true, active: [] })
+      mockWallpaperService.query.mockResolvedValue({ wallpapers: [], backendInstalled: true, active: [], appliedHistory: {} })
       const result = await caller.getWallpapers()
-      expect(result).toEqual([])
+      expect(result).toEqual({ wallpapers: [], appliedHistory: {} })
     })
   })
 

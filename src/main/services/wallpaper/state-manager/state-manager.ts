@@ -175,6 +175,17 @@ class WallpaperStateManager implements IStateManager {
     this.save()
   }
 
+  // ── Applied history ────────────────────────────────────────────────────
+
+  getAppliedHistory(): Record<string, number> {
+    return this.store.get('appliedHistory') ?? {}
+  }
+
+  recordApplied(backgroundId: string): void {
+    const history = this.getAppliedHistory()
+    this.store.set('appliedHistory', { ...history, [backgroundId]: Date.now() })
+  }
+
   // ── Debug ──────────────────────────────────────────────────────────────
 
   getDebugLogs(screen: string): DebugInfo {
