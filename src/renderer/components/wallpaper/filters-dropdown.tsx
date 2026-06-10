@@ -30,22 +30,18 @@ const COMPAT_ITEMS = COMPATIBILITY_OPTIONS.map((opt) => ({
 export function FiltersDropdown() {
     const {
         filterType,
-        setFilterType,
         toggleFilterType,
         filterAgeRating,
-        setFilterAgeRating,
         toggleFilterAgeRating,
         filterTags,
         toggleTag,
-        setFilterTags,
         availableTags,
         filterResolution,
         toggleResolution,
-        setFilterResolution,
         availableResolutions,
         filterCompatibility,
         toggleFilterCompatibility,
-        setFilterCompatibility,
+        clearAllFilters,
     } = useWallpaperFilter()
 
     const activeFilterCount =
@@ -57,11 +53,7 @@ export function FiltersDropdown() {
 
     const handleClearAll = (e: React.MouseEvent) => {
         e.stopPropagation()
-        setFilterType([])
-        setFilterAgeRating([])
-        setFilterResolution([])
-        setFilterTags([])
-        setFilterCompatibility([])
+        clearAllFilters()
     }
 
     return (

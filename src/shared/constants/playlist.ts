@@ -1,3 +1,5 @@
+import type { WallpaperOverrides } from './wallpaper'
+
 // Playlist settings
 export const PLAYLIST_ORDER_OPTIONS = [
   { label: 'Sequential', value: 'sequential' },
@@ -27,6 +29,8 @@ export interface PlaylistSettings {
   order: PlaylistOrder
   updateonpause: boolean
   videosequence: boolean
+  // Per-playlist engine flag overrides; unset keys fall back to global settings
+  overrides?: WallpaperOverrides
 }
 
 export const DEFAULT_PLAYLIST_SETTINGS: PlaylistSettings = {

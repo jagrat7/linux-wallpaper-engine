@@ -1,10 +1,10 @@
-import { ArrowLeft, Save, Check, CheckCheck, XCircle, ListChecks } from "lucide-react"
+import { ArrowLeft, Save, Check, CheckCheck, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/ui/icon-button"
 import { SearchInput } from "@/components/wallpaper/search"
 import { FiltersDropdown } from "../wallpaper/filters-dropdown"
 import { SortDropdown } from "../wallpaper/sort-dropdown"
-import { WallpaperGridLayout } from "../wallpaper/wallpaper-grid-layout"
+import { VirtualizedWallpaperGrid, type VirtualizedWallpaperGridHandle } from "../wallpaper/virtualized-wallpaper-grid"
 import { PlaylistSettingsBar } from "./playlist-settings-bar"
 import { SelectedChips } from "./selected-chips"
 import type { Playlist } from "../../../shared/constants/playlist"
@@ -12,14 +12,26 @@ import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
 import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
 import { usePlaylistEditor } from "@/hooks/use-playlist-editor"
-import { useMemo, useCallback } from "react"
+import { useMemo, useCallback, useState, useRef } from "react"
+import { ErrorMessage } from "@/components/error-message"
 
 interface PlaylistEditorGridProps {
     editPlaylist?: Playlist | null
 }
 
 export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
-    const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility } = useWallpaperSearch()
+    const {
+        searchQuery,
+        filterType,
+        filterAgeRating,
+        filterTags,
+        filterResolution,
+        sortBy,
+        sortOrder,
+        filterCompatibility,
+    } = useWallpaperSearch()
+    const [navigateError, setNavigateError] = useState<string | null>(null)
+    const gridRef = useRef<VirtualizedWallpaperGridHandle>(null)
     const {
         wallpapers: transformedWallpapers,
         isLoading,
@@ -49,6 +61,16 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
         () => transformedWallpapers.filter(w => editor.selectedSet.has(w.path)),
         [transformedWallpapers, editor.selectedSet],
     )
+
+    const handleNavigateToWallpaper = useCallback((path: string) => {
+        if (!filteredWallpapers.some(w => w.path === path)) {
+            setNavigateError("This wallpaper is hidden by your current filters. Adjust filters to find it.")
+            return
+        }
+
+        setNavigateError(null)
+        gridRef.current?.scrollToPath(path)
+    }, [filteredWallpapers])
 
     // True when every currently-visible wallpaper is already selected
     const allFilteredSelected = useMemo(
@@ -107,6 +129,12 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                 <SelectedChips
                     wallpapers={selectedWallpaperData}
                     onRemove={editor.handleRemoveWallpaper}
+                    onChipClick={handleNavigateToWallpaper}
+                />
+                <ErrorMessage
+                    message={navigateError}
+                    setMessage={setNavigateError}
+                    className="bg-destructive/10"
                 />
 
                 {/* Search + filters + select-all */}
@@ -137,7 +165,8 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
             </div>
 
             {/* Wallpaper grid */}
-            <WallpaperGridLayout
+            <VirtualizedWallpaperGrid
+                ref={gridRef}
                 wallpapers={filteredWallpapers}
                 isLoading={isLoading}
                 compatibilityMap={compatibilityMap}

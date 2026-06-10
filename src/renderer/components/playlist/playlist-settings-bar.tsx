@@ -1,13 +1,18 @@
-import { Clock } from "lucide-react"
+import { ChevronDown, Clock } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FieldLabel, FieldError } from "@/components/ui/field"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
     PLAYLIST_ORDER_OPTIONS,
     PLAYLIST_TIME_UNIT_OPTIONS,
     type PlaylistOrder,
     type PlaylistTimeUnit,
 } from "../../../shared/constants/playlist"
+import { ENGINE_OVERRIDE_FIELDS, type WallpaperOverrides } from "../../../shared/constants/wallpaper"
+import { GlobalProperties } from "../wallpaper/details-card/property-settings/global-properties"
+import { engineFieldDefault } from "../wallpaper/details-card/property-settings/global-prop-variants"
+import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
 import type { PlaylistEditorReturn } from "@/hooks/use-playlist-editor"
 
@@ -18,7 +23,14 @@ interface PlaylistSettingsBarProps {
     onClearServerError: () => void
 }
 
+// Matches SelectTrigger so popover fields sit flush with adjacent selects
+const selectTriggerClassName =
+    "border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex h-9 items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+
 export function PlaylistSettingsBar({ form, selectedCount, serverError, onClearServerError }: PlaylistSettingsBarProps) {
+    // Global settings supply the fallback values shown for unset overrides
+    const { data: settings } = trpc.settings.get.useQuery()
+
     return (
         <div className="flex items-start gap-6 p-5 rounded-xl border border-border bg-card glass">
             {/* Name */}
@@ -112,7 +124,7 @@ export function PlaylistSettingsBar({ form, selectedCount, serverError, onClearS
                                 value={field.state.value}
                                 onValueChange={(v) => field.handleChange(v as PlaylistOrder)}
                             >
-                                <SelectTrigger id={field.name} className="h-9 w-[7.5rem]" aria-invalid={isInvalid}>
+                                <SelectTrigger id={field.name} className="h-9 w-30" aria-invalid={isInvalid}>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -124,6 +136,67 @@ export function PlaylistSettingsBar({ form, selectedCount, serverError, onClearS
                                 </SelectContent>
                             </Select>
                             {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                        </div>
+                    )
+                }}
+            />
+
+            {/* Engine setting overrides for the whole playlist */}
+            <form.Field
+                name="overrides"
+                children={(field) => {
+                    const overrides = field.state.value
+                    const activeCount = ENGINE_OVERRIDE_FIELDS.filter(
+                        (f) => overrides?.[f.key] !== undefined && overrides[f.key] !== engineFieldDefault(f, settings),
+                    ).length
+
+                    const clearOverride = (key: keyof WallpaperOverrides) => {
+                        const next = { ...overrides }
+                        delete next[key]
+                        field.handleChange(next)
+                    }
+
+                    const updateOverride = <K extends keyof WallpaperOverrides>(key: K, value: WallpaperOverrides[K]) => {
+                        // Storing a value equal to the effective default is the same as unsetting it
+                        const f = ENGINE_OVERRIDE_FIELDS.find((o) => o.key === key)
+                        if (f && value === engineFieldDefault(f, settings)) {
+                            clearOverride(key)
+                            return
+                        }
+                        field.handleChange({ ...overrides, [key]: value })
+                    }
+
+                    return (
+                        <div className="space-y-1.5">
+                            <FieldLabel>Overrides</FieldLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className={cn(
+                                            selectTriggerClassName,
+                                            "w-30",
+                                            activeCount === 0 && "text-muted-foreground",
+                                        )}
+                                    >
+                                        <span className="truncate">
+                                            {activeCount > 0 ? "Custom" : "Default"}
+                                        </span>
+                                        <ChevronDown className="size-4 opacity-50" />
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="start" sideOffset={4} className="w-80 p-1">
+                                    <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                                        Override global settings for this playlist. Unset values use global defaults.
+                                    </p>
+                                    <GlobalProperties
+                                        overrides={overrides}
+                                        settings={settings}
+                                        onUpdate={updateOverride}
+                                        onClear={clearOverride}
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     )
                 }}

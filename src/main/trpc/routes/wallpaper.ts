@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { trpc } from '../trpc'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { playlistService } from '../../services/playlists/playlist'
-import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
+import { engineOverridesSchema, type ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 import type { DebugInfo } from '../../services/wallpaper/wallpaper.types'
 import { settingsService } from '../../services/settings'
 import { compatibilityService } from '../../services/compatibility'
@@ -115,13 +115,7 @@ export const wallpaperRouter = trpc.router({
     .input(
       z.object({
         path: z.string(),
-        overrides: z.object({
-          volume: z.number().min(0).max(100).optional(),
-          audioProcessing: z.boolean().optional(),
-          scaling: z.enum(['default', 'stretch', 'fit', 'fill']).optional(),
-          disableMouse: z.boolean().optional(),
-          disableParallax: z.boolean().optional(),
-          disableParticles: z.boolean().optional(),
+        overrides: engineOverridesSchema.extend({
           customProperties: z.record(z.string(), z.string()).optional(),
         }),
       }),

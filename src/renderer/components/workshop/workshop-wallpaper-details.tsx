@@ -19,7 +19,7 @@ interface WorkshopWallpaperDetailsProps {
 
 export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpaperDetailsProps) {
     const [isApplying, setIsApplying] = useState(false)
-    const [isDownloading, setIsDownloading] = useState(false)
+    const [localIsDownloading, setLocalIsDownloading] = useState(false)
     const [showBackendDialog, setShowBackendDialog] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const workshopId = wallpaper.workshopId ?? wallpaper.id
@@ -35,13 +35,13 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
         { workshopId },
         // Stop polling once unsubscribed — Steam keeps files until app close
         // so status would still return a path, but the user already unsubscribed.
-        { refetchInterval: isDownloading ? 1000 : 3000, enabled: !isUnsubscribed },
+        { refetchInterval: localIsDownloading ? 1000 : 3000, enabled: !isUnsubscribed },
     )
 
     const subscribeMutation = trpc.workshop.subscribe.useMutation({
         onSuccess: () => {
             removeUnsubscribedWorkshopId(workshopId)
-            setIsDownloading(true)
+            setLocalIsDownloading(true)
         },
     })
 
@@ -55,12 +55,16 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
     const wallpaperPath = isUnsubscribed ? null : (workshopStatus?.path ?? null)
     const downloadProgress = workshopStatus?.download ?? null
 
-    // When status reports a path while downloading, the download is complete
+    // Derive from server status so state survives navigation away and back;
+    // localIsDownloading covers the brief window before the first poll returns.
+    const isDownloading = !isUnsubscribed && (localIsDownloading || (downloadProgress != null && !wallpaperPath))
+
+    // Clear local flag once server confirms download complete (path available)
     useEffect(() => {
-        if (isDownloading && wallpaperPath) {
-            setIsDownloading(false)
+        if (localIsDownloading && wallpaperPath) {
+            setLocalIsDownloading(false)
         }
-    }, [isDownloading, wallpaperPath])
+    }, [localIsDownloading, wallpaperPath])
 
     const activeScreens = activeWallpapers
         .filter(w => w.wallpaper.backgroundId === wallpaperPath)

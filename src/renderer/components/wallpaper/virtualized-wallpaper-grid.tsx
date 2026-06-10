@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react"
 import { FolderOpen, type LucideIcon } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -13,16 +13,24 @@ const MIN_CARD_WIDTH = 200 // target min card width; drives responsive column co
 const MAX_COLS = 8 // cap columns so cards don't shrink on ultrawide displays
 const OVERSCAN = 3 // rows rendered beyond the viewport to smooth scrolling
 
+export interface VirtualizedWallpaperGridHandle {
+    /** Scroll the row containing the given wallpaper path into view. */
+    scrollToPath: (path: string) => void
+}
+
 interface VirtualizedWallpaperGridProps {
     wallpapers: Wallpaper[]
     isLoading: boolean
     compatibilityMap?: Record<string, CompatibilityStatus>
     showCompatibilityDot?: boolean
     selectedId?: string
+    isSelected?: (wallpaper: Wallpaper) => boolean
     onCardClick: (wallpaper: Wallpaper) => void
     emptyIcon?: LucideIcon
     emptyMessage?: string
     emptySubMessage?: string
+    renderCardOverlay?: (wallpaper: Wallpaper) => ReactNode
+    ref?: Ref<VirtualizedWallpaperGridHandle>
 }
 
 
@@ -33,10 +41,13 @@ export function VirtualizedWallpaperGrid({
     compatibilityMap,
     showCompatibilityDot = true,
     selectedId,
+    isSelected,
     onCardClick,
     emptyIcon: EmptyIcon = FolderOpen,
     emptyMessage = "No wallpapers found",
     emptySubMessage,
+    renderCardOverlay,
+    ref,
 }: VirtualizedWallpaperGridProps) {
     const parentRef = useRef<HTMLDivElement>(null)
     const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null)
@@ -92,9 +103,20 @@ export function VirtualizedWallpaperGrid({
     })
 
     // Re-measure rows when geometry changes (column count / width).
-    useEffect(() => {
+    useLayoutEffect(() => {
         virtualizer.measure()
     }, [virtualizer, columns, rowHeight])
+
+    useImperativeHandle(ref, () => ({
+        scrollToPath: (path: string) => {
+            const index = wallpapers.findIndex(w => w.path === path)
+            if (index < 0 || columns === 0) return
+            virtualizer.scrollToIndex(Math.floor(index / columns), {
+                align: "center",
+                behavior: "auto",
+            })
+        },
+    }), [virtualizer, wallpapers, columns])
 
     const skeleton = (
         <div
@@ -129,14 +151,16 @@ export function VirtualizedWallpaperGrid({
                         }}
                     >
                         {rowItems.map((wallpaper) => (
-                            <WallpaperCard
-                                key={wallpaper.id}
-                                wallpaper={wallpaper}
-                                selected={selectedId === wallpaper.id}
-                                onClick={onCardClick}
-                                compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
-                                showCompatibilityDot={showCompatibilityDot}
-                            />
+                            <div key={wallpaper.id} className="relative" data-wallpaper-path={wallpaper.path}>
+                                <WallpaperCard
+                                    wallpaper={wallpaper}
+                                    selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+                                    onClick={onCardClick}
+                                    compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
+                                    showCompatibilityDot={showCompatibilityDot}
+                                />
+                                {renderCardOverlay?.(wallpaper)}
+                            </div>
                         ))}
                     </div>
                 )

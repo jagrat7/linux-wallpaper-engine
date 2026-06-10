@@ -57,7 +57,7 @@ export function WallpaperGridLayout({
     return (
         <div className={`grid gap-4 ${gridCols}`}>
             {wallpapers.map((wallpaper) => (
-                <div key={wallpaper.id} className="relative">
+                <div key={wallpaper.id} className="relative" data-wallpaper-path={wallpaper.path}>
                     <WallpaperCard
                         wallpaper={wallpaper}
                         selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}

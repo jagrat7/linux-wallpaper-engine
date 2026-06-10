@@ -40,6 +40,7 @@ export interface AppSettings {
   showStatusBar: boolean
   dynamicBackground: boolean
   dismissedScanReminder: boolean
+  dismissedUpdateVersion: string | null
 
   // Debug & Flatpak
   debugMode: boolean
@@ -98,6 +99,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showStatusBar: true,
   dynamicBackground: true,
   dismissedScanReminder: false,
+  dismissedUpdateVersion: null,
 
   // Debug & Flatpak
   debugMode: false,
@@ -125,6 +127,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 export const APP_NAME = 'Linux Wallpaper Engine'
 export const APP_VERSION = packageJson.version
 export const WALLPAPER_ENGINE_APP_ID = 431960
+export const GITHUB_REPO = 'jagrat7/linux-wallpaper-engine'
 
 export const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
