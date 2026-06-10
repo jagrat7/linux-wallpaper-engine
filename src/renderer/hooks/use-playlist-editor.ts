@@ -9,7 +9,7 @@ import {
     type Playlist,
     type PlaylistTimeUnit,
 } from "../../shared/constants/playlist"
-import type { Wallpaper } from "../../shared/constants/wallpaper"
+import { engineOverridesSchema, type Wallpaper, type WallpaperOverrides } from "../../shared/constants/wallpaper"
 import { delayToMinutes, minutesToDelay } from "@/lib/utils"
 import { trpc } from "@/lib/trpc"
 
@@ -18,6 +18,7 @@ const playlistFormSchema = z.object({
     delay: z.number().min(1, "Must be at least 1"),
     timeUnit: z.enum(PLAYLIST_TIME_UNIT_VALUES),
     order: z.enum(PLAYLIST_ORDER_VALUES),
+    overrides: engineOverridesSchema,
 })
 
 const fullSchema = playlistFormSchema.extend({
@@ -33,6 +34,7 @@ function buildDefaults(playlist?: Playlist | null) {
             delay: parsed.value,
             timeUnit: parsed.unit,
             order: playlist.settings.order,
+            overrides: (playlist.settings.overrides ?? {}) as WallpaperOverrides,
             wallpapers: playlist.items,
         }
     }
@@ -41,6 +43,7 @@ function buildDefaults(playlist?: Playlist | null) {
         delay: DEFAULT_PLAYLIST_SETTINGS.delay,
         timeUnit: "minutes" as PlaylistTimeUnit,
         order: DEFAULT_PLAYLIST_SETTINGS.order,
+        overrides: {} as WallpaperOverrides,
         wallpapers: [] as string[],
     }
 }
@@ -66,6 +69,7 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
                     ...DEFAULT_PLAYLIST_SETTINGS,
                     delay: delayToMinutes(value.delay, value.timeUnit),
                     order: value.order,
+                    overrides: value.overrides,
                 },
             }
 

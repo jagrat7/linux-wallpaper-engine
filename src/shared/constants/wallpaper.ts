@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import type { CompatibilityStatus } from './compatibility'
 import { SCALING_OPTIONS, type ScalingOption } from './display'
 
@@ -113,6 +114,35 @@ export const ENGINE_OVERRIDE_FIELDS = [
   { control: 'switch', key: 'disableParticles', globalKey: 'disableParticles', label: 'Disable particle effects', fallback: false },
 ] as const
 export type EngineOverrideField = typeof ENGINE_OVERRIDE_FIELDS[number]
+
+const SCALING_VALUES = SCALING_OPTIONS.map(o => o.value) as [ScalingOption, ...ScalingOption[]]
+
+// Shared zod schema for the user-settable engine flag overrides. Reused by the
+// per-wallpaper and per-playlist tRPC inputs and the playlist editor form.
+export const engineOverridesSchema = z.object({
+  volume: z.number().min(0).max(100).optional(),
+  audioProcessing: z.boolean().optional(),
+  scaling: z.enum(SCALING_VALUES).optional(),
+  disableMouse: z.boolean().optional(),
+  disableParallax: z.boolean().optional(),
+  disableParticles: z.boolean().optional(),
+})
+
+// Apply engine overrides onto a global settings object by mapping each override
+// key to its corresponding global setting key (see ENGINE_OVERRIDE_FIELDS).
+// Returns the original object untouched when there are no overrides.
+export function applyOverridesToSettings<T extends object>(
+  settings: T,
+  overrides?: WallpaperOverrides,
+): T {
+  if (!overrides) return settings
+  const merged = { ...settings } as Record<string, unknown>
+  for (const field of ENGINE_OVERRIDE_FIELDS) {
+    const value = overrides[field.key]
+    if (value !== undefined) merged[field.globalKey] = value
+  }
+  return merged as T
+}
 
 // Property types from project.json `general.properties` that get a UI control.
 // Other types (text headings, groups, scenetexture, file) are display-only or unsupported.

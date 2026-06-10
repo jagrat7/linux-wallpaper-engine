@@ -114,7 +114,11 @@ function WorkshopPage() {
         <WorkshopDetailsPanel
           wallpaper={selectedWallpaper}
           onClose={() => setSelectedWallpaper(null)}
-          onExitComplete={() => setDetailsVisible(false)}
+          onExitComplete={() => {
+            // Only collapse columns when the panel is fully gone. When switching
+            // between cards the exit fires too, but a selection still exists.
+            if (!selectedWallpaper) setDetailsVisible(false)
+          }}
         />
       </div>
       <ScrollToTopButton />

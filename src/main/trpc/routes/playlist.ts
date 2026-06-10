@@ -7,7 +7,7 @@ import { displayService } from '../../services/display'
 import { hostCommandExists, hostSpawn } from '../../utils/host'
 import { resolveWallpaperEngineAssetsDir } from '../../services/wallpaper/wallpaper.utils'
 import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants/playlist'
-import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE } from '../../../shared/constants/wallpaper'
+import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, applyOverridesToSettings, engineOverridesSchema } from '../../../shared/constants/wallpaper'
 
 const playlistSettingsSchema = z.object({
   delay: z.number().min(1),
@@ -16,6 +16,7 @@ const playlistSettingsSchema = z.object({
   order: z.enum(PLAYLIST_ORDER_VALUES),
   updateonpause: z.boolean(),
   videosequence: z.boolean(),
+  overrides: engineOverridesSchema.optional(),
 })
 
 async function startPlaylistProcess(playlistName: string, screens: string[], stampLastApplied: boolean) {
@@ -38,7 +39,7 @@ async function startPlaylistProcess(playlistName: string, screens: string[], sta
 
   const settings = await settingsService.loadSettings()
   const screenKeys = settings.windowMode ? ['default'] : screens
-  const settingsArgs = settingsService.settingsToArgs(settings)
+  const settingsArgs = settingsService.settingsToArgs(applyOverridesToSettings(settings, playlist.settings.overrides))
   const assetsDir = settings.assetsDir ?? await resolveWallpaperEngineAssetsDir()
   const args: string[] = []
   if (!settings.windowMode) {

@@ -15,9 +15,10 @@ interface WorkshopDetailsPanelProps {
 
 export function WorkshopDetailsPanel({ wallpaper, onClose, onExitComplete }: WorkshopDetailsPanelProps) {
   return (
-    <AnimatePresence onExitComplete={onExitComplete}>
+    <AnimatePresence mode="wait" onExitComplete={onExitComplete}>
       {wallpaper && (
         <motion.div
+          key={wallpaper.id}
           className="sticky top-0"
           initial={{ opacity: 0, x: -40 }}
           animate={{ opacity: 1, x: 0 }}

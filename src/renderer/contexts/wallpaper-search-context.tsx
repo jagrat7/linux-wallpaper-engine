@@ -52,6 +52,7 @@ interface WallpaperFilterContextType {
   filterCompatibility: CompatibilityStatus[]
   setFilterCompatibility: (statuses: CompatibilityStatus[]) => void
   toggleFilterCompatibility: (status: CompatibilityStatus) => void
+  clearAllFilters: () => void
 }
 
 export function WallpaperSearchProvider({ children }: { children: ReactNode }) {
@@ -197,6 +198,14 @@ export function useWallpaperFilter() {
     })
   }, [setFilterCompatibilityValue, updateSettings])
 
+  const clearAllFilters = useCallback(() => {
+    setFilterType([])
+    setFilterAgeRating([])
+    setFilterResolution([])
+    setFilterTags([])
+    setFilterCompatibility([])
+  }, [setFilterType, setFilterAgeRating, setFilterResolution, setFilterTags, setFilterCompatibility])
+
   return useMemo<WallpaperFilterContextType>(() => ({
     filterType,
     setFilterType,
@@ -217,6 +226,7 @@ export function useWallpaperFilter() {
     filterCompatibility,
     setFilterCompatibility,
     toggleFilterCompatibility,
+    clearAllFilters,
   }), [
     availableResolutions,
     availableTags,
@@ -237,6 +247,7 @@ export function useWallpaperFilter() {
     toggleResolution,
     toggleTag,
     toggleFilterType,
+    clearAllFilters,
   ])
 }
 

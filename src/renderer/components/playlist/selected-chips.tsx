@@ -6,9 +6,10 @@ import type { Wallpaper } from "../../../shared/constants/wallpaper"
 interface SelectedChipsProps {
     wallpapers: Wallpaper[]
     onRemove: (path: string) => void
+    onChipClick: (path: string) => void
 }
 
-export function SelectedChips({ wallpapers, onRemove }: SelectedChipsProps) {
+export function SelectedChips({ wallpapers, onRemove, onChipClick }: SelectedChipsProps) {
     if (wallpapers.length === 0) return null
 
     return (
@@ -25,7 +26,8 @@ export function SelectedChips({ wallpapers, onRemove }: SelectedChipsProps) {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className="flex items-center gap-2 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-sm"
+                        onClick={() => onChipClick(wallpaper.path)}
+                        className="flex cursor-pointer items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm transition-colors hover:bg-primary/15"
                     >
                         <span className="max-w-[150px] truncate font-medium">
                             {wallpaper.title}
@@ -34,7 +36,10 @@ export function SelectedChips({ wallpapers, onRemove }: SelectedChipsProps) {
                             variant="ghost"
                             size="icon-sm"
                             className="size-5 p-0 hover:bg-destructive/20 hover:text-destructive"
-                            onClick={() => onRemove(wallpaper.path)}
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onRemove(wallpaper.path)
+                            }}
                         >
                             <X className="size-3" />
                         </Button>
