@@ -71,9 +71,14 @@ export function filterAndSortWallpapers(
             case "size":
                 comparison = a.fileSize - b.fileSize
                 break
-            case "recent":
-                comparison = b.id.localeCompare(a.id)
+            case "recent": {
+                // Newest-first orientation (like the old workshop-id compare); never-applied
+                // wallpapers fall back to install date so they stay meaningfully ordered
+                const aApplied = a.lastAppliedAt ?? 0
+                const bApplied = b.lastAppliedAt ?? 0
+                comparison = bApplied === aApplied ? b.dateAdded - a.dateAdded : bApplied - aApplied
                 break
+            }
             case "date":
                 comparison = a.dateAdded - b.dateAdded
                 break
@@ -91,7 +96,7 @@ export function filterAndSortWallpapers(
  */
 export function useWallpapers() {
     const {
-        data: rawWallpapers,
+        data,
         isLoading,
         isFetching,
         error,
@@ -101,6 +106,8 @@ export function useWallpapers() {
     const invalidateCache = trpc.wallpaper.invalidateCache.useMutation()
     const { data: compatibilityMap } = trpc.wallpaper.getCompatibilityMap.useQuery()
     const { data: appSettings } = trpc.settings.get.useQuery()
+    const rawWallpapers = data?.wallpapers
+    const appliedHistory = data?.appliedHistory
 
     const wallpapers: Wallpaper[] = useMemo(() => {
         if (!rawWallpapers) return []
@@ -120,8 +127,9 @@ export function useWallpapers() {
             tags: w.tags,
             installed: w.installed,
             path: w.path,
+            lastAppliedAt: appliedHistory?.[w.path],
         }))
-    }, [rawWallpapers])
+    }, [rawWallpapers, appliedHistory])
 
     const hardRefresh = async () => {
         await invalidateCache.mutateAsync()

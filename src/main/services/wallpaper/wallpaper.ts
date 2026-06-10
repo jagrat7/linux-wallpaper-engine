@@ -43,13 +43,14 @@ class WallpaperService implements IWallpaperService {
     wallpapers: Wallpaper[]
     backendInstalled: boolean
     active: ActiveWallpaperEntry[]
+    appliedHistory: Record<string, number>
   }> {
     const [wallpapers, backendInstalled] = await Promise.all([
       this.getWallpapers(),
       this.checkBackendInstalled(),
     ])
     const active = await this.getActiveWithTitles(wallpapers)
-    return { wallpapers, backendInstalled, active }
+    return { wallpapers, backendInstalled, active, appliedHistory: this.state.getAppliedHistory() }
   }
 
   // ── Apply ──────────────────────────────────────────────────────────────
@@ -133,6 +134,11 @@ class WallpaperService implements IWallpaperService {
         return
       }
     }
+  }
+
+  private stampApplied(backgroundId: string): void {
+    this.state.recordApplied(backgroundId)
+    invalidationService.emit('wallpaper.getWallpapers')
   }
 
   // ── Diagnose ───────────────────────────────────────────────────────────
@@ -292,6 +298,7 @@ class WallpaperService implements IWallpaperService {
       const result = await this.spawnWindowed(options)
       if (result.success) {
         invalidationService.emit('wallpaper.applied')
+        this.stampApplied(options.backgroundId)
       }
       return result
     }
@@ -317,6 +324,7 @@ class WallpaperService implements IWallpaperService {
     const result = await this.spawnForScreens(targetScreens, options)
     if (result.success) {
       invalidationService.emit('wallpaper.applied')
+      this.stampApplied(options.backgroundId)
     }
     return result
   }
