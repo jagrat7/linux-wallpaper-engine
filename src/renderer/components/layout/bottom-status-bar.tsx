@@ -1,4 +1,4 @@
-import { Square, Volume2, VolumeX, Monitor, ListVideo, Image } from "lucide-react"
+import { Square, Volume2, VolumeX, Monitor, ListVideo } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { trpc } from "@/lib/trpc"
@@ -23,10 +23,11 @@ interface ScreenPlaylist {
 
 // Tooltip shown on the multi-screen badge, summarizing what runs where
 function buildScreensTooltip(activeWallpapers: ScreenWallpaper[], activePlaylists: ScreenPlaylist[]): string {
+    // Playlist screens rotate internally, so the tracked wallpaper title is stale — show the playlist instead
     return activeWallpapers
         .map(({ screen, title }) => {
             const playlist = activePlaylists.find(entry => entry.screen === screen)
-            return playlist ? `${screen}: ${title} (playlist: ${playlist.name})` : `${screen}: ${title}`
+            return playlist ? `${screen}: playlist "${playlist.name}"` : `${screen}: ${title}`
         })
         .join("\n")
 }
@@ -72,7 +73,10 @@ export function StatusBar({ className }: StatusBarProps) {
 
     const handleOpenDetails = () => {
         if (!activeWallpaper) return
-        navigate({ to: "/", search: { wallpaper: activeWallpaper.wallpaper.backgroundId } })
+        // backgroundId is the wallpaper's absolute path; the grid matches on the folder name id
+        const wallpaperId = activeWallpaper.wallpaper.backgroundId.split("/").filter(Boolean).pop()
+        if (!wallpaperId) return
+        navigate({ to: "/", search: { wallpaper: wallpaperId } })
     }
 
     const handleStop = async () => {
@@ -126,24 +130,27 @@ export function StatusBar({ className }: StatusBarProps) {
                         <>
                             <div className="size-2 rounded-full bg-success" />
                             {activePlaylist ? (
-                                <span
-                                    className="flex items-center gap-1 text-xs text-muted-foreground"
+                                // The backend rotates playlist wallpapers internally, so the
+                                // current title is unknown — show the playlist itself instead
+                                <button
+                                    type="button"
+                                    onClick={() => navigate({ to: "/playlists/editor", search: { name: activePlaylist.name } })}
+                                    className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
                                     title={`Playlist active: ${activePlaylist.name}`}
                                 >
                                     <ListVideo className="size-3.5" />
                                     {activePlaylist.name}
-                                </span>
+                                </button>
                             ) : (
-                                <Image className="size-3.5 text-muted-foreground" aria-label="Single wallpaper active" />
+                                <button
+                                    type="button"
+                                    onClick={handleOpenDetails}
+                                    className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                                    title="Show wallpaper details"
+                                >
+                                    {wallpaperTitle}
+                                </button>
                             )}
-                            <button
-                                type="button"
-                                onClick={handleOpenDetails}
-                                className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                                title="Show wallpaper details"
-                            >
-                                {wallpaperTitle}
-                            </button>
                             {otherActiveCount > 0 && (
                                 <span
                                     className="text-xs text-muted-foreground/70"
