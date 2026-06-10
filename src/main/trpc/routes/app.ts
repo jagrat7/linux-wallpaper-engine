@@ -1,14 +1,11 @@
 import { app } from 'electron'
 import { trpc } from '../trpc'
 import { GITHUB_REPO } from '../../../shared/constants/app'
+import { isNewerVersion, stripVersionPrefix } from '../../utils/version'
 
 interface GithubRelease {
   tag_name: string
   html_url: string
-}
-
-function stripV(version: string): string {
-  return version.replace(/^v/, '')
 }
 
 export const appRouter = trpc.router({
@@ -23,8 +20,8 @@ export const appRouter = trpc.router({
       if (!res.ok) return { hasUpdate: false, latestVersion: null, releaseUrl: null }
 
       const release = await res.json() as GithubRelease
-      const latestVersion = stripV(release.tag_name)
-      const hasUpdate = latestVersion !== stripV(currentVersion)
+      const latestVersion = stripVersionPrefix(release.tag_name)
+      const hasUpdate = isNewerVersion(latestVersion, currentVersion)
 
       return { hasUpdate, latestVersion, releaseUrl: release.html_url }
     } catch {
