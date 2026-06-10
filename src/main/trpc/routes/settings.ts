@@ -57,6 +57,7 @@ const settingsSchema = z.object({
   showStatusBar: z.boolean().optional(),
   dynamicBackground: z.boolean().optional(),
   dismissedScanReminder: z.boolean().optional(),
+  dismissedUpdateVersion: z.string().nullable().optional(),
 
   // Debug & Flatpak
   debugMode: z.boolean().optional(),
@@ -118,6 +119,7 @@ export const settingsRouter = trpc.router({
 
     await settingsService.saveSettings({
       dismissedScanReminder: current.dismissedScanReminder,
+      dismissedUpdateVersion: current.dismissedUpdateVersion,
     })
 
     // Reapply active wallpapers with default settings
