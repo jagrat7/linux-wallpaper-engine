@@ -6,11 +6,9 @@ import { EmptyState } from "@/components/empty-state"
 import { WallpaperCard } from "./wallpaper-card"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
-import { findScrollParent } from "@/lib/utils"
+import { findScrollParent, DEFAULT_GRID_COLS, columnsForWidth } from "@/lib/utils"
 
 const GAP = 16 // matches gap-4 (1rem)
-const MIN_CARD_WIDTH = 200 // target min card width; drives responsive column count
-const MAX_COLS = 8 // cap columns so cards don't shrink on ultrawide displays
 const OVERSCAN = 3 // rows rendered beyond the viewport to smooth scrolling
 
 export interface VirtualizedWallpaperGridHandle {
@@ -82,10 +80,9 @@ export function VirtualizedWallpaperGrid({
         return () => observer.disconnect()
     }, [scrollEl])
 
-    const columns = Math.min(
-        MAX_COLS,
-        Math.max(1, Math.floor((width + GAP) / (MIN_CARD_WIDTH + GAP))),
-    )
+    // Breakpoints are applied to the container width (not the viewport), so the
+    // column count adapts when side panels narrow the grid.
+    const columns = columnsForWidth(width)
     const cardWidth = columns > 0 ? (width - GAP * (columns - 1)) / columns : 0
     const rowHeight = cardWidth + GAP // cards are square (aspect-square)
     const rowCount = Math.ceil(wallpapers.length / columns)
@@ -119,10 +116,7 @@ export function VirtualizedWallpaperGrid({
     }), [virtualizer, wallpapers, columns])
 
     const skeleton = (
-        <div
-            className="grid gap-4"
-            style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${MIN_CARD_WIDTH}px, 1fr))` }}
-        >
+        <div className={`grid gap-4 ${DEFAULT_GRID_COLS}`}>
             {Array.from({ length: skeletonCount }).map((_, i) => (
                 <Skeleton key={i} className="aspect-square rounded-xl" />
             ))}

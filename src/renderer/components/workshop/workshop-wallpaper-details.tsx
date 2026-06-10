@@ -115,8 +115,7 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
     }
 
     const handleStop = async (screen?: string | string[]) => {
-        const screens = Array.isArray(screen) ? screen : [screen]
-        await Promise.all(screens.map(screen => stopMutation.mutateAsync({ screen })))
+        await stopMutation.mutateAsync({ screen })
         await utils.wallpaper.getActiveWallpaper.invalidate()
         await utils.playlist.active.invalidate()
     }

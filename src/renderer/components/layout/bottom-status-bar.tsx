@@ -1,6 +1,7 @@
 import { Square, Volume2, VolumeX, Monitor, ListVideo } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
 
@@ -116,12 +117,14 @@ export function StatusBar({ className }: StatusBarProps) {
                     <Monitor className="size-3.5" />
                     <span>{primaryDisplay?.name ?? "No Display"}</span>
                     {hasMultipleScreens && (
-                        <span
-                            className="rounded-full bg-secondary px-1.5 py-0.5 text-xs"
-                            title={screensTooltip}
-                        >
-                            {activeWallpapers.length}/{displays.length} active
-                        </span>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs">
+                                    {activeWallpapers.length}/{displays.length} active
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="whitespace-pre-line">{screensTooltip}</TooltipContent>
+                        </Tooltip>
                     )}
                 </div>
                 <div className="h-4 w-px bg-border" />
@@ -134,9 +137,8 @@ export function StatusBar({ className }: StatusBarProps) {
                                 // current title is unknown — show the playlist itself instead
                                 <button
                                     type="button"
-                                    onClick={() => navigate({ to: "/playlists/editor", search: { name: activePlaylist.name } })}
+                                    onClick={() => navigate({ to: "/playlists" })}
                                     className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                                    title={`Playlist active: ${activePlaylist.name}`}
                                 >
                                     <ListVideo className="size-3.5" />
                                     {activePlaylist.name}
@@ -146,18 +148,19 @@ export function StatusBar({ className }: StatusBarProps) {
                                     type="button"
                                     onClick={handleOpenDetails}
                                     className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                                    title="Show wallpaper details"
                                 >
                                     {wallpaperTitle}
                                 </button>
                             )}
                             {otherActiveCount > 0 && (
-                                <span
-                                    className="text-xs text-muted-foreground/70"
-                                    title={screensTooltip}
-                                >
-                                    +{otherActiveCount} more
-                                </span>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="text-xs text-muted-foreground/70">
+                                            +{otherActiveCount} more
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="whitespace-pre-line">{screensTooltip}</TooltipContent>
+                                </Tooltip>
                             )}
                         </>
                     ) : (

@@ -93,9 +93,11 @@ export const wallpaperRouter = trpc.router({
       return result
     }),
 
-  // Stop wallpaper(s)
+  // Stop wallpaper(s). Pass all screens in one call so a shared process is
+  // released atomically — per-screen calls race with the respawn of the
+  // remaining screens.
   stopWalpaper: trpc.procedure
-    .input(z.object({ screen: z.string().optional() }).optional())
+    .input(z.object({ screen: z.union([z.string(), z.array(z.string())]).optional() }).optional())
     .mutation(async ({ input }) => {
       const result = await wallpaperService.stop(input?.screen)
       if (result.success && result.screens) {

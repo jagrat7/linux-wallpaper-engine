@@ -63,6 +63,7 @@ export function WorkshopActionButtons({
     return (
         <div className="flex items-center gap-2">
             <ApplyButton
+                itemId={wallpaperPath}
                 onApply={onApply}
                 onStop={onStop}
                 isApplying={isApplying}

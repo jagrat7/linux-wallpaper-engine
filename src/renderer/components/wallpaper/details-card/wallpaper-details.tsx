@@ -84,8 +84,7 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
     }
 
     const handleStop = async (screen?: string | string[]) => {
-        const screens = Array.isArray(screen) ? screen : [screen]
-        await Promise.all(screens.map(screen => stopMutation.mutateAsync({ screen })))
+        await stopMutation.mutateAsync({ screen })
         await utils.wallpaper.getActiveWallpaper.invalidate()
         await utils.playlist.active.invalidate()
     }
@@ -119,6 +118,7 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
                 <>
                     <div className="flex items-center gap-2">
                         <ApplyButton
+                            itemId={backgroundId}
                             onApply={handleApply}
                             onStop={handleStop}
                             isApplying={isApplying}
