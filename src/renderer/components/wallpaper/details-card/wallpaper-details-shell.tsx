@@ -15,7 +15,7 @@ interface WallpaperDetailsShellProps {
 
 export function WallpaperDetailsShell({ wallpaper, onClose, actions, children }: WallpaperDetailsShellProps) {
     return (
-        <div id="wallpaper-details" className="sticky top-0 max-h-[95vh] w-80 shrink-0 overflow-y-auto rounded-xl border border-border bg-card glass scrollbar-thin ">
+        <div id="wallpaper-details" className="sticky top-0 max-h-[calc(100vh-var(--status-bar-h,0rem)-2rem)] w-80 shrink-0 overflow-y-auto rounded-xl border border-border bg-card glass scrollbar-thin ">
             <div className="sticky top-2 z-10 flex justify-end pr-2 h-0">
                 <Button
                     variant="ghost"

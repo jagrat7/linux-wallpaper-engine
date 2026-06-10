@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion"
+import { useNavigate, useSearch } from "@tanstack/react-router"
 import { type Wallpaper } from "./wallpaper-card"
 import { GridHeader } from "./wallpaper-grid-header"
 import { VirtualizedWallpaperGrid } from "./virtualized-wallpaper-grid"
@@ -54,6 +55,20 @@ export function WallpaperGrid() {
     useEffect(() => {
         setSelectedUrl(selectedWallpaper?.thumbnail ?? null)
     }, [selectedWallpaper, setSelectedUrl])
+
+    // Open details card when navigated here with ?wallpaper=<id> (e.g. from the status bar)
+    const { wallpaper: requestedWallpaperId } = useSearch({ from: "/" })
+    const navigate = useNavigate()
+
+    useEffect(() => {
+        if (!requestedWallpaperId || transformedWallpapers.length === 0) return
+
+        const match = transformedWallpapers.find(w => w.id === requestedWallpaperId)
+        if (match) setSelectedWallpaper(match)
+
+        // Clear the param so closing the card or re-clicking works as expected
+        navigate({ to: "/", search: {}, replace: true })
+    }, [requestedWallpaperId, transformedWallpapers, setSelectedWallpaper, navigate])
 
 
     // Extract and set available tags from raw data (before filtering)

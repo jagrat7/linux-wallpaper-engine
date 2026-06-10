@@ -56,7 +56,7 @@ export function ScrollToTopButton({ threshold = DEFAULT_THRESHOLD, className }: 
       type="button"
       onClick={handleClick}
       className={cn(
-        "fixed bottom-12 right-4 z-50",
+        "fixed bottom-[calc(var(--status-bar-h,0rem)+0.5rem)] right-4 z-50",
         "flex items-center justify-center",
         "size-10 rounded-full",
         "glass text-foreground",

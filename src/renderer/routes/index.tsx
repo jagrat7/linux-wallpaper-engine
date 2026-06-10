@@ -1,11 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { z } from "zod"
 import { WallpaperGrid } from "@/components/wallpaper/wallpaper-grid"
 import { ScanReminderBanner } from "@/components/scan-reminder-banner"
 import { ScrollToTopButton } from "@/components/scroll-to-top-button"
 import { trpc } from "@/lib/trpc"
 
+const installedSearchSchema = z.object({
+    wallpaper: z.string().optional(),
+})
+
 export const Route = createFileRoute("/")({
     component: InstalledPage,
+    validateSearch: installedSearchSchema,
 })
 
 function InstalledPage() {

@@ -2,7 +2,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Sidebar } from "./side-bar"
 
-import { StatusBar } from "./bottom-status-bar"
+import { StatusBar, STATUS_BAR_HEIGHT } from "./bottom-status-bar"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { trpc } from "@/lib/trpc"
 import { WallpaperBackground } from "@/components/wallpaper/wallpaper-background"
@@ -17,7 +17,10 @@ export function AppShell({ children, className }: AppShellProps) {
 
     return (
         <SidebarProvider defaultOpen={false}>
-            <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
+            <div
+                className="relative flex h-screen w-full flex-col overflow-hidden bg-background"
+                style={{ "--status-bar-h": settings?.showStatusBar ? STATUS_BAR_HEIGHT : "0rem" } as React.CSSProperties}
+            >
                 {settings?.dynamicBackground && <WallpaperBackground />}
                 <div className="relative z-10 flex min-h-0 flex-1">
                     <Sidebar className="z-10" />
