@@ -1,13 +1,13 @@
 import { useCallback, useRef, useState } from "react"
-import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover"
-import { Input } from "../../ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Input } from "@/components/ui/input"
 import { rgbToHex } from "@/lib/utils"
 import {
     ColorPicker,
     type ColorPickerProps,
     ColorPickerHue,
     ColorPickerSelection,
-} from "../../ui/kibo-ui/color-picker"
+} from "@/components/ui/kibo-ui/color-picker"
 
 const HEX_PATTERN = /^#?([0-9a-f]{6})$/i
 
