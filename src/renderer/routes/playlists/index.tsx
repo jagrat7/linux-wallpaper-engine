@@ -116,12 +116,8 @@ function PlaylistsPage() {
             ? playlists.filter(p => p.name.toLowerCase().includes(query))
             : [...playlists]
 
-        // Sort by lastAppliedAt (highest precedence), then updatedAt
+        // Sort by updatedAt so selecting/applying a playlist doesn't reorder the list
         return filtered.sort((a, b) => {
-            const appliedA = a.lastAppliedAt ?? 0
-            const appliedB = b.lastAppliedAt ?? 0
-            if (appliedA !== appliedB) return appliedB - appliedA
-
             const updatedA = a.updatedAt ?? 0
             const updatedB = b.updatedAt ?? 0
             return updatedB - updatedA

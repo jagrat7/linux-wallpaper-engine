@@ -3,7 +3,7 @@ import * as fsSync from 'node:fs'
 import * as path from 'node:path'
 import { glob } from 'glob'
 import { displayService } from '../display'
-import { settingsService } from '../settings'
+import { settingsService, type AppSettings } from '../settings'
 import { storeService } from '../store'
 import { hostSpawn, hostExecAsync, hostCommandExists, isFlatpak } from '../../utils/host'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
@@ -11,6 +11,7 @@ import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, pickScanManagedFields, type ApplyW
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
 import { playlistService } from '../playlists/playlist'
+import { startPlaylistProcess } from '../playlists/playlist-runner'
 import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, type TimedCache } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
@@ -455,7 +456,14 @@ class WallpaperService implements IWallpaperService {
     const settings = await settingsService.loadSettings()
     const grouped = new Map<string, { screens: string[], options: ApplyWallpaperOptions }>()
 
-    for (const [screenKey, baseOptions] of this.state.getActive().entries()) {
+    // Screens running a playlist restart their playlist process (which picks
+    // up current global settings) instead of being flattened to a single
+    // wallpaper.
+    const active = [...this.state.getActive().entries()].map(([screen, options]) => ({ screen, options }))
+    const { playlistScreens, wallpaperRemaining } = this.partitionByPlaylist(active)
+    errors.push(...await this.restartPlaylists(playlistScreens))
+
+    for (const { screen: screenKey, options: baseOptions } of wallpaperRemaining) {
       const options: ApplyWallpaperOptions = {
         ...baseOptions,
         screen: screenKey !== 'default' ? screenKey : baseOptions.screen,
@@ -500,25 +508,93 @@ class WallpaperService implements IWallpaperService {
     if (remaining.length === 0) return
 
     const settings = await settingsService.loadSettings()
+
+    // Screens that were part of a playlist restart their playlist process —
+    // their stored options only hold the first item, not the playlist or the
+    // global audio settings, so respawning them as a plain wallpaper would
+    // drop both.
+    const { playlistScreens, wallpaperRemaining } = this.partitionByPlaylist(remaining)
+    await this.restartPlaylists(playlistScreens)
+    if (wallpaperRemaining.length === 0) return
+
     if (settings.windowMode) {
-      const first = remaining[0]
+      const first = wallpaperRemaining[0]
       await this.spawnWindowed({ ...first.options, screen: undefined, windowed: parseWindowGeometry(settings.windowGeometry) })
       return
     }
 
     const grouped = new Map<string, { screens: string[], options: ApplyWallpaperOptions }>()
-    for (const { screen, options } of remaining) {
+    for (const { screen, options } of wallpaperRemaining) {
       const key = options.backgroundId
       const existing = grouped.get(key)
       if (existing) {
         existing.screens.push(screen)
       } else {
-        grouped.set(key, { screens: [screen], options })
+        grouped.set(key, { screens: [screen], options: this.withSettingsFallback(options, settings) })
       }
     }
 
     for (const { screens, options } of grouped.values()) {
       await this.spawnForScreens(screens, options)
+    }
+  }
+
+  // Split screens between those owned by an active playlist and the rest
+  private partitionByPlaylist<T extends { screen: string }>(entries: T[]): {
+    playlistScreens: Map<string, string[]>
+    wallpaperRemaining: T[]
+  } {
+    const playlistEntries = playlistService.getActivePlaylistEntries()
+    const playlistScreens = new Map<string, string[]>()
+    const wallpaperRemaining: T[] = []
+
+    for (const entry of entries) {
+      const playlistEntry = playlistEntries[entry.screen]
+      if (playlistEntry) {
+        const screens = playlistScreens.get(playlistEntry.name)
+        if (screens) {
+          screens.push(entry.screen)
+        } else {
+          playlistScreens.set(playlistEntry.name, [entry.screen])
+        }
+      } else {
+        wallpaperRemaining.push(entry)
+      }
+    }
+
+    return { playlistScreens, wallpaperRemaining }
+  }
+
+  private async restartPlaylists(playlistScreens: Map<string, string[]>): Promise<string[]> {
+    const errors: string[] = []
+    for (const [name, screens] of playlistScreens) {
+      const result = await startPlaylistProcess(name, screens, false, (screenKeys, proc, args, options) =>
+        this.registerProcess(screenKeys, proc, args, options))
+      if (!result.success) {
+        // Playlist is gone (e.g. deleted) — drop the stale active entries
+        playlistService.clearActivePlaylist(screens)
+        if (result.error) errors.push(`${screens.join(',')}: ${result.error}`)
+      }
+    }
+    return errors
+  }
+
+  // Fill gaps in stored apply options from the current global settings, so a
+  // respawn from sparse state (e.g. persisted from a playlist register) still
+  // honors silent/volume and the other engine flags.
+  private withSettingsFallback(options: ApplyWallpaperOptions, settings: AppSettings): ApplyWallpaperOptions {
+    return {
+      ...options,
+      fps: options.fps ?? settings.fps,
+      volume: options.volume ?? settings.volume,
+      silent: options.silent ?? settings.silent,
+      noAutomute: options.noAutomute ?? settings.noAutomute,
+      noAudioProcessing: options.noAudioProcessing ?? !settings.audioProcessing,
+      scaling: options.scaling && options.scaling !== 'default' ? options.scaling : settings.defaultScaling,
+      disableMouse: options.disableMouse ?? settings.disableMouse,
+      disableParallax: options.disableParallax ?? settings.disableParallax,
+      disableParticles: options.disableParticles ?? settings.disableParticles,
+      noFullscreenPause: options.noFullscreenPause ?? !settings.pauseOnFullscreen,
     }
   }
 
