@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { type Wallpaper } from "../wallpaper-card"
-import { WallpaperOverrides } from "./wallpaper-overrides"
+import { WallpaperSettings } from "./wallpaper-settings"
 import { trpc } from "@/lib/trpc"
 import { ApplyButton } from "../apply-button"
 import { DebugLogDialog } from "../debug-log-dialog"
@@ -153,7 +153,7 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
             />
 
             <CompatibilitySection wallpaperPath={wallpaper.path ?? ''} />
-            <WallpaperOverrides wallpaper={wallpaper} />
+            <WallpaperSettings wallpaper={wallpaper} />
         </WallpaperDetailsShell>
     )
 }

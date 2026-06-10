@@ -5,6 +5,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 interface SelectControlProps {
     options: ReadonlyArray<{ readonly label: string; readonly value: string }>
@@ -16,13 +17,17 @@ interface SelectControlProps {
 export function SelectControl({ options, value, onChange, triggerClassName }: SelectControlProps) {
     return (
         <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className={triggerClassName}>
-                <SelectValue />
+            <SelectTrigger className={cn("max-w-48", triggerClassName)}>
+                {/* The trigger's built-in line-clamp doesn't apply (its value
+                    slot is forced to display:flex), so truncate explicitly. */}
+                <span className="min-w-0 truncate">
+                    <SelectValue />
+                </span>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="max-w-64">
                 {options.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        <span className="block truncate">{option.label}</span>
                     </SelectItem>
                 ))}
             </SelectContent>

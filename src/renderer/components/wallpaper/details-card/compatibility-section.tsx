@@ -47,9 +47,9 @@ export function CompatibilitySection({ wallpaperPath }: { wallpaperPath: string 
                     <SelectContent>
                         {COMPATIBILITY_OPTIONS.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
-                                <span className="flex items-center gap-2">
-                                    <span className={`size-2 rounded-full ${option.bgColor}`} />
-                                    {option.label}
+                                <span className="flex min-w-0 items-center gap-2">
+                                    <span className={`size-2 shrink-0 rounded-full ${option.bgColor}`} />
+                                    <span className="truncate">{option.label}</span>
                                 </span>
                             </SelectItem>
                         ))}
