@@ -24,6 +24,8 @@ function resolveTargetScreen(
     // Trust the stored pick while displays are still loading so the
     // button label stays stable across app restarts
     if (!displays) return lastScreen
+    // Single display: targeting is meaningless, use the all-displays default
+    if (displays.length <= 1) return null
     // Stored screen may have been unplugged — fall back to all displays
     return displays.some(d => d.name === lastScreen) ? lastScreen : null
 }
