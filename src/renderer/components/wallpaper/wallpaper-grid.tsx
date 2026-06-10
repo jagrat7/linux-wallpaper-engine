@@ -59,16 +59,18 @@ export function WallpaperGrid() {
     // Open details card when navigated here with ?wallpaper=<id> (e.g. from the status bar)
     const { wallpaper: requestedWallpaperId } = useSearch({ from: "/" })
     const navigate = useNavigate()
+    const requestedWallpaper = useMemo(
+        () => transformedWallpapers.find(w => w.id === requestedWallpaperId) ?? null,
+        [requestedWallpaperId, transformedWallpapers]
+    )
 
     useEffect(() => {
-        if (!requestedWallpaperId || transformedWallpapers.length === 0) return
-
-        const match = transformedWallpapers.find(w => w.id === requestedWallpaperId)
-        if (match) setSelectedWallpaper(match)
+        if (!requestedWallpaper) return
+        setSelectedWallpaper(requestedWallpaper)
 
         // Clear the param so closing the card or re-clicking works as expected
         navigate({ to: "/", search: {}, replace: true })
-    }, [requestedWallpaperId, transformedWallpapers, setSelectedWallpaper, navigate])
+    }, [requestedWallpaper, setSelectedWallpaper, navigate])
 
 
     // Extract and set available tags from raw data (before filtering)
