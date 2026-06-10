@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 
-export type InvalidationKey = 'wallpaper.getWallpapers' | 'wallpaper.getCompatibilityMap' | 'wallpaper.applied' | 'wallpaper.stopped'
+export type InvalidationKey = 'wallpaper.getWallpapers' | 'wallpaper.getCompatibilityMap' | 'wallpaper.applied' | 'wallpaper.stopped' | 'display.list'
 
 const emitter = new EventEmitter()
 

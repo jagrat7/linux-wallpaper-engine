@@ -1,4 +1,4 @@
-import { app, protocol, net, nativeImage, BrowserWindow, Tray, Menu } from 'electron'
+import { app, protocol, net, nativeImage, BrowserWindow, Tray, Menu, screen } from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -7,6 +7,7 @@ import { settingsService as settings } from './services/settings.ts'
 import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
 import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
+import { invalidationService } from './services/invalidation.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
@@ -166,6 +167,13 @@ app.whenReady().then(() => {
     windows: [mainWindow],
     createContext: async () => createTrpcContext(),
   })
+
+  // Push a display.list invalidation to the renderer whenever monitors
+  // are added, removed, or change resolution so apply menus stay accurate
+  const notifyDisplayChange = () => invalidationService.emit('display.list')
+  screen.on('display-added', notifyDisplayChange)
+  screen.on('display-removed', notifyDisplayChange)
+  screen.on('display-metrics-changed', notifyDisplayChange)
 })
 
 // Dispose tray before quitting
