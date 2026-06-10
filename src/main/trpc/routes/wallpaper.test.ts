@@ -151,6 +151,7 @@ describe('wallpaperRouter', () => {
           noAudioProcessing: !DEFAULT_SETTINGS.audioProcessing,
           disableMouse: DEFAULT_SETTINGS.disableMouse,
           disableParallax: DEFAULT_SETTINGS.disableParallax,
+          disableParticles: DEFAULT_SETTINGS.disableParticles,
           noFullscreenPause: !DEFAULT_SETTINGS.pauseOnFullscreen,
           windowed: undefined,
         },

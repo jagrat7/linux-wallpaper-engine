@@ -62,6 +62,7 @@ export interface ApplyWallpaperOptions {
   noAudioProcessing?: boolean
   disableMouse?: boolean
   disableParallax?: boolean
+  disableParticles?: boolean
   noFullscreenPause?: boolean
   windowed?: WindowGeometry | 'emit-flag'
 }
@@ -73,6 +74,7 @@ export interface WallpaperOverrides {
   scaling?: ScalingOption
   disableMouse?: boolean
   disableParallax?: boolean
+  disableParticles?: boolean
   // Passed to the backend as --set-property name=value (see --list-properties)
   customProperties?: Record<string, string>
   compatibility?: CompatibilityStatus
@@ -106,6 +108,7 @@ export const ENGINE_OVERRIDE_FIELDS = [
   { control: 'switch', key: 'audioProcessing', globalKey: 'audioProcessing', label: 'Audio reactive effects', fallback: true },
   { control: 'switch', key: 'disableMouse', globalKey: 'disableMouse', label: 'Disable mouse interaction', fallback: false },
   { control: 'switch', key: 'disableParallax', globalKey: 'disableParallax', label: 'Disable parallax effect', fallback: false },
+  { control: 'switch', key: 'disableParticles', globalKey: 'disableParticles', label: 'Disable particle effects', fallback: false },
 ] as const
 export type EngineOverrideField = typeof ENGINE_OVERRIDE_FIELDS[number]
 

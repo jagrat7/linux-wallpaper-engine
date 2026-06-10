@@ -459,6 +459,7 @@ class WallpaperService implements IWallpaperService {
         scaling: baseOptions.scaling && baseOptions.scaling !== 'default' ? baseOptions.scaling : settings.defaultScaling,
         disableMouse: settings.disableMouse,
         disableParallax: settings.disableParallax,
+        disableParticles: settings.disableParticles,
         noFullscreenPause: !settings.pauseOnFullscreen,
       }
 
@@ -562,6 +563,7 @@ class WallpaperService implements IWallpaperService {
       : options.noAudioProcessing
     const disableMouse = overrides.disableMouse ?? options.disableMouse
     const disableParallax = overrides.disableParallax ?? options.disableParallax
+    const disableParticles = overrides.disableParticles ?? options.disableParticles
     const scaling = overrides.scaling ?? options.scaling
     const customProperties = overrides.customProperties ?? {}
     const assetsDir = settingsService.getSetting('assetsDir') ?? await resolveWallpaperEngineAssetsDir()
@@ -577,6 +579,7 @@ class WallpaperService implements IWallpaperService {
     if (options.fps) args.push('--fps', options.fps.toString())
     if (disableMouse) args.push('--disable-mouse')
     if (disableParallax) args.push('--disable-parallax')
+    if (disableParticles) args.push('--disable-particles')
     if (options.noFullscreenPause) args.push('--no-fullscreen-pause')
     if (scaling && scaling !== 'default') args.push('--scaling', scaling)
     if (assetsDir) args.push('--assets-dir', assetsDir)

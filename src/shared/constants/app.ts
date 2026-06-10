@@ -22,6 +22,7 @@ export interface AppSettings {
   defaultScaling: ScalingOption
   disableMouse: boolean
   disableParallax: boolean
+  disableParticles: boolean
 
   // Paths (backend supported)
   assetsDir: string | null
@@ -79,6 +80,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultScaling: 'fill',
   disableMouse: false,
   disableParallax: false,
+  disableParticles: false,
 
   // Paths
   assetsDir: null,

@@ -343,10 +343,16 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("disableMouse", checked)}
                         />
                     </SettingRow>
-                    <SettingRow label="Disable parallax effect" className="border-b-0">
+                    <SettingRow label="Disable parallax effect">
                         <Switch
                             checked={settings.disableParallax}
                             onCheckedChange={(checked) => updateSetting("disableParallax", checked)}
+                        />
+                    </SettingRow>
+                    <SettingRow label="Disable particle effects" className="border-b-0">
+                        <Switch
+                            checked={settings.disableParticles}
+                            onCheckedChange={(checked) => updateSetting("disableParticles", checked)}
                         />
                     </SettingRow>
                 </SettingsSection>

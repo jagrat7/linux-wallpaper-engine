@@ -14,7 +14,7 @@ import { setAutostart } from '../../utils/autostart'
 // Keys that affect the wallpaper backend process and require reapply
 const BACKEND_KEYS = new Set([
   'fps', 'pauseOnFullscreen', 'volume', 'silent', 'noAutomute',
-  'audioProcessing', 'defaultScaling', 'disableMouse', 'disableParallax', 'assetsDir',
+  'audioProcessing', 'defaultScaling', 'disableMouse', 'disableParallax', 'disableParticles', 'assetsDir',
   'windowMode', 'windowGeometry',
 ])
 
@@ -39,6 +39,7 @@ const settingsSchema = z.object({
   defaultScaling: z.enum(SCALING_OPTIONS.map(o => o.value) as [ScalingOption, ...ScalingOption[]]).optional(),
   disableMouse: z.boolean().optional(),
   disableParallax: z.boolean().optional(),
+  disableParticles: z.boolean().optional(),
 
   // Paths
   assetsDir: z.string().nullable().optional(),

@@ -85,7 +85,7 @@ describe('settingsRouter', () => {
     describe('backend key reapply', () => {
       const BACKEND_KEYS = [
         'fps', 'pauseOnFullscreen', 'volume', 'silent', 'noAutomute',
-        'audioProcessing', 'defaultScaling', 'disableMouse', 'disableParallax', 'assetsDir',
+        'audioProcessing', 'defaultScaling', 'disableMouse', 'disableParallax', 'disableParticles', 'assetsDir',
       ] as const
 
       it.each(BACKEND_KEYS)('should reapply wallpapers when %s changes', async (key) => {

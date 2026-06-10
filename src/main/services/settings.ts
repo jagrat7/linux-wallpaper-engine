@@ -75,6 +75,10 @@ export const settingsService = {
       args.push('--disable-parallax')
     }
 
+    if (settings.disableParticles) {
+      args.push('--disable-particles')
+    }
+
     // Paths
     if (settings.assetsDir) {
       args.push('--assets-dir', settings.assetsDir)
