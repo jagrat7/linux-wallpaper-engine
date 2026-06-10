@@ -4,7 +4,7 @@ import { IconButton } from "@/components/ui/icon-button"
 import { SearchInput } from "@/components/wallpaper/search"
 import { FiltersDropdown } from "../wallpaper/filters-dropdown"
 import { SortDropdown } from "../wallpaper/sort-dropdown"
-import { WallpaperGridLayout } from "../wallpaper/wallpaper-grid-layout"
+import { VirtualizedWallpaperGrid, type VirtualizedWallpaperGridHandle } from "../wallpaper/virtualized-wallpaper-grid"
 import { PlaylistSettingsBar } from "./playlist-settings-bar"
 import { SelectedChips } from "./selected-chips"
 import type { Playlist } from "../../../shared/constants/playlist"
@@ -12,7 +12,7 @@ import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
 import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
 import { usePlaylistEditor } from "@/hooks/use-playlist-editor"
-import { useMemo, useCallback, useState } from "react"
+import { useMemo, useCallback, useState, useRef } from "react"
 import { ErrorMessage } from "@/components/error-message"
 
 interface PlaylistEditorGridProps {
@@ -31,6 +31,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
         filterCompatibility,
     } = useWallpaperSearch()
     const [navigateError, setNavigateError] = useState<string | null>(null)
+    const gridRef = useRef<VirtualizedWallpaperGridHandle>(null)
     const {
         wallpapers: transformedWallpapers,
         isLoading,
@@ -68,11 +69,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
         }
 
         setNavigateError(null)
-        requestAnimationFrame(() => {
-            document.querySelector(
-                `[data-wallpaper-path="${CSS.escape(path)}"]`,
-            )?.scrollIntoView({ behavior: "smooth", block: "center" })
-        })
+        gridRef.current?.scrollToPath(path)
     }, [filteredWallpapers])
 
     // True when every currently-visible wallpaper is already selected
@@ -168,7 +165,8 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
             </div>
 
             {/* Wallpaper grid */}
-            <WallpaperGridLayout
+            <VirtualizedWallpaperGrid
+                ref={gridRef}
                 wallpapers={filteredWallpapers}
                 isLoading={isLoading}
                 compatibilityMap={compatibilityMap}

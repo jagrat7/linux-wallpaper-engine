@@ -72,11 +72,11 @@ export function filterAndSortWallpapers(
                 comparison = a.fileSize - b.fileSize
                 break
             case "recent": {
-                // Newest-first orientation (like the old workshop-id compare); never-applied
-                // wallpapers fall back to install date so they stay meaningfully ordered
+                // Same asc/desc convention as "date"; never-applied wallpapers fall back to
+                // install date so they stay meaningfully ordered
                 const aApplied = a.lastAppliedAt ?? 0
                 const bApplied = b.lastAppliedAt ?? 0
-                comparison = bApplied === aApplied ? b.dateAdded - a.dateAdded : bApplied - aApplied
+                comparison = bApplied === aApplied ? a.dateAdded - b.dateAdded : aApplied - bApplied
                 break
             }
             case "date":
