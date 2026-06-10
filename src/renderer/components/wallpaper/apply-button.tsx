@@ -8,8 +8,27 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useAtom } from "jotai"
+import { lastAppliedScreenAtom } from "@/contexts/atoms/display-atoms"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
+
+// Decide which screen the main apply button should target.
+// lastScreen is the user's remembered pick (null = all displays).
+// Returns a screen name to target one display, or null for all.
+function resolveTargetScreen(
+    displays: { name: string }[] | undefined,
+    lastScreen: string | null,
+): string | null {
+    if (!lastScreen) return null
+    // Trust the stored pick while displays are still loading so the
+    // button label stays stable across app restarts
+    if (!displays) return lastScreen
+    // Single display: targeting is meaningless, use the all-displays default
+    if (displays.length <= 1) return null
+    // Stored screen may have been unplugged — fall back to all displays
+    return displays.some(d => d.name === lastScreen) ? lastScreen : null
+}
 
 interface ApplyButtonProps {
     onApply: (screen?: string) => Promise<void>
@@ -33,8 +52,17 @@ export function ApplyButton({
     className,
 }: ApplyButtonProps) {
     const { data: displays } = trpc.display.list.useQuery()
+    const [lastScreen, setLastScreen] = useAtom(lastAppliedScreenAtom)
     const activeScreenSet = React.useMemo(() => new Set(activeScreens), [activeScreens])
     const isActive = activeScreenSet.size > 0
+
+    const targetScreen = resolveTargetScreen(displays, lastScreen)
+
+    // Remember the user's pick so the main button targets it next time
+    const handleApplyTo = (screen?: string) => {
+        setLastScreen(screen ?? null)
+        return onApply(screen)
+    }
 
     return (
         <div className={className}>
@@ -46,7 +74,7 @@ export function ApplyButton({
                         "gap-2 rounded-r-none flex-1",
                         isActive && "text-destructive hover:bg-destructive/10 hover:text-destructive"
                     )}
-                    onClick={() => isActive && onStop ? onStop(activeScreens) : onApply()}
+                    onClick={() => isActive && onStop ? onStop(activeScreens) : onApply(targetScreen ?? undefined)}
                     disabled={isApplying}
                 >
                     {isApplying ? (
@@ -56,7 +84,7 @@ export function ApplyButton({
                     ) : (
                         <Monitor className="size-4" />
                     )}
-                    {isApplying ? applyingLabel : isActive ? "Stop" : label}
+                    {isApplying ? applyingLabel : isActive ? "Stop" : targetScreen ? `${label} · ${targetScreen}` : label}
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -82,7 +110,7 @@ export function ApplyButton({
                                     return (
                                         <DropdownMenuItem
                                             key={display.name}
-                                            onClick={() => isDisplayActive && onStop ? onStop(display.name) : onApply(display.name)}
+                                            onClick={() => isDisplayActive && onStop ? onStop(display.name) : handleApplyTo(display.name)}
                                         >
                                             {isDisplayActive ? <Square className="size-4" /> : <Monitor className="size-4" />}
                                             {isDisplayActive ? `Stop on ${display.name}` : display.name}
@@ -95,7 +123,7 @@ export function ApplyButton({
                                 <DropdownMenuSeparator />
                             </>
                         )}
-                        <DropdownMenuItem onClick={() => isActive && onStop ? onStop(activeScreens) : onApply()}>
+                        <DropdownMenuItem onClick={() => isActive && onStop ? onStop(activeScreens) : handleApplyTo()}>
                             {isActive ? <Square className="size-4" /> : <Monitor className="size-4" />}
                             {isActive ? "Stop all" : "All displays"}
                         </DropdownMenuItem>
