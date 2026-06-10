@@ -7,7 +7,7 @@ import { settingsService } from '../settings'
 import { storeService } from '../store'
 import { hostSpawn, hostExecAsync, hostCommandExists, isFlatpak } from '../../utils/host'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
-import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, type ApplyWallpaperOptions, type Wallpaper, type WallpaperOverrides } from '../../../shared/constants/wallpaper'
+import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, pickScanManagedFields, type ApplyWallpaperOptions, type Wallpaper, type WallpaperOverrides } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
 import { playlistService } from '../playlists/playlist'
@@ -104,15 +104,12 @@ class WallpaperService implements IWallpaperService {
         return all[mutation.wallpaperPath] ?? {}
 
       case 'save': {
-        // compatibility/autoErrors/lastTested live in the same record but are managed
-        // by the compatibility service and stripped by the tRPC schema — carry them
+        // Scan-managed fields live in the same record but are owned by the
+        // compatibility service and stripped by the tRPC schema — carry them
         // forward so saving user overrides can't erase a wallpaper's scan results.
-        const existing = all[mutation.wallpaperPath]
         all[mutation.wallpaperPath] = {
           ...mutation.overrides,
-          ...(existing?.compatibility !== undefined && { compatibility: existing.compatibility }),
-          ...(existing?.autoErrors !== undefined && { autoErrors: existing.autoErrors }),
-          ...(existing?.lastTested !== undefined && { lastTested: existing.lastTested }),
+          ...pickScanManagedFields(all[mutation.wallpaperPath]),
         }
         this.overridesStore.set('overrides', all)
         if (this.state.isActive(mutation.wallpaperPath)) {
@@ -121,13 +118,20 @@ class WallpaperService implements IWallpaperService {
         return
       }
 
-      case 'reset':
-        delete all[mutation.wallpaperPath]
+      case 'reset': {
+        // Reset only clears user overrides; scan results survive like in save
+        const scanFields = pickScanManagedFields(all[mutation.wallpaperPath])
+        if (Object.keys(scanFields).length > 0) {
+          all[mutation.wallpaperPath] = scanFields
+        } else {
+          delete all[mutation.wallpaperPath]
+        }
         this.overridesStore.set('overrides', all)
         if (this.state.isActive(mutation.wallpaperPath)) {
           await this.reapplyAll()
         }
         return
+      }
     }
   }
 

@@ -5,7 +5,7 @@ import { GlobalProperties } from "./property-settings/global-properties"
 import { engineFieldDefault } from "./property-settings/global-prop-variants"
 import { CustomProperties } from "./property-settings/custom-properties"
 import { type Wallpaper } from "../wallpaper-card"
-import { ENGINE_OVERRIDE_FIELDS, type WallpaperOverrides } from "../../../../shared/constants/wallpaper"
+import { ENGINE_OVERRIDE_FIELDS, isScanManagedKey, type WallpaperOverrides } from "../../../../shared/constants/wallpaper"
 
 interface WallpaperSettingsProps {
     wallpaper: Wallpaper
@@ -25,18 +25,33 @@ export function WallpaperSettings({ wallpaper }: WallpaperSettingsProps) {
     // Global settings provide the fallback values unset fields display
     const { data: settings } = trpc.settings.get.useQuery()
 
+    // Optimistic updates: apply immediately, roll back to the snapshot if the
+    // mutation fails, and refetch on settle so the cache picks up server-side
+    // merges (the scan-managed fields the tRPC schema strips from the input)
     const saveMutation = trpc.wallpaper.saveOverrides.useMutation({
         onMutate: async ({ overrides: newOverrides }) => {
             await utils.wallpaper.getOverrides.cancel(queryKey)
+            const previous = utils.wallpaper.getOverrides.getData(queryKey)
             utils.wallpaper.getOverrides.setData(queryKey, newOverrides)
+            return { previous }
         },
+        onError: (_error, _variables, context) => {
+            utils.wallpaper.getOverrides.setData(queryKey, context?.previous)
+        },
+        onSettled: () => utils.wallpaper.getOverrides.invalidate(queryKey),
     })
 
     const resetMutation = trpc.wallpaper.resetOverrides.useMutation({
         onMutate: async () => {
             await utils.wallpaper.getOverrides.cancel(queryKey)
+            const previous = utils.wallpaper.getOverrides.getData(queryKey)
             utils.wallpaper.getOverrides.setData(queryKey, {})
+            return { previous }
         },
+        onError: (_error, _variables, context) => {
+            utils.wallpaper.getOverrides.setData(queryKey, context?.previous)
+        },
+        onSettled: () => utils.wallpaper.getOverrides.invalidate(queryKey),
     })
 
     const updateOverride = <K extends keyof WallpaperOverrides>(key: K, value: WallpaperOverrides[K]) => {
@@ -55,7 +70,9 @@ export function WallpaperSettings({ wallpaper }: WallpaperSettingsProps) {
         saveMutation.mutate({ path: wallpaper.path ?? "", overrides: updated })
     }
 
-    const hasOverrides = overrides && Object.keys(overrides).length > 0
+    // Scan results share the overrides record but aren't user overrides — they
+    // shouldn't summon the Reset button on their own
+    const hasOverrides = overrides && Object.keys(overrides).some((key) => !isScanManagedKey(key))
 
     return (
         <div className="mt-4 border-t border-border pt-4">

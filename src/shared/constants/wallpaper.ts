@@ -80,6 +80,22 @@ export interface WallpaperOverrides {
   lastTested?: number
 }
 
+// Fields in the overrides record owned by the compatibility scanner, not the
+// user. Save/reset must carry them forward and the UI must not count them.
+export const SCAN_MANAGED_KEYS = ['compatibility', 'autoErrors', 'lastTested'] as const
+
+export const isScanManagedKey = (key: string) =>
+  (SCAN_MANAGED_KEYS as readonly string[]).includes(key)
+
+// The scan-managed subset of an overrides record (omitting unset fields)
+export function pickScanManagedFields(overrides: WallpaperOverrides | undefined): WallpaperOverrides {
+  return {
+    ...(overrides?.compatibility !== undefined && { compatibility: overrides.compatibility }),
+    ...(overrides?.autoErrors !== undefined && { autoErrors: overrides.autoErrors }),
+    ...(overrides?.lastTested !== undefined && { lastTested: overrides.lastTested }),
+  }
+}
+
 // Per-wallpaper engine flag overrides: each row falls back to a global app
 // setting (globalKey), then to a static default. `control` is the runtime
 // discriminant for which UI control to render. Adding a new overridable
