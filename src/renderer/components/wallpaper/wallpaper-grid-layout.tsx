@@ -5,9 +5,9 @@ import { EmptyState } from "@/components/empty-state"
 import { WallpaperCard } from "./wallpaper-card"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
+import { DEFAULT_GRID_COLS } from "@/lib/utils"
 
 const SKELETON_COUNT = 12
-const DEFAULT_GRID_COLS = "grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
 
 interface WallpaperGridLayoutProps {
     wallpapers: Wallpaper[]
@@ -17,11 +17,11 @@ interface WallpaperGridLayoutProps {
     selectedId?: string
     isSelected?: (wallpaper: Wallpaper) => boolean
     onCardClick: (wallpaper: Wallpaper) => void
-    gridClassName?: string
     emptyIcon?: LucideIcon
     emptyMessage?: string
     emptySubMessage?: string
     renderCardOverlay?: (wallpaper: Wallpaper) => ReactNode
+    gridClassName?: string
 }
 
 export function WallpaperGridLayout({
@@ -32,11 +32,11 @@ export function WallpaperGridLayout({
     selectedId,
     isSelected,
     onCardClick,
-    gridClassName,
     emptyIcon: EmptyIcon = FolderOpen,
     emptyMessage = "No wallpapers found",
     emptySubMessage,
     renderCardOverlay,
+    gridClassName,
 }: WallpaperGridLayoutProps) {
     const gridCols = gridClassName ?? DEFAULT_GRID_COLS
 
