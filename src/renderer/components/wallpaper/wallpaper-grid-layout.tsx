@@ -38,7 +38,7 @@ export function WallpaperGridLayout({
     renderCardOverlay,
     gridClassName,
 }: WallpaperGridLayoutProps) {
-    const gridCols = gridClassName ?? DEFAULT_GRID_COLS
+    const gridCols = DEFAULT_GRID_COLS
 
     if (isLoading) {
         return (
