@@ -8,6 +8,7 @@ import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
 import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
 import { invalidationService } from './services/invalidation.ts'
+import { systemThemeService } from './services/system-theme.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
@@ -174,6 +175,9 @@ app.whenReady().then(() => {
   screen.on('display-added', notifyDisplayChange)
   screen.on('display-removed', notifyDisplayChange)
   screen.on('display-metrics-changed', notifyDisplayChange)
+
+  // Push systemTheme.get invalidations when the OS theme or accent changes
+  systemThemeService.startWatching()
 })
 
 // Dispose tray before quitting

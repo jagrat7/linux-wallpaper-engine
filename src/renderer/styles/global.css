@@ -165,6 +165,57 @@
   --search-bg: oklch(0.47 0.08 240);
 }
 
+/*
+ * System Colors theme - palette injected at runtime as --system-* variables
+ * from the OS theme (omarchy colors.toml, or the desktop portal accent).
+ * Applied on top of .light/.dark base classes:
+ *   .system-accent  accent-only fallback, keeps base neutrals
+ *   .system-colors  full palette derived from the injected colors
+ * The `calc((0.66 - l) * 1000)` lightness clamps to pure black/white for
+ * readable foregrounds on arbitrary system colors.
+ */
+.system-accent,
+.system-colors {
+  --primary: var(--system-accent);
+  --primary-foreground: oklch(from var(--system-accent) calc((0.66 - l) * 1000) 0 h);
+  --ring: var(--system-accent);
+  --sidebar-primary: var(--system-accent);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-ring: var(--system-accent);
+}
+
+.system-colors {
+  --background: var(--system-background);
+  --foreground: var(--system-foreground);
+  --card: color-mix(in oklab, var(--system-background) 96%, var(--system-foreground));
+  --card-foreground: var(--system-foreground);
+  --popover: color-mix(in oklab, var(--system-background) 97%, var(--system-foreground));
+  --popover-foreground: var(--system-foreground);
+  --secondary: color-mix(in oklab, var(--system-background) 90%, var(--system-foreground));
+  --secondary-foreground: var(--system-foreground);
+  --muted: color-mix(in oklab, var(--system-background) 90%, var(--system-foreground));
+  --muted-foreground: color-mix(in oklab, var(--system-foreground) 65%, var(--system-background));
+  --accent: color-mix(in oklab, var(--system-background) 85%, var(--system-accent));
+  --accent-foreground: var(--system-foreground);
+  --destructive: var(--system-red, oklch(0.577 0.245 27.325));
+  --destructive-foreground: oklch(from var(--destructive) calc((0.66 - l) * 1000) 0 h);
+  --border: color-mix(in oklab, var(--system-foreground) 16%, transparent);
+  --input: color-mix(in oklab, var(--system-foreground) 22%, transparent);
+  --chart-1: var(--system-blue, var(--system-accent));
+  --chart-2: var(--system-green, var(--system-accent));
+  --chart-3: var(--system-yellow, var(--system-accent));
+  --chart-4: var(--system-magenta, var(--system-accent));
+  --chart-5: var(--system-cyan, var(--system-accent));
+  --success: var(--system-green, oklch(0.7 0.2 145));
+  --success-foreground: oklch(from var(--success) calc((0.66 - l) * 1000) 0 h);
+  --warning: var(--system-yellow, oklch(0.75 0.18 75));
+  --warning-foreground: oklch(from var(--warning) calc((0.66 - l) * 1000) 0 h);
+  --sidebar-foreground: var(--system-foreground);
+  --sidebar-accent: color-mix(in oklab, var(--system-background) 90%, var(--system-foreground));
+  --sidebar-accent-foreground: var(--system-foreground);
+  --sidebar-border: color-mix(in oklab, var(--system-foreground) 16%, transparent);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
