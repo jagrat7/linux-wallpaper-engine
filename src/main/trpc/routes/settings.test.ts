@@ -176,6 +176,7 @@ describe('settingsRouter', () => {
       expect(mockSettingsService.resetSettings).toHaveBeenCalled()
       expect(mockSettingsService.saveSettings).toHaveBeenCalledWith({
         dismissedScanReminder: true,
+        dismissedUpdateVersion: null,
       })
       expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'reapply' })
     })

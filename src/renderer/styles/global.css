@@ -165,6 +165,15 @@
   --search-bg: oklch(0.47 0.08 240);
 }
 
+/* System theme integration.
+   When the user selects "System", ThemeProvider adds the `system` class to
+   <html> and injects a generated <style id="system-theme-overrides"> that
+   maps the desktop accent color (from xdg-desktop-portal) or a full palette
+   (from pywal/omarchy) onto the design-token variables defined in @theme. */
+.system {
+  /* runtime overrides are injected by ThemeProvider */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

@@ -1,8 +1,10 @@
 import { z } from 'zod'
+import { observable } from '@trpc/server/observable'
 import { trpc } from '../trpc'
 import { settingsService, type AppSettings } from '../../services/settings'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
-import { THEME_OPTIONS, type ThemeOption } from '../../../shared/constants/theme'
+import { systemThemeService } from '../../services/system-theme'
+import { THEME_OPTIONS, type ThemeOption, type SystemTheme } from '../../../shared/constants/theme'
 import { SCALING_OPTIONS, type ScalingOption } from '../../../shared/constants/display'
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS, type AgeRating, type WallpaperFilterType } from '../../../shared/constants/wallpaper'
 import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from '../../../shared/constants/compatibility'
@@ -136,5 +138,17 @@ export const settingsRouter = trpc.router({
   // Check if running inside Flatpak
   isFlatpak: trpc.procedure.query(() => {
     return { isFlatpak: isFlatpak() }
+  }),
+
+  // Detect the current system theme (color-scheme + accent color)
+  getSystemTheme: trpc.procedure.query(async (): Promise<SystemTheme> => {
+    return systemThemeService.get()
+  }),
+
+  // Subscribe to system theme changes
+  onSystemThemeChange: trpc.procedure.subscription(() => {
+    return observable<SystemTheme>((emit) => {
+      return systemThemeService.subscribe((theme) => emit.next(theme))
+    })
   }),
 })

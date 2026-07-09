@@ -37,7 +37,8 @@ export function Sidebar({ className }: SidebarProps) {
     const router = useRouterState()
     const navigate = useNavigate()
     const currentPath = router.location.pathname
-    const isLightTheme = useTheme().mode.includes("light")
+    const { resolvedTheme } = useTheme()
+    const isLightTheme = resolvedTheme === "light"
     return (
         <SidebarPrimitive collapsible="icon" className={cn("", className)}>
             <SidebarHeader className="gap-0 p-0">
