@@ -8,6 +8,7 @@ import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
 import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
 import { invalidationService } from './services/invalidation.ts'
+import { systemThemeService } from './services/system-theme.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
@@ -135,6 +136,8 @@ const ensureTray = (mainWindow: BrowserWindow): void => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  systemThemeService.startWatching()
+
   // Sync flatpak bypass from saved settings
   setFlatpakBypass(settings.getSetting('flatpakBypass'))
 
@@ -178,6 +181,7 @@ app.whenReady().then(() => {
 
 // Dispose tray before quitting
 app.on('before-quit', () => {
+  systemThemeService.stopWatching()
   isQuitting = true
   if (trayStartupRetry !== null) {
     trayStartupRetry.stop()
@@ -208,4 +212,3 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
-
