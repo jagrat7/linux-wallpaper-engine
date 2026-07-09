@@ -165,45 +165,9 @@
   --search-bg: oklch(0.47 0.08 240);
 }
 
-/* System theme: Omarchy palette with browser/OS color fallbacks */
+/* System theme tokens are supplied by XDG Portal and optional palette providers */
 .system {
   color-scheme: light dark;
-  --background: var(--system-background, Canvas);
-  --foreground: var(--system-foreground, CanvasText);
-  --card: var(--system-card, color-mix(in oklch, var(--background) 92%, var(--foreground)));
-  --card-foreground: var(--system-card-foreground, var(--foreground));
-  --popover: var(--card);
-  --popover-foreground: var(--card-foreground);
-  --primary: var(--system-primary, Highlight);
-  --primary-foreground: var(--system-primary-foreground, HighlightText);
-  --secondary: var(--system-secondary, ButtonFace);
-  --secondary-foreground: var(--system-secondary-foreground, var(--foreground));
-  --muted: var(--system-muted, color-mix(in oklch, var(--background) 82%, var(--foreground)));
-  --muted-foreground: var(--system-muted-foreground, GrayText);
-  --accent: var(--system-accent, var(--primary));
-  --accent-foreground: var(--system-accent-foreground, var(--primary-foreground));
-  --destructive: var(--system-destructive, oklch(0.577 0.245 27.325));
-  --destructive-foreground: var(--primary-foreground);
-  --border: var(--system-border, ButtonBorder);
-  --input: var(--system-input, Field);
-  --ring: var(--primary);
-  --chart-1: var(--primary);
-  --chart-2: var(--system-success, oklch(0.7 0.2 145));
-  --chart-3: var(--system-warning, oklch(0.75 0.18 75));
-  --chart-4: var(--destructive);
-  --chart-5: var(--muted-foreground);
-  --sidebar: var(--background);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--secondary);
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
-  --success: var(--system-success, oklch(0.7 0.2 145));
-  --success-foreground: var(--primary-foreground);
-  --warning: var(--system-warning, oklch(0.75 0.18 75));
-  --warning-foreground: var(--primary-foreground);
 }
 
 @theme inline {

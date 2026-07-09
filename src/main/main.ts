@@ -136,8 +136,6 @@ const ensureTray = (mainWindow: BrowserWindow): void => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  systemThemeService.startWatching()
-
   // Sync flatpak bypass from saved settings
   setFlatpakBypass(settings.getSetting('flatpakBypass'))
 

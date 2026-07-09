@@ -3,23 +3,27 @@ import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants/theme'
 import { trpc } from '../lib/trpc'
 
 const SYSTEM_THEME_PROPERTIES = {
-  background: '--system-background',
-  foreground: '--system-foreground',
-  card: '--system-card',
-  cardForeground: '--system-card-foreground',
-  primary: '--system-primary',
-  primaryForeground: '--system-primary-foreground',
-  secondary: '--system-secondary',
-  secondaryForeground: '--system-secondary-foreground',
-  muted: '--system-muted',
-  mutedForeground: '--system-muted-foreground',
-  accent: '--system-accent',
-  accentForeground: '--system-accent-foreground',
-  destructive: '--system-destructive',
-  border: '--system-border',
-  input: '--system-input',
-  success: '--system-success',
-  warning: '--system-warning',
+  background: '--background',
+  foreground: '--foreground',
+  card: '--card',
+  cardForeground: '--card-foreground',
+  primary: '--primary',
+  primaryForeground: '--primary-foreground',
+  secondary: '--secondary',
+  secondaryForeground: '--secondary-foreground',
+  muted: '--muted',
+  mutedForeground: '--muted-foreground',
+  accent: '--accent',
+  accentForeground: '--accent-foreground',
+  destructive: '--destructive',
+  border: '--border',
+  input: '--input',
+  success: '--success',
+  warning: '--warning',
+  ring: '--ring',
+  sidebarPrimary: '--sidebar-primary',
+  sidebarPrimaryForeground: '--sidebar-primary-foreground',
+  sidebarRing: '--sidebar-ring',
 } as const
 
 // Derive type from constants - single source of truth
@@ -52,7 +56,7 @@ export function ThemeProvider({
   const [mode, setMode] = useState<ThemeMode>(
     () => (localStorage.getItem(storageKey) as ThemeMode) ?? defaultMode
   )
-  const { data: systemPalette } = trpc.settings.systemTheme.useQuery(undefined, {
+  const { data: systemTheme } = trpc.settings.systemTheme.useQuery(undefined, {
     enabled: mode === 'system',
   })
 
@@ -71,16 +75,19 @@ export function ThemeProvider({
     // Handle system theme
     if (mode === 'system') {
       const colorScheme = window.matchMedia('(prefers-color-scheme: dark)')
-      root.classList.add('system')
-      root.classList.toggle('dark', colorScheme.matches)
+      const isDark = systemTheme?.scheme === 'dark'
+        || (systemTheme === undefined && colorScheme.matches)
+      root.classList.add('system', isDark ? 'dark' : 'light')
 
-      Object.entries(systemPalette ?? {}).forEach(([key, value]) => {
+      Object.entries(systemTheme?.palette ?? {}).forEach(([key, value]) => {
         const property = SYSTEM_THEME_PROPERTIES[key as keyof typeof SYSTEM_THEME_PROPERTIES]
         if (property !== undefined) root.style.setProperty(property, value)
       })
 
       const syncColorScheme = (event: MediaQueryListEvent) => {
+        if (systemTheme !== undefined) return
         root.classList.toggle('dark', event.matches)
+        root.classList.toggle('light', !event.matches)
       }
       colorScheme.addEventListener('change', syncColorScheme)
       return () => colorScheme.removeEventListener('change', syncColorScheme)
@@ -88,7 +95,7 @@ export function ThemeProvider({
 
     // Apply selected theme
     root.classList.add(mode)
-  }, [mode, systemPalette])
+  }, [mode, systemTheme])
 
   const value = {
     mode,

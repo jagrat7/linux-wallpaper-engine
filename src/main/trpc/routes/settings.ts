@@ -83,8 +83,8 @@ const settingsSchema = z.object({
 })
 
 export const settingsRouter = trpc.router({
-  systemTheme: trpc.procedure.query(() => {
-    return systemThemeService.getPalette()
+  systemTheme: trpc.procedure.query(async () => {
+    return systemThemeService.getTheme()
   }),
 
   // Get all settings
