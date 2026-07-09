@@ -173,7 +173,7 @@ Then simply consume the package:
 
 <br />
 
-- **Theming** — Choose from Light, Dark, Steam, Hard Light, or System themes
+- **Theming** — Choose from Light, Dark, Steam, Hard Light, or System themes. System follows your desktop light/dark setting and uses the active Omarchy or pywal-compatible palette for accents when available.
 ![Theming](dark.png)
 ![Theming](steam.png)
 ![Theming](light-mode.png)

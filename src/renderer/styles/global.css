@@ -165,6 +165,17 @@
   --search-bg: oklch(0.47 0.08 240);
 }
 
+/* System palettes contribute accents only; desktop surface/text semantics are not portable. */
+.system {
+  --primary: var(--system-accent);
+  --primary-foreground: var(--background);
+  --ring: var(--system-accent);
+  --chart-1: var(--system-accent);
+  --sidebar-primary: var(--system-accent);
+  --sidebar-primary-foreground: var(--background);
+  --sidebar-ring: var(--system-accent);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
