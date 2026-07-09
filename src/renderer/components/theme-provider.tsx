@@ -3,17 +3,23 @@ import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants/theme'
 import { trpc } from '../lib/trpc'
 
 const SYSTEM_THEME_PROPERTIES = {
-  accent: '--system-accent',
   background: '--system-background',
   foreground: '--system-foreground',
-  selection_background: '--system-selection-background',
-  selection_foreground: '--system-selection-foreground',
-  color0: '--system-color-0',
-  color1: '--system-color-1',
-  color2: '--system-color-2',
-  color3: '--system-color-3',
-  color7: '--system-color-7',
-  color8: '--system-color-8',
+  card: '--system-card',
+  cardForeground: '--system-card-foreground',
+  primary: '--system-primary',
+  primaryForeground: '--system-primary-foreground',
+  secondary: '--system-secondary',
+  secondaryForeground: '--system-secondary-foreground',
+  muted: '--system-muted',
+  mutedForeground: '--system-muted-foreground',
+  accent: '--system-accent',
+  accentForeground: '--system-accent-foreground',
+  destructive: '--system-destructive',
+  border: '--system-border',
+  input: '--system-input',
+  success: '--system-success',
+  warning: '--system-warning',
 } as const
 
 // Derive type from constants - single source of truth
