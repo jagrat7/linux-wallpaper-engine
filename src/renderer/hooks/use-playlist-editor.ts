@@ -5,24 +5,71 @@ import { z } from "zod"
 import {
     PLAYLIST_ORDER_VALUES,
     PLAYLIST_TIME_UNIT_VALUES,
+    PLAYLIST_MODE_VALUES,
     DEFAULT_PLAYLIST_SETTINGS,
     type Playlist,
     type PlaylistTimeUnit,
+    type PlaylistMode,
+    type PlaylistScheduleEntry,
 } from "../../shared/constants/playlist"
 import { engineOverridesSchema, type Wallpaper, type WallpaperOverrides } from "../../shared/constants/wallpaper"
 import { delayToMinutes, minutesToDelay } from "@/lib/utils"
 import { trpc } from "@/lib/trpc"
 
+const scheduleEntrySchema = z.object({
+    wallpaperPath: z.string(),
+    time: z.string().optional(),
+    theme: z.enum(["light", "dark"]).optional(),
+})
+
 const playlistFormSchema = z.object({
     name: z.string().min(1, "Name is required").max(50, "Max 50 characters"),
+    mode: z.enum(PLAYLIST_MODE_VALUES),
     delay: z.number().min(1, "Must be at least 1"),
     timeUnit: z.enum(PLAYLIST_TIME_UNIT_VALUES),
     order: z.enum(PLAYLIST_ORDER_VALUES),
     overrides: engineOverridesSchema,
+    schedule: z.array(scheduleEntrySchema),
 })
 
 const fullSchema = playlistFormSchema.extend({
     wallpapers: z.array(z.string()).min(1, "Select at least 1 wallpaper"),
+}).superRefine((data, ctx) => {
+    if (data.mode === "timer") return
+
+    if (data.schedule.length === 0) {
+        ctx.addIssue({
+            code: "custom",
+            message: `Add at least one ${data.mode === "time" ? "time" : "theme"} slot`,
+            path: ["schedule"],
+        })
+        return
+    }
+
+    for (let i = 0; i < data.schedule.length; i++) {
+        const slot = data.schedule[i]
+        if (!slot.wallpaperPath) {
+            ctx.addIssue({
+                code: "custom",
+                message: "Select a wallpaper",
+                path: ["schedule", i, "wallpaperPath"],
+            })
+        }
+        if (data.mode === "time" && (!slot.time || !/^([01]?\d|2[0-3]):[0-5]\d$/.test(slot.time))) {
+            ctx.addIssue({
+                code: "custom",
+                message: "Enter a valid time (HH:MM)",
+                path: ["schedule", i, "time"],
+            })
+        }
+        if (data.mode === "theme" && !slot.theme) {
+            ctx.addIssue({
+                code: "custom",
+                message: "Select light or dark",
+                path: ["schedule", i, "theme"],
+            })
+        }
+    }
 })
 
 /** Build form defaults from a playlist, or fall back to factory defaults. */
@@ -31,19 +78,23 @@ function buildDefaults(playlist?: Playlist | null) {
         const parsed = minutesToDelay(playlist.settings.delay)
         return {
             name: playlist.name,
+            mode: playlist.settings.mode,
             delay: parsed.value,
             timeUnit: parsed.unit,
             order: playlist.settings.order,
             overrides: (playlist.settings.overrides ?? {}) as WallpaperOverrides,
+            schedule: (playlist.settings.schedule ?? []) as PlaylistScheduleEntry[],
             wallpapers: playlist.items,
         }
     }
     return {
         name: "",
+        mode: DEFAULT_PLAYLIST_SETTINGS.mode as PlaylistMode,
         delay: DEFAULT_PLAYLIST_SETTINGS.delay,
         timeUnit: "minutes" as PlaylistTimeUnit,
         order: DEFAULT_PLAYLIST_SETTINGS.order,
         overrides: {} as WallpaperOverrides,
+        schedule: [] as PlaylistScheduleEntry[],
         wallpapers: [] as string[],
     }
 }
@@ -68,7 +119,9 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
                 settings: {
                     ...DEFAULT_PLAYLIST_SETTINGS,
                     delay: delayToMinutes(value.delay, value.timeUnit),
+                    mode: value.mode,
                     order: value.order,
+                    schedule: value.mode === "timer" ? undefined : value.schedule.filter(s => s.wallpaperPath),
                     overrides: value.overrides,
                 },
             }

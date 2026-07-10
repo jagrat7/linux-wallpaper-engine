@@ -6,10 +6,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
     PLAYLIST_ORDER_OPTIONS,
     PLAYLIST_TIME_UNIT_OPTIONS,
+    PLAYLIST_MODE_OPTIONS,
     type PlaylistOrder,
     type PlaylistTimeUnit,
+    type PlaylistMode,
 } from "../../../shared/constants/playlist"
-import { ENGINE_OVERRIDE_FIELDS, type WallpaperOverrides } from "../../../shared/constants/wallpaper"
+import { ENGINE_OVERRIDE_FIELDS, type WallpaperOverrides, type Wallpaper } from "../../../shared/constants/wallpaper"
+import { PlaylistScheduleEditor } from "./playlist-schedule-editor"
 import { GlobalProperties } from "../wallpaper/details-card/property-settings/global-properties"
 import { engineFieldDefault } from "../wallpaper/details-card/property-settings/global-prop-variants"
 import { trpc } from "@/lib/trpc"
@@ -21,18 +24,27 @@ interface PlaylistSettingsBarProps {
     selectedCount: number
     serverError: string | null
     onClearServerError: () => void
+    wallpapers: Wallpaper[]
 }
 
 // Matches SelectTrigger so popover fields sit flush with adjacent selects
 const selectTriggerClassName =
     "border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex h-9 items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
 
-export function PlaylistSettingsBar({ form, selectedCount, serverError, onClearServerError }: PlaylistSettingsBarProps) {
+export function PlaylistSettingsBar({ form, selectedCount, serverError, onClearServerError, wallpapers }: PlaylistSettingsBarProps) {
     // Global settings supply the fallback values shown for unset overrides
     const { data: settings } = trpc.settings.get.useQuery()
 
     return (
-        <div className="flex items-start gap-6 p-5 rounded-xl border border-border bg-card glass">
+        <form.Field
+            name="mode"
+            children={(modeField) => {
+                const mode = modeField.state.value
+                const showTimerSettings = mode === "timer"
+
+                return (
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-6 p-5 rounded-xl border border-border bg-card glass">
             {/* Name */}
             <form.Field
                 name="name"
@@ -63,83 +75,106 @@ export function PlaylistSettingsBar({ form, selectedCount, serverError, onClearS
                 }}
             />
 
-            {/* Rotation interval: delay value + time unit */}
-            <div className="space-y-1.5">
-                <FieldLabel>Rotation Interval</FieldLabel>
-                <div className="flex items-start gap-1.5">
-                    <form.Field
-                        name="delay"
-                        children={(field) => {
-                            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
-                            return (
-                                <div className="flex min-w-0 flex-col gap-1.5">
-                                    <Input
-                                        id={field.name}
-                                        name={field.name}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(parseInt(e.target.value) || 1)}
-                                        aria-invalid={isInvalid}
-                                        className="h-9 w-16 scrollbar-styled"
-                                    />
-                                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                                </div>
-                            )
-                        }}
-                    />
-                    <form.Field
-                        name="timeUnit"
-                        children={(field) => (
-                            <Select
-                                name={field.name}
-                                value={field.state.value}
-                                onValueChange={(v) => field.handleChange(v as PlaylistTimeUnit)}
-                            >
-                                <SelectTrigger className="h-9 w-20">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="w-20">
-                                    {PLAYLIST_TIME_UNIT_OPTIONS.map(opt => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    />
+            {showTimerSettings && (
+                <div className="space-y-1.5">
+                    <FieldLabel>Rotation Interval</FieldLabel>
+                    <div className="flex items-start gap-1.5">
+                        <form.Field
+                            name="delay"
+                            children={(field) => {
+                                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+                                return (
+                                    <div className="flex min-w-0 flex-col gap-1.5">
+                                        <Input
+                                            id={field.name}
+                                            name={field.name}
+                                            value={field.state.value}
+                                            onBlur={field.handleBlur}
+                                            onChange={(e) => field.handleChange(parseInt(e.target.value) || 1)}
+                                            aria-invalid={isInvalid}
+                                            className="h-9 w-16 scrollbar-styled"
+                                        />
+                                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                                    </div>
+                                )
+                            }}
+                        />
+                        <form.Field
+                            name="timeUnit"
+                            children={(field) => (
+                                <Select
+                                    name={field.name}
+                                    value={field.state.value}
+                                    onValueChange={(v) => field.handleChange(v as PlaylistTimeUnit)}
+                                >
+                                    <SelectTrigger className="h-9 w-20">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="w-20">
+                                        {PLAYLIST_TIME_UNIT_OPTIONS.map(opt => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
                 </div>
+            )}
+
+            {/* Mode */}
+            <div className="space-y-1.5">
+                <FieldLabel htmlFor={modeField.name}>Mode</FieldLabel>
+                <Select
+                    name={modeField.name}
+                    value={mode}
+                    onValueChange={(v) => modeField.handleChange(v as PlaylistMode)}
+                >
+                    <SelectTrigger id={modeField.name} className="h-9 w-40">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {PLAYLIST_MODE_OPTIONS.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
-            {/* Order */}
-            <form.Field
-                name="order"
-                children={(field) => {
-                    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
-                    return (
-                        <div className="space-y-1.5">
-                            <FieldLabel htmlFor={field.name}>Order</FieldLabel>
-                            <Select
-                                name={field.name}
-                                value={field.state.value}
-                                onValueChange={(v) => field.handleChange(v as PlaylistOrder)}
-                            >
-                                <SelectTrigger id={field.name} className="h-9 w-30" aria-invalid={isInvalid}>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {PLAYLIST_ORDER_OPTIONS.map(opt => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                        </div>
-                    )
-                }}
-            />
+            {showTimerSettings && (
+                <form.Field
+                    name="order"
+                    children={(field) => {
+                        const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+                        return (
+                            <div className="space-y-1.5">
+                                <FieldLabel htmlFor={field.name}>Order</FieldLabel>
+                                <Select
+                                    name={field.name}
+                                    value={field.state.value}
+                                    onValueChange={(v) => field.handleChange(v as PlaylistOrder)}
+                                >
+                                    <SelectTrigger id={field.name} className="h-9 w-30" aria-invalid={isInvalid}>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {PLAYLIST_ORDER_OPTIONS.map(opt => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                            </div>
+                        )
+                    }}
+                />
+            )}
 
             {/* Engine setting overrides for the whole playlist */}
             <form.Field
@@ -221,6 +256,13 @@ export function PlaylistSettingsBar({ form, selectedCount, serverError, onClearS
                     )
                 }}
             />
-        </div>
+                        </div>
+                        {!showTimerSettings && (
+                            <PlaylistScheduleEditor form={form} mode={mode} wallpapers={wallpapers} />
+                        )}
+                    </div>
+                )
+            }}
+        />
     )
 }

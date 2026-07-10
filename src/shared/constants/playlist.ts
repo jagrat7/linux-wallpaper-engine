@@ -18,9 +18,19 @@ export const PLAYLIST_TIME_UNIT_VALUES = PLAYLIST_TIME_UNIT_OPTIONS.map(o => o.v
 
 export const PLAYLIST_MODE_OPTIONS = [
   { label: 'Timer', value: 'timer' },
+  { label: 'Time of Day', value: 'time' },
+  { label: 'Theme', value: 'theme' },
 ] as const
 export type PlaylistMode = typeof PLAYLIST_MODE_OPTIONS[number]['value']
 export const PLAYLIST_MODE_VALUES = PLAYLIST_MODE_OPTIONS.map(o => o.value) as [PlaylistMode, ...PlaylistMode[]]
+
+export interface PlaylistScheduleEntry {
+  wallpaperPath: string
+  // HH:MM (24h) - used by time mode
+  time?: string
+  // Used by theme mode (light/dark)
+  theme?: 'light' | 'dark'
+}
 
 export interface PlaylistSettings {
   delay: number // minutes between switches (engine format)
@@ -29,6 +39,8 @@ export interface PlaylistSettings {
   order: PlaylistOrder
   updateonpause: boolean
   videosequence: boolean
+  // Time/theme playlists use a schedule instead of delay/order
+  schedule?: PlaylistScheduleEntry[]
   // Per-playlist engine flag overrides; unset keys fall back to global settings
   overrides?: WallpaperOverrides
 }
@@ -40,6 +52,7 @@ export const DEFAULT_PLAYLIST_SETTINGS: PlaylistSettings = {
   order: PLAYLIST_ORDER_OPTIONS[0].value,
   updateonpause: false,
   videosequence: false,
+  schedule: [],
 }
 
 export interface Playlist {

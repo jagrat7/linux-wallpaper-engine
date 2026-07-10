@@ -4,6 +4,8 @@ import { settingsService } from '../settings'
 import { hostCommandExists, hostExecAsync, hostSpawn } from '../../utils/host'
 import { resolveWallpaperEngineAssetsDir } from '../wallpaper/wallpaper.utils'
 import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, applyOverridesToSettings, type ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
+import { startPlaylistScheduler, stopPlaylistScheduler, type SchedulerDeps } from './playlist-scheduler'
+import type { MutationResult } from '../wallpaper/wallpaper.types'
 
 // Injected by the caller to avoid a circular import with the wallpaper service
 // (which uses this module to restart playlists when screens are released).
@@ -14,12 +16,16 @@ export type RegisterProcessFn = (
   options: ApplyWallpaperOptions,
 ) => void | Promise<unknown>
 
+export interface PlaylistStartCallbacks extends SchedulerDeps {
+  register: RegisterProcessFn
+}
+
 export async function startPlaylistProcess(
   playlistName: string,
   screens: string[],
   stampLastApplied: boolean,
-  register: RegisterProcessFn,
-): Promise<{ success: boolean; error?: string }> {
+  callbacks: PlaylistStartCallbacks,
+): Promise<MutationResult> {
   const playlist = await playlistService.getPlaylist(playlistName)
   if (!playlist) {
     return { success: false, error: 'Playlist not found' }
@@ -31,6 +37,23 @@ export async function startPlaylistProcess(
 
   if (!await hostCommandExists('linux-wallpaperengine')) {
     return { success: false, error: BACKEND_NOT_INSTALLED_ERROR_MESSAGE }
+  }
+
+  if (playlist.settings.mode === 'time' || playlist.settings.mode === 'theme') {
+    if (!playlist.settings.schedule || playlist.settings.schedule.length === 0) {
+      return { success: false, error: `Playlist has no ${playlist.settings.mode === 'time' ? 'time slots' : 'theme slots'}` }
+    }
+
+    try {
+      const screenKeys = await startPlaylistScheduler(playlistName, playlist, screens, callbacks)
+      playlistService.setActivePlaylist(playlistName, screenKeys)
+      return { success: true, screens: screenKeys }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : `Failed to start ${playlist.settings.mode} playlist`,
+      }
+    }
   }
 
   if (stampLastApplied) {
@@ -72,14 +95,14 @@ export async function startPlaylistProcess(
         : ['ignore', 'ignore', 'pipe'],
     })
 
-    await register(screenKeys, proc, args, {
+    await callbacks.register(screenKeys, proc, args, {
       backgroundId: playlist.items[0],
       screen: settings.windowMode ? undefined : screens.length === 1 ? screens[0] : undefined,
     })
 
     playlistService.setActivePlaylist(playlistName, screenKeys)
 
-    return { success: true }
+    return { success: true, screens: screenKeys }
   } catch (error) {
     return {
       success: false,
@@ -87,3 +110,5 @@ export async function startPlaylistProcess(
     }
   }
 }
+
+export { stopPlaylistScheduler }

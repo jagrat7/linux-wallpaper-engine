@@ -123,6 +123,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                     selectedCount={editor.selectedPaths.length}
                     serverError={editor.serverError}
                     onClearServerError={editor.clearServerError}
+                    wallpapers={selectedWallpaperData}
                 />
 
                 {/* Selected wallpapers as removable chips */}

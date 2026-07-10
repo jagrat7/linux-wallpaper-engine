@@ -68,6 +68,8 @@ export interface ApplyWallpaperOptions {
   disableParticles?: boolean
   noFullscreenPause?: boolean
   windowed?: WindowGeometry | 'emit-flag'
+  // Playlist-scheduled applies can carry their own overrides instead of relying on the store
+  overrides?: WallpaperOverrides
 }
 
 // Per-wallpaper setting overrides (all optional, falls back to global settings)

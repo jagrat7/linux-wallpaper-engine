@@ -568,8 +568,11 @@ class WallpaperService implements IWallpaperService {
   private async restartPlaylists(playlistScreens: Map<string, string[]>): Promise<string[]> {
     const errors: string[] = []
     for (const [name, screens] of playlistScreens) {
-      const result = await startPlaylistProcess(name, screens, false, (screenKeys, proc, args, options) =>
-        this.registerProcess(screenKeys, proc, args, options))
+      const result = await startPlaylistProcess(name, screens, false, {
+        register: (screenKeys, proc, args, options) => this.registerProcess(screenKeys, proc, args, options),
+        apply: (options) => this.apply({ kind: 'wallpaper', options }),
+        stop: (screensToStop) => this.stop(screensToStop),
+      })
       if (!result.success) {
         // Playlist is gone (e.g. deleted) — drop the stale active entries
         playlistService.clearActivePlaylist(screens)
@@ -640,7 +643,7 @@ class WallpaperService implements IWallpaperService {
   private async buildArgs(options: ApplyWallpaperOptions): Promise<string[]> {
     const args: string[] = []
     const all = this.overridesStore.get('overrides')
-    const overrides = all[options.backgroundId] ?? {}
+    const overrides = options.overrides ?? all[options.backgroundId] ?? {}
     const volume = overrides.volume ?? options.volume
     const noAudioProcessing = overrides.audioProcessing !== undefined
       ? !overrides.audioProcessing

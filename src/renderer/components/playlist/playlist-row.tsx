@@ -1,4 +1,4 @@
-import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images } from "lucide-react"
+import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images, Sun } from "lucide-react"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -82,11 +82,23 @@ export function PlaylistRow({
                             <Images className="size-3.5" />
                             {playlist.items.length}
                         </span>
-                        <span className="flex items-center gap-1">
-                            <Clock className="size-3" />
-                            {playlist.settings.delay}m
-                        </span>
-                        {playlist.settings.order === 'random' && (
+                        {playlist.settings.mode === 'timer' ? (
+                            <span className="flex items-center gap-1">
+                                <Clock className="size-3" />
+                                {playlist.settings.delay}m
+                            </span>
+                        ) : playlist.settings.mode === 'time' ? (
+                            <span className="flex items-center gap-1">
+                                <Clock className="size-3" />
+                                Time
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1">
+                                <Sun className="size-3" />
+                                Theme
+                            </span>
+                        )}
+                        {playlist.settings.mode === 'timer' && playlist.settings.order === 'random' && (
                             <span className="flex items-center gap-1">
                                 <Shuffle className="size-3" />
                             </span>

@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
 import { playlistService } from '../../services/playlists/playlist'
-import { startPlaylistProcess } from '../../services/playlists/playlist-runner'
+import { startPlaylistProcess, stopPlaylistScheduler } from '../../services/playlists/playlist-runner'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { settingsService } from '../../services/settings'
 import { displayService } from '../../services/display'
 import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants/playlist'
 import { engineOverridesSchema } from '../../../shared/constants/wallpaper'
+import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 
 const playlistSettingsSchema = z.object({
   delay: z.number().min(1),
@@ -15,12 +16,23 @@ const playlistSettingsSchema = z.object({
   order: z.enum(PLAYLIST_ORDER_VALUES),
   updateonpause: z.boolean(),
   videosequence: z.boolean(),
+  schedule: z.array(z.object({
+    wallpaperPath: z.string().min(1),
+    time: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/).optional(),
+    theme: z.enum(['light', 'dark']).optional(),
+  })).optional(),
   overrides: engineOverridesSchema.optional(),
 })
 
 function startPlaylist(playlistName: string, screens: string[], stampLastApplied: boolean) {
-  return startPlaylistProcess(playlistName, screens, stampLastApplied, (screenKeys, proc, args, options) =>
-    wallpaperService.apply({ kind: 'register', screens: screenKeys, proc, args, options }))
+  return startPlaylistProcess(playlistName, screens, stampLastApplied, {
+    register: (screenKeys, proc, args, options) =>
+      wallpaperService.apply({ kind: 'register', screens: screenKeys, proc, args, options }),
+    apply: (options: ApplyWallpaperOptions) =>
+      wallpaperService.apply({ kind: 'wallpaper', options }),
+    stop: (screensToStop?: string[]) =>
+      wallpaperService.stop(screensToStop),
+  })
 }
 
 export const playlistRouter = trpc.router({
@@ -100,6 +112,8 @@ export const playlistRouter = trpc.router({
         if (remainingScreens.length > 0) {
           const result = await startPlaylist(playlistName, remainingScreens, false)
           if (!result.success) return result
+        } else {
+          stopPlaylistScheduler(playlistName)
         }
       }
 
