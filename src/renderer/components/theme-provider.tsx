@@ -74,9 +74,7 @@ export function ThemeProvider({
 
     // Handle system theme
     if (mode === 'system') {
-      const colorScheme = window.matchMedia('(prefers-color-scheme: dark)')
-      const isDark = systemTheme?.scheme === 'dark'
-        || (systemTheme === undefined && colorScheme.matches)
+      const isDark = systemTheme?.scheme !== 'light'
       root.classList.add('system', isDark ? 'dark' : 'light')
 
       Object.entries(systemTheme?.palette ?? {}).forEach(([key, value]) => {
@@ -84,13 +82,7 @@ export function ThemeProvider({
         if (property !== undefined) root.style.setProperty(property, value)
       })
 
-      const syncColorScheme = (event: MediaQueryListEvent) => {
-        if (systemTheme !== undefined) return
-        root.classList.toggle('dark', event.matches)
-        root.classList.toggle('light', !event.matches)
-      }
-      colorScheme.addEventListener('change', syncColorScheme)
-      return () => colorScheme.removeEventListener('change', syncColorScheme)
+      return
     }
 
     // Apply selected theme
