@@ -30,6 +30,9 @@ const resolveAssetPath = (assetName: string): string => {
 }
 
 const appIcon = nativeImage.createFromPath(resolveAssetPath('transparent-logo.png'))
+// Standard tray icon size (22x22 ensures pixmap data is sent via SNI on Wayland)
+const TRAY_ICON_SIZE = 22
+const trayIcon = appIcon.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE })
 
 const shouldMinimizeOnClose = (): boolean => {
   return settings.getSetting('enableSystemTray') && settings.getSetting('minimizeOnClose')
@@ -90,7 +93,7 @@ const createWindow = () => {
 // Initialize the system tray with context menu
 const initializeTray = (mainWindow: BrowserWindow): void => {
   if (tray !== null) return
-  tray = new Tray(appIcon)
+  tray = new Tray(trayIcon)
 
   const toggleMainWindow = (): void => {
     if (!mainWindow.isVisible()) {
