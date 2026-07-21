@@ -143,15 +143,15 @@ async function scheduleNext(name: string) {
   const ms = msUntilNextTimeSlot(playlist.settings.schedule ?? [], new Date())
   if (ms <= 0) {
     // Defensive: if we landed on a slot boundary, recheck in a minute
-    setTimeout(() => run(name), 60 * 1000)
+    setTimeout(() => run(name, true), 60 * 1000)
     return
   }
 
   if (sched.timeout) clearTimeout(sched.timeout)
-  sched.timeout = setTimeout(() => run(name), ms)
+  sched.timeout = setTimeout(() => run(name, true), ms)
 }
 
-async function run(name: string) {
+async function run(name: string, force = false) {
   const sched = activeSchedulers.get(name)
   if (!sched) return
 
@@ -163,7 +163,7 @@ async function run(name: string) {
 
   const activeEntries = playlistService.getActivePlaylistEntries()
   const stillActive = sched.screens.some(screen => activeEntries[screen]?.name === name)
-  if (!stillActive) {
+  if (!force && !stillActive) {
     stopPlaylistScheduler(name)
     return
   }
@@ -233,7 +233,7 @@ export async function startPlaylistScheduler(
     await attachThemeListener()
   }
 
-  await run(name)
+  await run(name, true)
   return screenKeys
 }
 
