@@ -1,7 +1,11 @@
 {
   "title": "Linux Wallpaper Engine",
   "description": "Open-source cross-distribution desktop app for animated wallpapers—3k+ downloads, multi-monitor management, Steam API integration, and bulk compatibility scanning.",
-  "tags": ["Electron", "React", "tRPC"],
+  "tags": [
+    "Electron",
+    "React",
+    "tRPC"
+  ],
   "order": 1,
   "image": "docs/dark.png",
   "images": [
@@ -10,5 +14,6 @@
     "docs/playlists.png",
     "docs/steam.png",
     "docs/workshop.png"
-  ]
+  ],
+  "type": "desktop"
 }
