@@ -76,7 +76,7 @@ export function PlaylistRow({
     return (
         <div
             className={cn(
-                "group p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none bg-card",
+                "group p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none  border border-border bg-card",
                 glassClassName
             )}
         >
