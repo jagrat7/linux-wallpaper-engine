@@ -1,6 +1,7 @@
 import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images } from "lucide-react"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/empty-state"
 import {
@@ -42,6 +43,8 @@ export function PlaylistRow({
     onEdit,
     onDelete,
 }: PlaylistRowProps) {
+    const glass = useGlass()
+
     // Get wallpapers for this playlist
     const playlistWallpapers = playlist.items
         .map(path => wallpapers.find(w => w.path === path))
@@ -70,7 +73,8 @@ export function PlaylistRow({
     return (
         <div
             className={cn(
-                "group glass p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none"
+                "group p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none",
+                glass
             )}
         >
             {/* Header with info */}

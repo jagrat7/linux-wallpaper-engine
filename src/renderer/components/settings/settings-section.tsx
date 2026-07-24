@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 
 interface SettingsSectionProps {
     id?: string
@@ -11,8 +12,10 @@ interface SettingsSectionProps {
 }
 
 export function SettingsSection({ id, icon: Icon, title, description, children, className }: SettingsSectionProps) {
+    const glass = useGlass()
+
     return (
-        <div id={id} className={cn("rounded-xl border border-border bg-card glass", className)}>
+        <div id={id} className={cn("rounded-xl border border-border bg-card", glass, className)}>
             <div className="flex items-center gap-3 border-b border-border p-4">
                 <div className="flex size-9 items-center justify-center rounded-lg bg-secondary">
                     <Icon className="size-4 text-muted-foreground" />

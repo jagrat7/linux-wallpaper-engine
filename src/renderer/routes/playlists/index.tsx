@@ -3,6 +3,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus, Shuffle, Loader2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { trpc } from "@/lib/trpc"
+import { cn } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 import type { Playlist } from "../../../shared/constants/playlist"
 import { PlaylistRow } from "@/components/playlist/playlist-row"
 import { PageHeader } from "@/components/page-header"
@@ -17,6 +19,7 @@ export const Route = createFileRoute("/playlists/")({
 
 function PlaylistsPage() {
     const navigate = useNavigate()
+    const glass = useGlass()
     const [applyingPlaylist, setApplyingPlaylist] = useState<string | null>(null)
     const [debugScreen, setDebugScreen] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState("")
@@ -151,10 +154,12 @@ function PlaylistsPage() {
 
             {playlists.length > 0 && (
                 <div className="mb-4 flex justify-start">
-                    <div className={`group relative flex items-center overflow-hidden transition-all duration-300 ease-in-out rounded-xl ${isSearchOpen
-                        ? "w-72 ring-1 ring-foreground/20 focus-within:ring-foreground/40 focus-within:shadow-sm glass"
-                        : "w-8"
-                        }`}>
+                    <div className={cn(
+                        "group relative flex items-center overflow-hidden transition-all duration-300 ease-in-out rounded-xl",
+                        isSearchOpen
+                            ? ["w-72 ring-1 ring-foreground/20 focus-within:ring-foreground/40 focus-within:shadow-sm", glass]
+                            : "w-8"
+                    )}>
                         <button
                             onClick={isSearchOpen ? undefined : handleSearchOpen}
                             className="absolute left-0 flex size-8 shrink-0 items-center justify-center text-muted-foreground/40 hover:text-muted-foreground transition-colors duration-200"

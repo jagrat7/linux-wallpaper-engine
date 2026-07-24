@@ -13,6 +13,11 @@ interface WallpaperCardProps {
     selected?: boolean
     compatibilityStatus?: CompatibilityStatus
     showCompatibilityDot?: boolean
+    /**
+     * Frosted-glass class, resolved by the grid via `useGlass()`. Passed down so
+     * a grid of cards costs zero extra queries per item.
+     */
+    glassClassName?: string
 }
 
 
@@ -22,12 +27,14 @@ export const WallpaperCard = memo(function WallpaperCard({
     selected,
     compatibilityStatus,
     showCompatibilityDot = true,
+    glassClassName,
 }: WallpaperCardProps) {
 
     return (
         <div
             className={cn(
-                "cv-auto group relative overflow-hidden rounded-xl border bg-card transition-all duration-200 cursor-pointer glass",
+                "cv-auto group relative overflow-hidden rounded-xl border bg-card transition-all duration-200 cursor-pointer",
+                glassClassName,
                 selected
                     ? "!border-primary ring-2 ring-primary/20"
                     : "border-border hover:border-ring/50 hover:shadow-lg"
