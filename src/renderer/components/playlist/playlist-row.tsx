@@ -73,7 +73,7 @@ export function PlaylistRow({
     return (
         <div
             className={cn(
-                "group p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none",
+                "group p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none bg-card",
                 glass
             )}
         >
