@@ -206,6 +206,7 @@ function PlaylistsPage() {
                                 onStop={(screen) => handleStop(playlist.name, screen)}
                                 onEdit={() => handleEdit(playlist)}
                                 onDelete={() => handleDelete(playlist.name)}
+                                glassClassName={glass}
                             />
                         )
                     })}

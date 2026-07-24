@@ -1,7 +1,6 @@
 import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images } from "lucide-react"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { useGlass } from "@/hooks/use-glass"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/empty-state"
 import {
@@ -31,6 +30,11 @@ interface PlaylistRowProps {
     onStop: (screen?: string | string[]) => Promise<void>
     onEdit: () => void
     onDelete: () => void
+    /**
+     * Frosted-glass class, resolved once by the list via `useGlass()`. Passed
+     * down so each row does not subscribe to the background state itself.
+     */
+    glassClassName?: string
 }
 
 export function PlaylistRow({
@@ -42,9 +46,8 @@ export function PlaylistRow({
     onStop,
     onEdit,
     onDelete,
+    glassClassName,
 }: PlaylistRowProps) {
-    const glass = useGlass()
-
     // Get wallpapers for this playlist
     const playlistWallpapers = playlist.items
         .map(path => wallpapers.find(w => w.path === path))
@@ -74,7 +77,7 @@ export function PlaylistRow({
         <div
             className={cn(
                 "group p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none bg-card",
-                glass
+                glassClassName
             )}
         >
             {/* Header with info */}
