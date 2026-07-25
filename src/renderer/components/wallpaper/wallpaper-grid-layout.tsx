@@ -6,6 +6,7 @@ import { WallpaperCard } from "./wallpaper-card"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
 import { DEFAULT_GRID_COLS } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 
 const SKELETON_COUNT = 12
 
@@ -39,6 +40,8 @@ export function WallpaperGridLayout({
     gridClassName,
 }: WallpaperGridLayoutProps) {
     const gridCols = DEFAULT_GRID_COLS
+    // Resolved once for the whole grid — cards must not subscribe individually.
+    const glass = useGlass()
 
     if (isLoading) {
         return (
@@ -64,6 +67,7 @@ export function WallpaperGridLayout({
                         onClick={onCardClick}
                         compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
                         showCompatibilityDot={showCompatibilityDot}
+                        glassClassName={glass}
                     />
                     {renderCardOverlay?.(wallpaper)}
                 </div>

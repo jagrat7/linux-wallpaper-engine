@@ -7,6 +7,7 @@ import { WallpaperCard } from "./wallpaper-card"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
 import { findScrollParent, DEFAULT_GRID_COLS, columnsForWidth } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 
 const GAP = 16 // matches gap-4 (1rem)
 const OVERSCAN = 3 // rows rendered beyond the viewport to smooth scrolling
@@ -48,6 +49,8 @@ export function VirtualizedWallpaperGrid({
     ref,
 }: VirtualizedWallpaperGridProps) {
     const parentRef = useRef<HTMLDivElement>(null)
+    // Resolved once for the whole grid — cards must not subscribe individually.
+    const glass = useGlass()
     const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null)
     const [width, setWidth] = useState(0)
     const [viewportHeight, setViewportHeight] = useState(0)
@@ -152,6 +155,7 @@ export function VirtualizedWallpaperGrid({
                                     onClick={onCardClick}
                                     compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
                                     showCompatibilityDot={showCompatibilityDot}
+                                    glassClassName={glass}
                                 />
                                 {renderCardOverlay?.(wallpaper)}
                             </div>

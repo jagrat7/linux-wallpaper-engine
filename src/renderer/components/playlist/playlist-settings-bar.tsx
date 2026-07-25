@@ -14,6 +14,7 @@ import { GlobalProperties } from "../wallpaper/details-card/property-settings/gl
 import { engineFieldDefault } from "../wallpaper/details-card/property-settings/global-prop-variants"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 import type { PlaylistEditorReturn } from "@/hooks/use-playlist-editor"
 
 interface PlaylistSettingsBarProps {
@@ -30,9 +31,10 @@ const selectTriggerClassName =
 export function PlaylistSettingsBar({ form, selectedCount, serverError, onClearServerError }: PlaylistSettingsBarProps) {
     // Global settings supply the fallback values shown for unset overrides
     const { data: settings } = trpc.settings.get.useQuery()
+    const glass = useGlass()
 
     return (
-        <div className="flex items-start gap-6 p-5 rounded-xl border border-border bg-card glass">
+        <div className={cn("flex items-start gap-6 p-5 rounded-xl border border-border bg-card", glass)}>
             {/* Name */}
             <form.Field
                 name="name"

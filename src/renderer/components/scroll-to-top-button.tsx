@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowUp } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 
 const DEFAULT_THRESHOLD = 400
 
@@ -13,6 +14,7 @@ interface ScrollToTopButtonProps {
 
 export function ScrollToTopButton({ threshold = DEFAULT_THRESHOLD, className }: ScrollToTopButtonProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const glass = useGlass()
   const buttonRef = useRef<HTMLButtonElement | null>(null)
   const scrollTargetRef = useRef<ScrollTarget | null>(null)
 
@@ -59,7 +61,8 @@ export function ScrollToTopButton({ threshold = DEFAULT_THRESHOLD, className }: 
         "fixed bottom-[calc(var(--status-bar-h,0rem)_+_0.5rem)] right-4 z-50",
         "flex items-center justify-center",
         "size-10 rounded-full",
-        "glass text-foreground",
+        glass,
+        "text-foreground",
         "shadow-lg",
         "transition-all duration-300 ease-out",
         "hover:scale-110 hover:shadow-xl hover:-translate-y-1",

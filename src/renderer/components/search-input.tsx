@@ -1,5 +1,7 @@
 import { Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 
 interface SearchInputProps {
   placeholder?: string
@@ -14,9 +16,11 @@ export function SearchInput({
   searchQuery,
   setSearchQuery,
 }: SearchInputProps) {
+  const glass = useGlass()
+
   return (
     <div className={className}>
-      <div className="group relative flex-1 rounded-xl ring-1 ring-foreground/10 hover:ring-foreground/30 focus-within:ring-foreground/40 focus-within:shadow-sm glass">
+      <div className={cn("group relative flex-1 rounded-xl ring-1 ring-foreground/10 hover:ring-foreground/30 focus-within:ring-foreground/40 focus-within:shadow-sm", glass)}>
         <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60 transition-colors duration-200 group-focus-within:text-foreground" />
         <Input
           type="text"
