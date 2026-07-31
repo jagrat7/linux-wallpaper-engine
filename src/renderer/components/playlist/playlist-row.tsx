@@ -30,6 +30,11 @@ interface PlaylistRowProps {
     onStop: (screen?: string | string[]) => Promise<void>
     onEdit: () => void
     onDelete: () => void
+    /**
+     * Frosted-glass class, resolved once by the list via `useGlass()`. Passed
+     * down so each row does not subscribe to the background state itself.
+     */
+    glassClassName?: string
 }
 
 export function PlaylistRow({
@@ -41,6 +46,7 @@ export function PlaylistRow({
     onStop,
     onEdit,
     onDelete,
+    glassClassName,
 }: PlaylistRowProps) {
     // Get wallpapers for this playlist
     const playlistWallpapers = playlist.items
@@ -70,7 +76,8 @@ export function PlaylistRow({
     return (
         <div
             className={cn(
-                "group glass p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none"
+                "group p-1 rounded-xl min-h-[200px] transition-all overflow-hidden select-none  border border-border bg-card",
+                glassClassName
             )}
         >
             {/* Header with info */}

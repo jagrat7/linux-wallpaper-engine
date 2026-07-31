@@ -4,6 +4,8 @@ import { WallpaperThumbnail } from "@/components/wallpaper/wallpaper-thumbnail"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { PageHeader } from "@/components/page-header"
 import { trpc } from "@/lib/trpc"
+import { cn } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 import { useMemo } from "react"
 
 export const Route = createFileRoute("/displays")({
@@ -20,6 +22,8 @@ interface DisplayMonitor {
 }
 
 function DisplaysPage() {
+    const glass = useGlass()
+
     // Fetch displays from backend
     const { data: displays, isLoading, error } = trpc.display.list.useQuery()
     const { data: session } = trpc.display.session.useQuery()
@@ -49,7 +53,7 @@ function DisplaysPage() {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground glass">
+            <div className={cn("flex flex-col items-center justify-center py-20 text-muted-foreground", glass)}>
                 <Loader2 className="size-8 animate-spin mb-4" />
                 <p>Detecting displays...</p>
             </div>
@@ -58,7 +62,7 @@ function DisplaysPage() {
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-destructive glass">
+            <div className={cn("flex flex-col items-center justify-center py-20 text-destructive", glass)}>
                 <AlertCircle className="size-8 mb-4" />
                 <p className="font-medium">Failed to detect displays</p>
                 <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
@@ -80,7 +84,7 @@ function DisplaysPage() {
                 }
             />
 
-            <div className="mb-8 min-h-[200px] md:min-h-[300px] lg:min-h-[400px] xl:min-h-[450px] rounded-xl border border-border bg-card p-6 glass">
+            <div className={cn("mb-8 min-h-[200px] md:min-h-[300px] lg:min-h-[400px] xl:min-h-[450px] rounded-xl border border-border bg-card p-6", glass)}>
                 <h2 className="mb-4 text-sm font-medium text-muted-foreground">
                     Monitor Layout
                 </h2>
@@ -109,7 +113,7 @@ function DisplaysPage() {
                                     </div>
                                 )}
                                 <div className="absolute inset-x-0 top-0 p-2">
-                                    <p className="text-xs font-medium text-primary/90 glass rounded-md px-2 py-1 w-fit">{monitor.id}</p>
+                                    <p className={cn("text-xs font-medium text-primary/90 rounded-md px-2 py-1 w-fit", glass)}>{monitor.id}</p>
                                 </div>
                             </div>
                         ))
@@ -122,7 +126,7 @@ function DisplaysPage() {
                 {monitors.map((monitor) => (
                     <div
                         key={monitor.id}
-                        className="flex items-center justify-between rounded-lg border border-border bg-card p-4 glass"
+                        className={cn("flex items-center justify-between rounded-lg border border-border bg-card p-4", glass)}
                     >
                         <div className="flex items-center gap-4">
                             <div className="flex size-10 items-center justify-center rounded-lg bg-secondary">

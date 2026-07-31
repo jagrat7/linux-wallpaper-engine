@@ -8,7 +8,8 @@ import { WorkshopPagination } from "@/components/workshop/workshop-pagination"
 import { IconButton } from "@/components/ui/icon-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { trpc } from "@/lib/trpc"
-import { toWallpaper } from "@/lib/utils"
+import { cn, toWallpaper } from "@/lib/utils"
+import { useGlass } from "@/hooks/use-glass"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { WorkshopSortBy } from "../../../shared/constants/workshop"
 import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS } from "../../../shared/constants/workshop"
@@ -33,6 +34,7 @@ export function WorkshopDiscoverView({
   onCardClick,
   gridClassName,
 }: WorkshopDiscoverViewProps) {
+  const glass = useGlass()
   const [visibleSectionCount, setVisibleSectionCount] = useState(DISCOVER_SECTION_BATCH_SIZE)
   const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null)
   const [focusedPage, setFocusedPage] = useState(1)
@@ -244,7 +246,7 @@ export function WorkshopDiscoverView({
 
       {hasMore && (
         <div ref={loadMoreRef} className="flex justify-center py-2">
-          <div className="glass rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
+          <div className={cn(glass, "rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground")}>
             Loading more categories
           </div>
         </div>
