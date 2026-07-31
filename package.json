@@ -1,7 +1,7 @@
 {
   "name": "linux-wallpaper-engine",
   "productName": "Linux Wallpaper Engine",
-  "version": "0.4.9",
+  "version": "0.4.10",
   "description": "A linux implementation of Wallpaper Engine — browse, manage, and apply your wallpapers.",
   "homepage": "https://github.com/jagrat7/linux-wallpaper-engine",
   "repository": {
