@@ -131,7 +131,7 @@ function SettingsPage() {
                 }
             />
 
-            <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-6 2xl:grid-cols-2">
                 {/* General Section */}
                 <SettingsSection
                     icon={Settings}
