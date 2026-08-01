@@ -131,7 +131,7 @@ function SettingsPage() {
                 }
             />
 
-            <div className="grid grid-cols-1 items-start gap-6 2xl:grid-cols-2">
+            <div className="columns-1 gap-6 2xl:columns-2 [&>*]:mb-6 [&>*]:break-inside-avoid">
                 {/* General Section */}
                 <SettingsSection
                     icon={Settings}
@@ -362,7 +362,6 @@ function SettingsPage() {
                     icon={Palette}
                     title="Appearance"
                     description="Theme and visual preferences"
-                    className="max-2xl:mb-4"
                 >
                     <SettingRow label="Theme">
                         <SelectControl
