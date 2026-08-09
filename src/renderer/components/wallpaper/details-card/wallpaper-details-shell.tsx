@@ -1,4 +1,4 @@
-import { type ReactNode } from "react"
+import { useEffect, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,16 @@ interface WallpaperDetailsShellProps {
 export function WallpaperDetailsShell({ wallpaper, onClose, actions, children }: WallpaperDetailsShellProps) {
     const glass = useGlass()
 
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== "Escape" || document.querySelector('[role="dialog"][data-state="open"]')) return
+            onClose()
+        }
+
+        document.addEventListener("keydown", handleKeyDown)
+        return () => document.removeEventListener("keydown", handleKeyDown)
+    }, [onClose])
+
     return (
         <div id="wallpaper-details" className={cn("sticky top-0 max-h-[calc(100vh_-_var(--status-bar-h,0rem)_-_2rem)] w-80 shrink-0 overflow-y-auto rounded-xl border border-border bg-card scrollbar-thin", glass)}>
             <div className="sticky top-2 z-10 flex justify-end pr-2 h-0">
@@ -26,6 +36,7 @@ export function WallpaperDetailsShell({ wallpaper, onClose, actions, children }:
                     size="icon-sm"
                     className="size-7 bg-black/50 text-white hover:bg-black/70"
                     onClick={onClose}
+                    aria-label={`Close details for ${wallpaper.title}`}
                 >
                     <X className="size-4" />
                 </Button>

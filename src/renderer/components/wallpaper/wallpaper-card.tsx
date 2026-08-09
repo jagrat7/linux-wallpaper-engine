@@ -1,4 +1,4 @@
-import { memo } from "react"
+import { memo, type FocusEventHandler, type KeyboardEventHandler, type Ref } from "react"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { WallpaperThumbnail } from "./wallpaper-thumbnail"
@@ -18,6 +18,11 @@ interface WallpaperCardProps {
      * a grid of cards costs zero extra queries per item.
      */
     glassClassName?: string
+    tabIndex?: number
+    buttonRef?: Ref<HTMLButtonElement>
+    onFocus?: FocusEventHandler<HTMLButtonElement>
+    onKeyDown?: KeyboardEventHandler<HTMLButtonElement>
+    selectionMode?: "expanded" | "pressed"
 }
 
 
@@ -28,6 +33,11 @@ export const WallpaperCard = memo(function WallpaperCard({
     compatibilityStatus,
     showCompatibilityDot = true,
     glassClassName,
+    tabIndex,
+    buttonRef,
+    onFocus,
+    onKeyDown,
+    selectionMode = "expanded",
 }: WallpaperCardProps) {
 
     return (
@@ -73,8 +83,14 @@ export const WallpaperCard = memo(function WallpaperCard({
                 )}
             </WallpaperThumbnail>
             <button
+                ref={buttonRef}
                 type="button"
+                tabIndex={tabIndex}
+                aria-expanded={selectionMode === "expanded" ? selected : undefined}
+                aria-pressed={selectionMode === "pressed" ? selected : undefined}
                 aria-label={`${wallpaper.title}${showCompatibilityDot && compatibilityStatus && compatibilityStatus !== "unknown" ? `, ${COMPATIBILITY_CONFIG[compatibilityStatus].label}` : ""}`}
+                onFocus={onFocus}
+                onKeyDown={onKeyDown}
                 className="absolute inset-0 z-10 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                 onClick={() => onClick?.(wallpaper)}
             />

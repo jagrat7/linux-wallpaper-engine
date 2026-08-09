@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAtom } from "jotai"
 import { PageHeader } from "@/components/page-header"
 import { WorkshopToolbar } from "@/components/workshop/workshop-toolbar"
@@ -75,6 +75,16 @@ function WorkshopPage() {
     }
   }
 
+  const handleCloseDetails = useCallback(() => {
+    const wallpaperId = selectedWallpaper?.id
+    setSelectedWallpaper(null)
+    if (!wallpaperId) return
+
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLButtonElement>(`[data-wallpaper-id="${CSS.escape(wallpaperId)}"] button`)?.focus()
+    })
+  }, [selectedWallpaper, setSelectedWallpaper])
+
   return (
     <div className="flex flex-col h-full p-6">
       <PageHeader
@@ -113,7 +123,7 @@ function WorkshopPage() {
 
         <WorkshopDetailsPanel
           wallpaper={selectedWallpaper}
-          onClose={() => setSelectedWallpaper(null)}
+          onClose={handleCloseDetails}
           onExitComplete={() => {
             // Only collapse columns when the panel is fully gone. When switching
             // between cards the exit fires too, but a selection still exists.
