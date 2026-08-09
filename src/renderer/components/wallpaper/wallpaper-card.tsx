@@ -31,9 +31,12 @@ export const WallpaperCard = memo(function WallpaperCard({
 }: WallpaperCardProps) {
 
     return (
-        <div
+        <button
+            type="button"
+            aria-pressed={selected}
+            aria-label={`${wallpaper.title}${selected ? ", selected" : ""}`}
             className={cn(
-                "cv-auto group relative overflow-hidden rounded-xl border bg-card transition-all duration-200 cursor-pointer",
+                "cv-auto group relative w-full overflow-hidden rounded-xl border bg-card text-left transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 glassClassName,
                 selected
                     ? "!border-primary ring-2 ring-primary/20"
@@ -71,6 +74,6 @@ export const WallpaperCard = memo(function WallpaperCard({
                     </Tooltip>
                 )}
             </WallpaperThumbnail>
-        </div>
+        </button>
     )
 })

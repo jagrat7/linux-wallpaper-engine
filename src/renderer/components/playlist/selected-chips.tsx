@@ -26,20 +26,23 @@ export function SelectedChips({ wallpapers, onRemove, onChipClick }: SelectedChi
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        onClick={() => onChipClick(wallpaper.path)}
-                        className="flex cursor-pointer items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm transition-colors hover:bg-primary/15"
+                        className="flex items-center rounded-lg border border-primary/20 bg-primary/10 text-sm transition-colors hover:bg-primary/15"
                     >
-                        <span className="max-w-[150px] truncate font-medium">
+                        <button
+                            type="button"
+                            className="max-w-[174px] truncate rounded-l-lg py-1.5 pl-3 pr-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                            onClick={() => onChipClick(wallpaper.path)}
+                        >
                             {wallpaper.title}
-                        </span>
+                            <span className="sr-only">, locate in playlist</span>
+                        </button>
                         <Button
+                            type="button"
                             variant="ghost"
                             size="icon-sm"
-                            className="size-5 p-0 hover:bg-destructive/20 hover:text-destructive"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                onRemove(wallpaper.path)
-                            }}
+                            aria-label={`Remove ${wallpaper.title} from playlist`}
+                            className="mr-1 size-6 p-0 hover:bg-destructive/20 hover:text-destructive"
+                            onClick={() => onRemove(wallpaper.path)}
                         >
                             <X className="size-3" />
                         </Button>
