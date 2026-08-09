@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useMemo, useRef } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus, Shuffle, Loader2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input"
 import { DebugLogDialog } from "@/components/wallpaper/debug-log-dialog"
 import { BackendNotInstalledDialog } from "@/components/wallpaper/backend-not-installed-dialog"
 import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE } from "../../../shared/constants/wallpaper"
+import { KeyboardShortcut } from "@/components/keyboard-shortcut"
+import { getAriaKeyShortcut } from "@/lib/keyboard-shortcuts"
 
 export const Route = createFileRoute("/playlists/")({
     component: PlaylistsPage,
@@ -37,17 +39,6 @@ function PlaylistsPage() {
             setIsSearchOpen(false)
         }
     }
-
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "f" && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault()
-                handleSearchOpen()
-            }
-        }
-        window.addEventListener("keydown", onKeyDown)
-        return () => window.removeEventListener("keydown", onKeyDown)
-    }, [])
 
     const { data: settings } = trpc.settings.get.useQuery()
     const { data: playlists = [], isLoading, refetch } = trpc.playlist.list.useQuery()
@@ -161,22 +152,29 @@ function PlaylistsPage() {
                             : "w-8"
                     )}>
                         <button
+                            type="button"
                             onClick={isSearchOpen ? undefined : handleSearchOpen}
                             className="absolute left-0 flex size-8 shrink-0 items-center justify-center text-muted-foreground/40 hover:text-muted-foreground transition-colors duration-200"
                             aria-label="Search playlists"
+                            aria-keyshortcuts={getAriaKeyShortcut("search")}
                         >
                             <Search className="size-4" />
                         </button>
                         <Input
                             ref={searchInputRef}
                             type="text"
+                            data-shortcut-search
+                            aria-label="Search playlists"
+                            aria-keyshortcuts={getAriaKeyShortcut("search")}
                             placeholder="Search playlists..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => setIsSearchOpen(true)}
                             onBlur={handleSearchClose}
                             onKeyDown={(e) => e.key === "Escape" && handleSearchClose()}
                             className="h-8 w-full border-0 bg-transparent pl-9 pr-4 text-sm font-medium tracking-wide text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:ring-0"
                         />
+                        {isSearchOpen && !searchQuery && <KeyboardShortcut shortcut="search" className="absolute right-2" />}
                     </div>
                 </div>
             )}
