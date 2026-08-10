@@ -1,4 +1,4 @@
-import { type ReactNode } from "react"
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { FolderOpen, type LucideIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/empty-state"
@@ -7,6 +7,8 @@ import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
 import { DEFAULT_GRID_COLS } from "@/lib/utils"
 import { useGlass } from "@/hooks/use-glass"
+import { useWallpaperGridNavigation } from "@/hooks/use-wallpaper-grid-navigation"
+import { cn } from "@/lib/utils"
 
 const SKELETON_COUNT = 12
 
@@ -40,8 +42,31 @@ export function WallpaperGridLayout({
     gridClassName,
 }: WallpaperGridLayoutProps) {
     const gridCols = DEFAULT_GRID_COLS
+    const gridRef = useRef<HTMLDivElement>(null)
+    const [columns, setColumns] = useState(1)
     // Resolved once for the whole grid — cards must not subscribe individually.
     const glass = useGlass()
+    const itemIds = useMemo(
+        () => wallpapers.map(wallpaper => wallpaper.path ?? wallpaper.id),
+        [wallpapers],
+    )
+    const rowCount = Math.ceil(wallpapers.length / columns)
+    const { getItemProps } = useWallpaperGridNavigation({ itemIds, columns })
+
+    useLayoutEffect(() => {
+        const node = gridRef.current
+        if (!node) return
+
+        const measure = () => {
+            const template = getComputedStyle(node).gridTemplateColumns
+            setColumns(Math.max(1, template.split(" ").filter(Boolean).length))
+        }
+
+        measure()
+        const observer = new ResizeObserver(measure)
+        observer.observe(node)
+        return () => observer.disconnect()
+    }, [])
 
     if (isLoading) {
         return (
@@ -58,18 +83,44 @@ export function WallpaperGridLayout({
     }
 
     return (
-        <div className={`grid gap-4 ${gridCols}`}>
-            {wallpapers.map((wallpaper) => (
-                <div key={wallpaper.id} className="relative" data-wallpaper-path={wallpaper.path}>
-                    <WallpaperCard
-                        wallpaper={wallpaper}
-                        selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
-                        onClick={onCardClick}
-                        compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
-                        showCompatibilityDot={showCompatibilityDot}
-                        glassClassName={glass}
-                    />
-                    {renderCardOverlay?.(wallpaper)}
+        <div
+            ref={gridRef}
+            role="grid"
+            aria-label="Wallpapers"
+            aria-rowcount={rowCount}
+            aria-colcount={columns}
+            className={cn("grid gap-4", gridClassName ?? gridCols)}
+        >
+            {Array.from({ length: rowCount }, (_, rowIndex) => (
+                <div key={rowIndex} role="row" className="contents">
+                    {wallpapers.slice(rowIndex * columns, (rowIndex + 1) * columns).map((wallpaper, columnIndex) => {
+                        const index = rowIndex * columns + columnIndex
+                        const id = itemIds[index]
+                        const itemProps = getItemProps(id, index)
+
+                        return (
+                            <div
+                                key={wallpaper.id}
+                                role="gridcell"
+                                aria-rowindex={rowIndex + 1}
+                                aria-colindex={columnIndex + 1}
+                                className="relative"
+                                data-wallpaper-path={wallpaper.path}
+                                data-wallpaper-id={wallpaper.id}
+                            >
+                                <WallpaperCard
+                                    wallpaper={wallpaper}
+                                    selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+                                    onClick={onCardClick}
+                                    compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
+                                    showCompatibilityDot={showCompatibilityDot}
+                                    glassClassName={glass}
+                                    {...itemProps}
+                                />
+                                {renderCardOverlay?.(wallpaper)}
+                            </div>
+                        )
+                    })}
                 </div>
             ))}
         </div>

@@ -2,14 +2,14 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 import { type Wallpaper } from "./wallpaper-card"
 import { GridHeader } from "./wallpaper-grid-header"
-import { VirtualizedWallpaperGrid } from "./virtualized-wallpaper-grid"
+import { VirtualizedWallpaperGrid, type VirtualizedWallpaperGridHandle } from "./virtualized-wallpaper-grid"
 import { AlertCircle, FolderOpen } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
 import { useWallpaperBackground } from "@/contexts/wallpaper-background-context"
 import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
 import { useWallpaperSelection } from "@/hooks/use-wallpaper-selection"
-import { useMemo, useEffect, lazy, Suspense } from "react"
+import { useMemo, useEffect, useCallback, useRef, lazy, Suspense } from "react"
 import { useAtomValue } from "jotai"
 import { unsubscribedWorkshopIdsAtom } from "@/contexts/atoms/workshop-atoms"
 
@@ -17,6 +17,7 @@ const WallpaperDetails = lazy(() => import("./details-card/wallpaper-details").t
 
 // TODO: Fix wallpaper details size so that is consistent width with a column
 export function WallpaperGrid() {
+    const gridRef = useRef<VirtualizedWallpaperGridHandle>(null)
     const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
     const unsubscribedWorkshopIds = useAtomValue(unsubscribedWorkshopIdsAtom)
     const { searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, setAvailableTags, setAvailableResolutions, filterCompatibility } = useWallpaperSearch()
@@ -118,6 +119,12 @@ export function WallpaperGrid() {
         setSelectedWallpaper(null)
     }
 
+    const handleCloseDetails = useCallback(() => {
+        const path = selectedWallpaper?.path ?? selectedWallpaper?.id
+        setSelectedWallpaper(null)
+        if (path) requestAnimationFrame(() => gridRef.current?.scrollToPath(path))
+    }, [selectedWallpaper, setSelectedWallpaper])
+
     // Error state
     if (error) {
         return (
@@ -144,6 +151,7 @@ export function WallpaperGrid() {
             <div className="flex items-start gap-6 flex-1">
                 <div className="flex-1 h-fit transition-all duration-300">
                     <VirtualizedWallpaperGrid
+                        ref={gridRef}
                         wallpapers={wallpapers}
                         isLoading={isLoading}
                         compatibilityMap={compatibilityMap}
@@ -174,7 +182,7 @@ export function WallpaperGrid() {
                                 <WallpaperDetails
                                     key={selectedWallpaper.id}
                                     wallpaper={selectedWallpaper}
-                                    onClose={() => setSelectedWallpaper(null)}
+                                    onClose={handleCloseDetails}
                                     onUnsubscribe={handleUnsubscribe}
                                 />
                             </Suspense>
