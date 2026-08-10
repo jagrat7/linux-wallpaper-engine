@@ -5,6 +5,7 @@ import {
   PaginationPrevious,
   PaginationNext,
   PaginationLink,
+  PaginationCurrent,
   PaginationEllipsis,
   getPaginationRange,
 } from "@/components/ui/pagination"
@@ -36,13 +37,13 @@ export function WorkshopPagination({
         <PaginationItem>
           <PaginationPrevious
             onClick={() => onPageChange(Math.max(page - 1, 1))}
-            aria-disabled={isPrevDisabled}
-            className={isPrevDisabled ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            disabled={isPrevDisabled}
+            className="cursor-pointer"
           />
         </PaginationItem>
         {showFirstPage && (
           <PaginationItem>
-            <PaginationLink onClick={() => onPageChange(1)} className="cursor-pointer">1</PaginationLink>
+            <PaginationLink aria-label="Go to page 1" onClick={() => onPageChange(1)} className="cursor-pointer">1</PaginationLink>
           </PaginationItem>
         )}
         {showStartEllipsis && (
@@ -52,15 +53,15 @@ export function WorkshopPagination({
         )}
         {nearbyPages.filter(p => p < page).map(p => (
           <PaginationItem key={p}>
-            <PaginationLink onClick={() => onPageChange(p)} className="cursor-pointer">{p}</PaginationLink>
+            <PaginationLink aria-label={`Go to page ${p}`} onClick={() => onPageChange(p)} className="cursor-pointer">{p}</PaginationLink>
           </PaginationItem>
         ))}
         <PaginationItem>
-          <PaginationLink isActive className="cursor-default">{page}</PaginationLink>
+          <PaginationCurrent aria-label={`Page ${page}, current page`}>{page}</PaginationCurrent>
         </PaginationItem>
         {nearbyPages.filter(p => p > page).map(p => (
           <PaginationItem key={p}>
-            <PaginationLink onClick={() => onPageChange(p)} className="cursor-pointer">{p}</PaginationLink>
+            <PaginationLink aria-label={`Go to page ${p}`} onClick={() => onPageChange(p)} className="cursor-pointer">{p}</PaginationLink>
           </PaginationItem>
         ))}
         {showEndEllipsis && (
@@ -70,14 +71,14 @@ export function WorkshopPagination({
         )}
         {showLastPage && (
           <PaginationItem>
-            <PaginationLink onClick={() => onPageChange(totalPages)} className="cursor-pointer">{totalPages}</PaginationLink>
+            <PaginationLink aria-label={`Go to page ${totalPages}`} onClick={() => onPageChange(totalPages)} className="cursor-pointer">{totalPages}</PaginationLink>
           </PaginationItem>
         )}
         <PaginationItem>
           <PaginationNext
             onClick={() => onPageChange(page + 1)}
-            aria-disabled={isNextDisabled}
-            className={isNextDisabled ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            disabled={isNextDisabled}
+            className="cursor-pointer"
           />
         </PaginationItem>
       </PaginationContent>
