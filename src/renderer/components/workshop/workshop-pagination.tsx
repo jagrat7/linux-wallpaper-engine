@@ -5,6 +5,7 @@ import {
   PaginationPrevious,
   PaginationNext,
   PaginationLink,
+  PaginationCurrent,
   PaginationEllipsis,
   getPaginationRange,
 } from "@/components/ui/pagination"
@@ -36,9 +37,8 @@ export function WorkshopPagination({
         <PaginationItem>
           <PaginationPrevious
             onClick={() => onPageChange(Math.max(page - 1, 1))}
-            aria-disabled={isPrevDisabled}
             disabled={isPrevDisabled}
-            className={isPrevDisabled ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            className="cursor-pointer"
           />
         </PaginationItem>
         {showFirstPage && (
@@ -57,7 +57,7 @@ export function WorkshopPagination({
           </PaginationItem>
         ))}
         <PaginationItem>
-          <PaginationLink isActive aria-label={`Page ${page}, current page`} className="cursor-default">{page}</PaginationLink>
+          <PaginationCurrent aria-label={`Page ${page}, current page`}>{page}</PaginationCurrent>
         </PaginationItem>
         {nearbyPages.filter(p => p > page).map(p => (
           <PaginationItem key={p}>
@@ -77,9 +77,8 @@ export function WorkshopPagination({
         <PaginationItem>
           <PaginationNext
             onClick={() => onPageChange(page + 1)}
-            aria-disabled={isNextDisabled}
             disabled={isNextDisabled}
-            className={isNextDisabled ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            className="cursor-pointer"
           />
         </PaginationItem>
       </PaginationContent>

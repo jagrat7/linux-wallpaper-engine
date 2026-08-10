@@ -2,6 +2,7 @@ import { Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useGlass } from "@/hooks/use-glass"
+import { useRef } from "react"
 
 interface SearchInputProps {
   placeholder?: string
@@ -17,12 +18,14 @@ export function SearchInput({
   setSearchQuery,
 }: SearchInputProps) {
   const glass = useGlass()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   return (
     <div className={className}>
       <div className={cn("group relative flex-1 rounded-xl ring-1 ring-foreground/10 hover:ring-foreground/30 focus-within:ring-foreground/40 focus-within:shadow-sm", glass)}>
         <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60 transition-colors duration-200 group-focus-within:text-foreground" />
         <Input
+          ref={inputRef}
           type="text"
           aria-label={placeholder}
           placeholder={placeholder}
@@ -35,7 +38,10 @@ export function SearchInput({
             type="button"
             aria-label="Clear search"
             className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => setSearchQuery("")}
+            onClick={() => {
+              setSearchQuery("")
+              requestAnimationFrame(() => inputRef.current?.focus())
+            }}
           >
             <X className="size-3" />
           </button>

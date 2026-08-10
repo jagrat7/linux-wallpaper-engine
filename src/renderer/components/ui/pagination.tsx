@@ -66,6 +66,21 @@ function PaginationLink({
   )
 }
 
+function PaginationCurrent({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      aria-current="page"
+      data-slot="pagination-link"
+      data-active="true"
+      className={cn(buttonVariants({ variant: "outline", size: "icon" }), className)}
+      {...props}
+    />
+  )
+}
+
 function PaginationPrevious({
   className,
   ...props
@@ -149,6 +164,7 @@ export {
   Pagination,
   PaginationContent,
   PaginationLink,
+  PaginationCurrent,
   PaginationItem,
   PaginationPrevious,
   PaginationNext,

@@ -26,11 +26,11 @@ export function SelectedChips({ wallpapers, onRemove, onChipClick }: SelectedChi
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className="flex items-center rounded-lg border border-primary/20 bg-primary/10 text-sm transition-colors hover:bg-primary/15"
+                        className="flex items-center rounded-lg border border-primary/20 bg-primary/10 text-sm"
                     >
                         <button
                             type="button"
-                            className="max-w-[174px] truncate rounded-l-lg py-1.5 pl-3 pr-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                            className="max-w-[174px] truncate rounded-l-lg py-1.5 pl-3 pr-2 font-medium transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                             onClick={() => onChipClick(wallpaper.path)}
                         >
                             {wallpaper.title}

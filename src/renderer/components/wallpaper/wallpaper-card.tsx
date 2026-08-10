@@ -31,18 +31,14 @@ export const WallpaperCard = memo(function WallpaperCard({
 }: WallpaperCardProps) {
 
     return (
-        <button
-            type="button"
-            aria-pressed={selected}
-            aria-label={`${wallpaper.title}${selected ? ", selected" : ""}`}
+        <div
             className={cn(
-                "cv-auto group relative w-full overflow-hidden rounded-xl border bg-card text-left transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "cv-auto group relative overflow-hidden rounded-xl border bg-card transition-all duration-200",
                 glassClassName,
                 selected
                     ? "!border-primary ring-2 ring-primary/20"
                     : "border-border hover:border-ring/50 hover:shadow-lg"
             )}
-            onClick={() => onClick?.(wallpaper)}
         >
             <WallpaperThumbnail
                 src={wallpaper.thumbnail}
@@ -64,9 +60,11 @@ export const WallpaperCard = memo(function WallpaperCard({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div className={cn(
-                                "absolute top-2 right-2 size-2.5 rounded-full ring-1 ring-black/20 ",
+                                "absolute top-2 right-2 z-20 size-2.5 rounded-full ring-1 ring-black/20",
                                 COMPATIBILITY_CONFIG[compatibilityStatus].bgColor
-                            )} />
+                            )}
+                                aria-hidden="true"
+                            />
                         </TooltipTrigger>
                         <TooltipContent side="top" className="text-xs">
                             {COMPATIBILITY_CONFIG[compatibilityStatus].label}
@@ -74,6 +72,12 @@ export const WallpaperCard = memo(function WallpaperCard({
                     </Tooltip>
                 )}
             </WallpaperThumbnail>
-        </button>
+            <button
+                type="button"
+                aria-label={`${wallpaper.title}${showCompatibilityDot && compatibilityStatus && compatibilityStatus !== "unknown" ? `, ${COMPATIBILITY_CONFIG[compatibilityStatus].label}` : ""}`}
+                className="absolute inset-0 z-10 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                onClick={() => onClick?.(wallpaper)}
+            />
+        </div>
     )
 })

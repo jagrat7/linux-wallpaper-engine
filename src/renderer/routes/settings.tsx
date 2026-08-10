@@ -161,9 +161,8 @@ function SettingsPage() {
                             onCheckedChange={(checked) => updateSetting("enableSystemTray", checked)}
                         />
                     </SettingRow>
-                    {startupTrayOpen && (
                     <Collapsible open={startupTrayOpen} onOpenChange={setStartupTrayOpen}>
-                        <CollapsibleContent id={STARTUP_TRAY_CONTENT_ID}>
+                        <CollapsibleContent id={STARTUP_TRAY_CONTENT_ID} forceMount hidden={!startupTrayOpen}>
                             <div className="divide-y divide-border bg-muted/30">
                                 <SettingRow
                                     label="Minimize on startup"
@@ -189,7 +188,6 @@ function SettingsPage() {
                             </div>
                         </CollapsibleContent>
                     </Collapsible>
-                    )}
                 </SettingsSection>
 
                 {/* Compatibility Scan Section */}
@@ -235,10 +233,9 @@ function SettingsPage() {
                         />
                     </SettingRow>
 
-                    {windowGeometryOpen && (
-                        <Collapsible open={windowGeometryOpen} onOpenChange={setWindowGeometryOpen}>
-                            <CollapsibleContent id={WINDOW_GEOMETRY_CONTENT_ID}>
-                                <div className="bg-muted/30">
+                    <Collapsible open={windowGeometryOpen} onOpenChange={setWindowGeometryOpen}>
+                        <CollapsibleContent id={WINDOW_GEOMETRY_CONTENT_ID} forceMount hidden={!windowGeometryOpen}>
+                            <div className="bg-muted/30">
                                     <SettingRow
                                         label={(
                                             <span>
@@ -277,10 +274,9 @@ function SettingsPage() {
                                             )}
                                         </form>
                                     </SettingRow>
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
-                    )}
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
 
                     {isFlatpakEnv && (
                         <SettingRow label="Bypass Flatpak sandbox" className="border-b-0">
