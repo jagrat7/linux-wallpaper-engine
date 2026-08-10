@@ -51,7 +51,7 @@ export const ErrorMessage = ({
       <button
         type="button"
         onClick={() => setMessage(null)}
-        className="opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:text-destructive/80"
+        className="rounded-sm opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 hover:text-destructive/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label="Close error message"
       >
         <X className="h-4 w-4" />

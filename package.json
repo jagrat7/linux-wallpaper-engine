@@ -88,6 +88,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-form": "^1.28.3",
+    "@tanstack/react-hotkeys": "0.10.0",
     "@tanstack/react-query": "^5.90.17",
     "@tanstack/react-router": "^1.147.2",
     "@tanstack/react-virtual": "^3.14.2",

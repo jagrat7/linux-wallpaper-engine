@@ -14,6 +14,9 @@ import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
 import { usePlaylistEditor } from "@/hooks/use-playlist-editor"
 import { useMemo, useCallback, useState, useRef } from "react"
 import { ErrorMessage } from "@/components/error-message"
+import { useHotkey } from "@tanstack/react-hotkeys"
+import { KeyboardShortcut } from "@/components/keyboard-shortcut"
+import { getAriaKeyShortcut, KEYBOARD_SHORTCUTS } from "@/lib/keyboard-shortcuts"
 
 interface PlaylistEditorGridProps {
     editPlaylist?: Playlist | null
@@ -40,6 +43,18 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
     } = useWallpapers()
 
     const editor = usePlaylistEditor(editPlaylist)
+
+    useHotkey(KEYBOARD_SHORTCUTS.savePlaylist.hotkey, () => editor.form.handleSubmit(), {
+        enabled: !editor.isSaving,
+        ignoreInputs: false,
+        preventDefault: true,
+        stopPropagation: true,
+        conflictBehavior: "replace",
+        meta: {
+            name: KEYBOARD_SHORTCUTS.savePlaylist.label,
+            description: KEYBOARD_SHORTCUTS.savePlaylist.description,
+        },
+    })
 
     // Apply search-context filters and sorting
     const filteredWallpapers = useMemo(() =>
@@ -110,9 +125,14 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
                         <Button variant="outline" onClick={editor.handleBack}>
                             Cancel
                         </Button>
-                        <Button onClick={() => editor.form.handleSubmit()} className="gap-2">
+                        <Button
+                            onClick={() => editor.form.handleSubmit()}
+                            aria-keyshortcuts={getAriaKeyShortcut("savePlaylist")}
+                            className="gap-2"
+                        >
                             <Save className="size-4" />
                             {editor.isSaving ? "Saving..." : "Save Playlist"}
+                            <KeyboardShortcut shortcut="savePlaylist" className="ml-1" />
                         </Button>
                     </div>
                 </div>
