@@ -14,6 +14,8 @@ import { playlistService } from '../playlists/playlist'
 import { startPlaylistProcess } from '../playlists/playlist-runner'
 import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, type TimedCache } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
+import { workshopService } from '@/services/workshop/workshop'
+import { parseWorkshopId } from '@/services/workshop/workshop.utils'
 import type { IWallpaperService } from './wallpaper.interface'
 import type { MutationResult, ActiveWallpaperEntry, ApplyTarget, OverrideMutation, ServiceAction, DebugInfo } from './wallpaper.types'
 
@@ -23,6 +25,7 @@ class WallpaperService implements IWallpaperService {
   private wallpaperCache: Wallpaper[] | null = null
   private wallpaperCacheEntry: TimedCache<Wallpaper[]> | null = null
   private overridesStore = storeService.wallpaperOverrides
+  private workshopMetadataStore = storeService.workshopMetadata
   private fsWatchers: fsSync.FSWatcher[] = []
   private reapplyTimer: ReturnType<typeof setTimeout> | null = null
   private state = wallpaperStateManager
@@ -246,6 +249,7 @@ class WallpaperService implements IWallpaperService {
               workshopId: itemId,
               title: project.title ?? 'Untitled',
               author: project.author ?? (project.workshopurl ? 'Workshop' : 'Unknown'),
+              ageRating: this.workshopMetadataStore.get('ageRatings')[itemId],
               type,
               thumbnail,
               previewUrl: project.preview ? path.join(wallpaperPath, project.preview) : undefined,
@@ -265,8 +269,40 @@ class WallpaperService implements IWallpaperService {
 
     wallpapers.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()))
     this.startWatchers([...workshopDirs])
+    await this.enrichAgeRatings(wallpapers)
 
     return wallpapers
+  }
+
+  // Fetch + persist Steam age ratings for wallpapers missing a stored rating,
+  // then apply ratings to the given catalog list. Best-effort: fails silently
+  // when Steam is unavailable and retries on the next scan.
+  private async enrichAgeRatings(wallpapers: Wallpaper[]): Promise<number> {
+    try {
+      const cached = this.workshopMetadataStore.get('ageRatings')
+      const missingIds = Array.from(new Set(
+        wallpapers
+          .map(w => w.workshopId ?? w.id)
+          .filter(id => parseWorkshopId(id) != null && cached[id] === undefined),
+      ))
+
+      if (missingIds.length > 0) {
+        const fetched = await workshopService.getAgeRatings(missingIds)
+        this.workshopMetadataStore.set('ageRatings', { ...cached, ...fetched })
+        Object.assign(cached, fetched)
+      }
+
+      for (const w of wallpapers) {
+        if (w.workshopId && cached[w.workshopId] !== undefined) {
+          w.ageRating = cached[w.workshopId]
+        }
+      }
+
+      return missingIds.length
+    } catch (error) {
+      console.warn('[enrichAgeRatings] Steam unavailable — age ratings not refreshed', error)
+      return 0
+    }
   }
 
   // ── Private: active wallpaper enrichment ───────────────────────────────
