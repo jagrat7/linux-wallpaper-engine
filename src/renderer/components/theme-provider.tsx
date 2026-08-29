@@ -21,8 +21,13 @@ const SYSTEM_THEME_PROPERTIES = {
   success: '--success',
   warning: '--warning',
   ring: '--ring',
+  sidebar: '--sidebar',
+  sidebarForeground: '--sidebar-foreground',
   sidebarPrimary: '--sidebar-primary',
   sidebarPrimaryForeground: '--sidebar-primary-foreground',
+  sidebarAccent: '--sidebar-accent',
+  sidebarAccentForeground: '--sidebar-accent-foreground',
+  sidebarBorder: '--sidebar-border',
   sidebarRing: '--sidebar-ring',
 } as const
 

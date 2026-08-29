@@ -5,7 +5,17 @@ import { hostExecAsync } from '../utils/host'
 import { invalidationService } from './invalidation'
 
 const CONFIG_PATH = path.join(homedir(), '.config')
-const OMARCHY_THEME_PATH = path.join(CONFIG_PATH, 'omarchy/current/theme/colors.toml')
+export const getOmarchyThemePaths = (homeDirectory: string): string[] => [
+  path.join(homeDirectory, '.local/state/omarchy/current/theme/colors.toml'),
+  // Omarchy used this location before moving runtime state out of ~/.config.
+  path.join(homeDirectory, '.config/omarchy/current/theme/colors.toml'),
+]
+const OMARCHY_THEME_PATHS = getOmarchyThemePaths(homedir())
+export const getOmarchyHyprlandPaths = (homeDirectory: string): string[] => [
+  path.join(homeDirectory, '.local/state/omarchy/current/theme/hyprland.lua'),
+  path.join(homeDirectory, '.config/omarchy/current/theme/hyprland.lua'),
+]
+const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
 const PYWAL_THEME_PATH = path.join(homedir(), '.cache/wal/colors.json')
 const COSMIC_CONFIG_PATH = path.join(CONFIG_PATH, 'cosmic')
 const COSMIC_MODE_PATH = path.join(COSMIC_CONFIG_PATH, 'com.system76.CosmicTheme.Mode/v1/is_dark')
@@ -38,14 +48,24 @@ export type SystemThemePalette = Partial<{
   success: string
   warning: string
   ring: string
+  sidebar: string
+  sidebarForeground: string
   sidebarPrimary: string
   sidebarPrimaryForeground: string
+  sidebarAccent: string
+  sidebarAccentForeground: string
+  sidebarBorder: string
   sidebarRing: string
 }>
 
 export type SystemTheme = {
   scheme: 'light' | 'dark'
   palette: SystemThemePalette | null
+}
+
+type OmarchyTheme = {
+  scheme: SystemTheme['scheme'] | null
+  palette: SystemThemePalette
 }
 
 const readText = (filePath: string): string | null => {
@@ -102,6 +122,13 @@ const parseRonColor = (source: string | null, marker?: string): string | undefin
     : `color(srgb ${match[1]} ${match[2]} ${match[3]} / ${match[4]})`
 }
 
+const subtleSidebarColor = (
+  accent: string | undefined,
+  background?: string,
+): string | undefined => accent === undefined
+  ? undefined
+  : `color-mix(in oklch, ${accent} 22%, ${background ?? 'var(--sidebar)'})`
+
 const readCosmicPalette = (): SystemThemePalette | null => {
   const mode = readText(COSMIC_MODE_PATH)?.trim() === 'true' ? 'Dark' : 'Light'
   const themePath = path.join(COSMIC_CONFIG_PATH, `com.system76.CosmicTheme.${mode}/v1`)
@@ -135,8 +162,13 @@ const readCosmicPalette = (): SystemThemePalette | null => {
     success: parseRonColor(readColor('success')),
     warning: parseRonColor(readColor('warning')),
     ring: accent,
-    sidebarPrimary: accent,
-    sidebarPrimaryForeground: accentForeground,
+    sidebar: background,
+    sidebarForeground: foreground,
+    sidebarPrimary: subtleSidebarColor(accent, background),
+    sidebarPrimaryForeground: foreground,
+    sidebarAccent: parseRonColor(secondarySource),
+    sidebarAccentForeground: parseRonColor(secondarySource, 'on'),
+    sidebarBorder: parseRonColor(backgroundSource, 'divider'),
     sidebarRing: accent,
   }
 }
@@ -190,15 +222,18 @@ const readKdePalette = (): SystemThemePalette | null => {
     success: color('Colors:Window', 'ForegroundPositive'),
     warning: color('Colors:Window', 'ForegroundNeutral'),
     ring: accent,
-    sidebarPrimary: accent,
-    sidebarPrimaryForeground: accentForeground,
+    sidebar: background,
+    sidebarForeground: foreground,
+    sidebarPrimary: subtleSidebarColor(accent, background),
+    sidebarPrimaryForeground: foreground,
+    sidebarAccent: color('Colors:Button', 'BackgroundNormal'),
+    sidebarAccentForeground: color('Colors:Button', 'ForegroundNormal'),
+    sidebarBorder: color('Colors:Window', 'ForegroundInactive'),
     sidebarRing: accent,
   }
 }
 
-const readOmarchyPalette = (): SystemThemePalette | null => {
-  const source = readText(OMARCHY_THEME_PATH)
-  if (source === null) return null
+export const parseOmarchyTheme = (source: string): OmarchyTheme | null => {
   const colors = Object.fromEntries(Array.from(source.matchAll(
     /^\s*([\w]+)\s*=\s*["']([^"']+)["']/gm,
   )).filter(([, , value]) => HEX_COLOR_PATTERN.test(value)).map(([, key, value]) => [
@@ -207,29 +242,166 @@ const readOmarchyPalette = (): SystemThemePalette | null => {
   ])) as Record<string, string>
 
   if (colors.background === undefined || colors.foreground === undefined) return null
+  const accent = colors.accent ?? colors.blue ?? colors.color4
+  const selection = colors.selection ?? colors.selection_background ?? accent
+  const selectionForeground = colors.selection_foreground
+    ?? colors.bright_foreground
+    ?? colors.color15
+    ?? colors.foreground
+  const surface = colors.lighter_background
+    ?? colors.color0
+    ?? colors.dark_background
+    ?? colors.background
+  const mutedForeground = colors.muted
+    ?? colors.dark_foreground
+    ?? colors.color7
+    ?? colors.color8
+    ?? colors.foreground
+  const mode = source.match(/^\s*mode\s*=\s*["'](light|dark)["']/mi)?.[1]
+
   return {
-    background: colors.background,
-    foreground: colors.foreground,
-    card: colors.color0,
-    cardForeground: colors.foreground,
-    primary: colors.accent,
-    primaryForeground: colors.selection_foreground,
-    secondary: colors.color0,
-    secondaryForeground: colors.foreground,
-    muted: colors.color0,
-    mutedForeground: colors.color7,
-    accent: colors.selection_background ?? colors.accent,
-    accentForeground: colors.selection_foreground,
-    destructive: colors.color1,
-    border: colors.color8,
-    input: colors.color0,
-    success: colors.color2,
-    warning: colors.color3,
-    ring: colors.accent,
-    sidebarPrimary: colors.accent,
-    sidebarPrimaryForeground: colors.selection_foreground,
-    sidebarRing: colors.accent,
+    scheme: mode === 'light' || mode === 'dark'
+      ? mode
+      : inferScheme(colors.background) ?? 'dark',
+    palette: {
+      background: colors.background,
+      foreground: colors.foreground,
+      card: surface,
+      cardForeground: colors.foreground,
+      primary: accent,
+      primaryForeground: colors.background,
+      secondary: surface,
+      secondaryForeground: colors.foreground,
+      muted: surface,
+      mutedForeground,
+      accent: selection,
+      accentForeground: selectionForeground,
+      destructive: colors.red ?? colors.color1,
+      border: colors.muted ?? colors.color8,
+      input: surface,
+      success: colors.green ?? colors.color2,
+      warning: colors.yellow ?? colors.color3,
+      ring: accent,
+      sidebar: colors.background,
+      sidebarForeground: colors.foreground,
+      sidebarPrimary: subtleSidebarColor(accent, colors.background),
+      sidebarPrimaryForeground: colors.foreground,
+      sidebarAccent: selection,
+      sidebarAccentForeground: selectionForeground,
+      sidebarBorder: colors.muted ?? colors.color8,
+      sidebarRing: accent,
+    },
   }
+}
+
+const parseHyprColor = (value: string | undefined): string | undefined => {
+  if (value === undefined) return undefined
+  const match = value.match(/#([\da-f]{6})(?:[\da-f]{2})?/i)
+    ?? value.match(/rgba?\(\s*([\da-f]{6})(?:[\da-f]{2})?\s*\)/i)
+    ?? value.match(/^\s*["']?([\da-f]{6})(?:[\da-f]{2})?["']?\s*$/i)
+  return match === null ? undefined : `#${match[1]}`
+}
+
+const findLuaVariableColor = (source: string, names: string[]): string | undefined => {
+  for (const name of names) {
+    const declaration = source.match(new RegExp(`\\blocal\\s+${name}\\s*=`, 'i'))
+    if (declaration?.index === undefined) continue
+    const start = declaration.index + declaration[0].length
+    const end = source.slice(start).search(/\n\s*(?:local\s+|hl\.|o\.)/)
+    const expression = source.slice(start, end < 0 ? undefined : start + end)
+    const color = parseHyprColor(expression)
+    if (color !== undefined) return color
+  }
+  return undefined
+}
+
+const findLuaAssignedColor = (source: string, keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const assignment = source.match(new RegExp(`(?:\\[\"${key.replace('.', '\\.') }\"\\]|\\b${key.replace('.', '\\.')})\\s*=\\s*([^,\\n}]+)`, 'i'))
+    if (assignment === null) continue
+    const direct = parseHyprColor(assignment[1])
+    if (direct !== undefined) return direct
+    const variable = assignment[1].trim().match(/^([\w]+)$/)?.[1]
+    if (variable !== undefined) {
+      const resolved = findLuaVariableColor(source, [variable])
+      if (resolved !== undefined) return resolved
+    }
+    const fromTable = parseHyprColor(source.slice(assignment.index, (assignment.index ?? 0) + 500))
+    if (fromTable !== undefined) return fromTable
+  }
+  return undefined
+}
+
+export const parseOmarchyHyprlandTheme = (source: string): OmarchyTheme | null => {
+  const namedColors = Object.fromEntries(Array.from(source.matchAll(
+    /^\s*(background|bg|surface|surface_alt|foreground|fg|accent|active|border|muted)\s*=\s*["']([^"']+)["']/gim,
+  )).map(([, key, value]) => [key.toLowerCase(), parseHyprColor(value)]).filter((entry): entry is [string, string] => entry[1] !== undefined))
+
+  const background = namedColors.background ?? namedColors.bg
+  const foreground = namedColors.foreground ?? namedColors.fg
+  const activeBorder = namedColors.accent
+    ?? namedColors.active
+    ?? findLuaVariableColor(source, ['active_border_color', 'activeBorderColor'])
+    ?? findLuaAssignedColor(source, ['col.active_border', 'active_border', 'border_active'])
+  const inactiveBorder = namedColors.border
+    ?? namedColors.muted
+    ?? findLuaVariableColor(source, ['inactive_border_color', 'inactiveBorderColor'])
+    ?? findLuaAssignedColor(source, ['col.inactive_border', 'inactive_border', 'border_inactive'])
+  const surface = namedColors.surface ?? background
+  const selection = namedColors.surface_alt ?? inactiveBorder ?? surface
+
+  if (background === undefined && foreground === undefined
+    && activeBorder === undefined && inactiveBorder === undefined) return null
+
+  const activeForeground = background
+    ?? (inferScheme(activeBorder) === 'light' ? '#000000' : '#ffffff')
+  return {
+    scheme: inferScheme(background),
+    palette: {
+      background,
+      foreground,
+      card: surface,
+      cardForeground: foreground,
+      primary: activeBorder,
+      primaryForeground: activeForeground,
+      secondary: surface,
+      secondaryForeground: foreground,
+      muted: surface,
+      mutedForeground: foreground,
+      accent: selection,
+      accentForeground: foreground,
+      border: inactiveBorder,
+      input: surface,
+      ring: activeBorder,
+      sidebar: background,
+      sidebarForeground: foreground,
+      sidebarPrimary: subtleSidebarColor(activeBorder, background),
+      sidebarPrimaryForeground: foreground,
+      sidebarAccent: selection,
+      sidebarAccentForeground: foreground,
+      sidebarBorder: inactiveBorder,
+      sidebarRing: activeBorder,
+    },
+  }
+}
+
+const readOmarchyTheme = (): OmarchyTheme | null => {
+  for (const filePath of OMARCHY_THEME_PATHS) {
+    const source = readText(filePath)
+    if (source !== null) {
+      const theme = parseOmarchyTheme(source)
+      if (theme !== null) return theme
+    }
+  }
+
+  for (const filePath of OMARCHY_HYPRLAND_PATHS) {
+    const source = readText(filePath)
+    if (source !== null) {
+      const theme = parseOmarchyHyprlandTheme(source)
+      if (theme !== null) return theme
+    }
+  }
+  return null
 }
 
 const readPywalPalette = (): SystemThemePalette | null => {
@@ -260,8 +432,13 @@ const readPywalPalette = (): SystemThemePalette | null => {
       success: data.colors?.color2,
       warning: data.colors?.color3,
       ring: data.colors?.color4,
-      sidebarPrimary: data.colors?.color4,
-      sidebarPrimaryForeground: background,
+      sidebar: background,
+      sidebarForeground: foreground,
+      sidebarPrimary: subtleSidebarColor(data.colors?.color4, background),
+      sidebarPrimaryForeground: foreground,
+      sidebarAccent: data.colors?.color0,
+      sidebarAccentForeground: foreground,
+      sidebarBorder: data.colors?.color8,
       sidebarRing: data.colors?.color4,
     }
   } catch {
@@ -288,33 +465,34 @@ const detectTheme = async (): Promise<SystemTheme> => {
   ])
   const accent = parsePortalAccent(accentSource)
   const desktop = process.env.XDG_CURRENT_DESKTOP?.toLowerCase() ?? ''
+  const omarchyTheme = desktop.includes('hyprland') || desktop.includes('omarchy')
+    ? readOmarchyTheme()
+    : null
   const desktopPalette = desktop.includes('cosmic')
     ? readCosmicPalette()
     : desktop.includes('kde') || desktop.includes('plasma')
       ? readKdePalette()
-      : desktop.includes('hyprland') || desktop.includes('omarchy')
-        ? readOmarchyPalette()
-        : null
+      : omarchyTheme?.palette ?? null
   const palette = desktopPalette ?? readPywalPalette()
   const cosmicMode = readText(COSMIC_MODE_PATH)?.trim()
   const desktopScheme = desktop.includes('cosmic')
     ? cosmicMode === undefined
       ? inferScheme(desktopPalette?.background)
       : cosmicMode === 'true' ? 'dark' : 'light'
-    : inferScheme(desktopPalette?.background)
+    : omarchyTheme?.scheme ?? inferScheme(desktopPalette?.background)
   const mergedPalette = palette === null
     ? accent === null ? null : {
       primary: accent,
       accent,
       ring: accent,
-      sidebarPrimary: accent,
+      sidebarPrimary: subtleSidebarColor(accent),
       sidebarRing: accent,
     }
     : accent === null ? palette : {
       primary: accent,
       accent,
       ring: accent,
-      sidebarPrimary: accent,
+      sidebarPrimary: subtleSidebarColor(accent, palette.background),
       sidebarRing: accent,
       ...palette,
     }
@@ -344,7 +522,8 @@ const WATCH_PATHS = [
   COSMIC_MODE_PATH,
   ...COSMIC_THEME_PATHS,
   KDE_THEME_PATH,
-  OMARCHY_THEME_PATH,
+  ...OMARCHY_THEME_PATHS,
+  ...OMARCHY_HYPRLAND_PATHS,
   PYWAL_THEME_PATH,
 ]
 let pollTimer: NodeJS.Timeout | null = null
