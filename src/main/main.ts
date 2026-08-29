@@ -8,7 +8,7 @@ import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
 import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
 import { invalidationService } from './services/invalidation.ts'
-import { systemThemeService } from './services/system-theme.ts'
+import { systemThemeService } from './services/system-theme/system-theme'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null

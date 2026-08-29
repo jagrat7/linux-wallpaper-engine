@@ -4,7 +4,7 @@ import {
   getOmarchyThemePaths,
   parseOmarchyHyprlandTheme,
   parseOmarchyTheme,
-} from './system-theme'
+} from './omarchy'
 
 describe('getOmarchyThemePaths', () => {
   it('prefers current Omarchy state and falls back to its legacy config path', () => {

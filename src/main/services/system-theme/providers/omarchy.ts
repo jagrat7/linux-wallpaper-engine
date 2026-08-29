@@ -1,0 +1,196 @@
+import { homedir } from 'node:os'
+import path from 'node:path'
+import type { DesktopTheme, DesktopThemeProvider } from '../system-theme.types'
+import { HEX_COLOR_PATTERN, inferScheme, readText, subtleSidebarColor } from '../system-theme.utils'
+
+export const getOmarchyThemePaths = (homeDirectory: string): string[] => [
+  path.join(homeDirectory, '.local/state/omarchy/current/theme/colors.toml'),
+  // Omarchy used this location before moving runtime state out of ~/.config.
+  path.join(homeDirectory, '.config/omarchy/current/theme/colors.toml'),
+]
+
+const OMARCHY_THEME_PATHS = getOmarchyThemePaths(homedir())
+
+export const getOmarchyHyprlandPaths = (homeDirectory: string): string[] => [
+  path.join(homeDirectory, '.local/state/omarchy/current/theme/hyprland.lua'),
+  path.join(homeDirectory, '.config/omarchy/current/theme/hyprland.lua'),
+]
+
+const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
+
+export const parseOmarchyTheme = (source: string): DesktopTheme | null => {
+  const colors = Object.fromEntries(Array.from(source.matchAll(
+    /^\s*([\w]+)\s*=\s*["']([^"']+)["']/gm,
+  )).filter(([, , value]) => HEX_COLOR_PATTERN.test(value)).map(([, key, value]) => [
+    key,
+    value,
+  ])) as Record<string, string>
+
+  if (colors.background === undefined || colors.foreground === undefined) return null
+  const accent = colors.accent ?? colors.blue ?? colors.color4
+  const selection = colors.selection ?? colors.selection_background ?? accent
+  const selectionForeground = colors.selection_foreground
+    ?? colors.bright_foreground
+    ?? colors.color15
+    ?? colors.foreground
+  const surface = colors.lighter_background
+    ?? colors.color0
+    ?? colors.dark_background
+    ?? colors.background
+  const mutedForeground = colors.muted
+    ?? colors.dark_foreground
+    ?? colors.color7
+    ?? colors.color8
+    ?? colors.foreground
+  const mode = source.match(/^\s*mode\s*=\s*["'](light|dark)["']/mi)?.[1]
+
+  return {
+    scheme: mode === 'light' || mode === 'dark'
+      ? mode
+      : inferScheme(colors.background) ?? 'dark',
+    palette: {
+      background: colors.background,
+      foreground: colors.foreground,
+      card: surface,
+      cardForeground: colors.foreground,
+      primary: accent,
+      primaryForeground: colors.background,
+      secondary: surface,
+      secondaryForeground: colors.foreground,
+      muted: surface,
+      mutedForeground,
+      accent: selection,
+      accentForeground: selectionForeground,
+      destructive: colors.red ?? colors.color1,
+      border: colors.muted ?? colors.color8,
+      input: surface,
+      success: colors.green ?? colors.color2,
+      warning: colors.yellow ?? colors.color3,
+      ring: accent,
+      sidebar: colors.background,
+      sidebarForeground: colors.foreground,
+      sidebarPrimary: subtleSidebarColor(accent, colors.background),
+      sidebarPrimaryForeground: colors.foreground,
+      sidebarAccent: selection,
+      sidebarAccentForeground: selectionForeground,
+      sidebarBorder: colors.muted ?? colors.color8,
+      sidebarRing: accent,
+    },
+  }
+}
+
+export const parseHyprColor = (value: string | undefined): string | undefined => {
+  if (value === undefined) return undefined
+  const match = value.match(/#([\da-f]{6})(?:[\da-f]{2})?/i)
+    ?? value.match(/rgba?\(\s*([\da-f]{6})(?:[\da-f]{2})?\s*\)/i)
+    ?? value.match(/^\s*["']?([\da-f]{6})(?:[\da-f]{2})?["']?\s*$/i)
+  return match === null ? undefined : `#${match[1]}`
+}
+
+export const findLuaVariableColor = (source: string, names: string[]): string | undefined => {
+  for (const name of names) {
+    const declaration = source.match(new RegExp(`\\blocal\\s+${name}\\s*=`, 'i'))
+    if (declaration?.index === undefined) continue
+    const start = declaration.index + declaration[0].length
+    const end = source.slice(start).search(/\n\s*(?:local\s+|hl\.|o\.)/)
+    const expression = source.slice(start, end < 0 ? undefined : start + end)
+    const color = parseHyprColor(expression)
+    if (color !== undefined) return color
+  }
+  return undefined
+}
+
+export const findLuaAssignedColor = (source: string, keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const assignment = source.match(new RegExp(`(?:\\[\"${key.replace('.', '\\.') }\"\\]|\\b${key.replace('.', '\\.')})\\s*=\\s*([^,\\n}]+)`, 'i'))
+    if (assignment === null) continue
+    const direct = parseHyprColor(assignment[1])
+    if (direct !== undefined) return direct
+    const variable = assignment[1].trim().match(/^([\w]+)$/)?.[1]
+    if (variable !== undefined) {
+      const resolved = findLuaVariableColor(source, [variable])
+      if (resolved !== undefined) return resolved
+    }
+    const fromTable = parseHyprColor(source.slice(assignment.index, (assignment.index ?? 0) + 500))
+    if (fromTable !== undefined) return fromTable
+  }
+  return undefined
+}
+
+export const parseOmarchyHyprlandTheme = (source: string): DesktopTheme | null => {
+  const namedColors = Object.fromEntries(Array.from(source.matchAll(
+    /^\s*(background|bg|surface|surface_alt|foreground|fg|accent|active|border|muted)\s*=\s*["']([^"']+)["']/gim,
+  )).map(([, key, value]) => [key.toLowerCase(), parseHyprColor(value)]).filter((entry): entry is [string, string] => entry[1] !== undefined))
+
+  const background = namedColors.background ?? namedColors.bg
+  const foreground = namedColors.foreground ?? namedColors.fg
+  const activeBorder = namedColors.accent
+    ?? namedColors.active
+    ?? findLuaVariableColor(source, ['active_border_color', 'activeBorderColor'])
+    ?? findLuaAssignedColor(source, ['col.active_border', 'active_border', 'border_active'])
+  const inactiveBorder = namedColors.border
+    ?? namedColors.muted
+    ?? findLuaVariableColor(source, ['inactive_border_color', 'inactiveBorderColor'])
+    ?? findLuaAssignedColor(source, ['col.inactive_border', 'inactive_border', 'border_inactive'])
+  const surface = namedColors.surface ?? background
+  const selection = namedColors.surface_alt ?? inactiveBorder ?? surface
+
+  if (background === undefined && foreground === undefined
+    && activeBorder === undefined && inactiveBorder === undefined) return null
+
+  const activeForeground = background
+    ?? (inferScheme(activeBorder) === 'light' ? '#000000' : '#ffffff')
+  return {
+    scheme: inferScheme(background),
+    palette: {
+      background,
+      foreground,
+      card: surface,
+      cardForeground: foreground,
+      primary: activeBorder,
+      primaryForeground: activeForeground,
+      secondary: surface,
+      secondaryForeground: foreground,
+      muted: surface,
+      mutedForeground: foreground,
+      accent: selection,
+      accentForeground: foreground,
+      border: inactiveBorder,
+      input: surface,
+      ring: activeBorder,
+      sidebar: background,
+      sidebarForeground: foreground,
+      sidebarPrimary: subtleSidebarColor(activeBorder, background),
+      sidebarPrimaryForeground: foreground,
+      sidebarAccent: selection,
+      sidebarAccentForeground: foreground,
+      sidebarBorder: inactiveBorder,
+      sidebarRing: activeBorder,
+    },
+  }
+}
+
+export const readOmarchyTheme = (): DesktopTheme | null => {
+  for (const filePath of OMARCHY_THEME_PATHS) {
+    const source = readText(filePath)
+    if (source !== null) {
+      const theme = parseOmarchyTheme(source)
+      if (theme !== null) return theme
+    }
+  }
+
+  for (const filePath of OMARCHY_HYPRLAND_PATHS) {
+    const source = readText(filePath)
+    if (source !== null) {
+      const theme = parseOmarchyHyprlandTheme(source)
+      if (theme !== null) return theme
+    }
+  }
+  return null
+}
+
+export const omarchyThemeProvider = {
+  matches: (desktop: string) => desktop.includes('hyprland') || desktop.includes('omarchy'),
+  watchPaths: [...OMARCHY_THEME_PATHS, ...OMARCHY_HYPRLAND_PATHS],
+  read: readOmarchyTheme,
+} satisfies DesktopThemeProvider
