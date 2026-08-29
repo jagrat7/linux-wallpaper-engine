@@ -42,5 +42,3 @@ export type DesktopThemeProvider = {
   watchPaths: string[]
   read: () => DesktopTheme | null
 }
-
-export type ThemeFallbackProvider = Omit<DesktopThemeProvider, 'matches'>

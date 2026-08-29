@@ -4,7 +4,7 @@ import type { ISystemThemeService } from './system-theme.interface'
 import { parsePortalAccent, parsePortalScheme, readPortalSetting } from './system-theme.portal'
 import type { SystemTheme } from './system-theme.types'
 import { inferScheme, subtleSidebarColor } from './system-theme.utils'
-import { desktopThemeProviders, pywalThemeProvider } from './providers'
+import { desktopThemeProviders } from './providers'
 
 const POLL_INTERVAL_MS = 5000
 const WATCH_INTERVAL_MS = 1000
@@ -18,7 +18,7 @@ export const detectTheme = async (): Promise<SystemTheme> => {
   const desktop = process.env.XDG_CURRENT_DESKTOP?.toLowerCase() ?? ''
   const desktopThemeProvider = desktopThemeProviders.find(provider => provider.matches(desktop))
   const desktopTheme = desktopThemeProvider?.read() ?? null
-  const palette = desktopTheme?.palette ?? pywalThemeProvider.read()?.palette ?? null
+  const palette = desktopTheme?.palette ?? null
   const mergedPalette = palette === null
     ? accent === null ? null : {
       primary: accent,
@@ -47,7 +47,6 @@ export const detectTheme = async (): Promise<SystemTheme> => {
 
 const WATCH_PATHS = [
   ...desktopThemeProviders.flatMap(provider => provider.watchPaths),
-  ...pywalThemeProvider.watchPaths,
 ]
 let pollTimer: NodeJS.Timeout | null = null
 let lastTheme = ''

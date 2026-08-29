@@ -8,5 +8,3 @@ export const desktopThemeProviders = [
   kdeThemeProvider,
   omarchyThemeProvider,
 ] satisfies DesktopThemeProvider[]
-
-export { pywalThemeProvider } from './pywal'
