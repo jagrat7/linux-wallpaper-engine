@@ -10,7 +10,7 @@ import { SORT_OPTIONS, type SortBy, SORT_ORDER_OPTIONS, type SortOrder } from '.
 import { WORKSHOP_SORT_OPTIONS, type WorkshopSortBy } from '../../../shared/constants/workshop'
 import { isFlatpak, setFlatpakBypass } from '../../utils/host'
 import { setAutostart } from '../../utils/autostart'
-import { systemThemeService } from '../../services/system-theme'
+import { systemThemeService } from '../../services/system-theme/system-theme'
 
 // Keys that affect the wallpaper backend process and require reapply
 const BACKEND_KEYS = new Set([
