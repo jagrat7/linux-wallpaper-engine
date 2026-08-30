@@ -119,9 +119,9 @@ export function StatusBar({ className }: StatusBarProps) {
                     {hasMultipleScreens && (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs">
+                                <button type="button" className="rounded-full bg-secondary px-1.5 py-0.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                     {activeWallpapers.length}/{displays.length} active
-                                </span>
+                                </button>
                             </TooltipTrigger>
                             <TooltipContent className="whitespace-pre-line">{screensTooltip}</TooltipContent>
                         </Tooltip>
@@ -155,9 +155,9 @@ export function StatusBar({ className }: StatusBarProps) {
                             {otherActiveCount > 0 && (
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <span className="text-xs text-muted-foreground/70">
+                                        <button type="button" className="rounded-sm text-xs text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                             +{otherActiveCount} more
-                                        </span>
+                                        </button>
                                     </TooltipTrigger>
                                     <TooltipContent className="whitespace-pre-line">{screensTooltip}</TooltipContent>
                                 </Tooltip>
@@ -181,6 +181,7 @@ export function StatusBar({ className }: StatusBarProps) {
                     className="size-7"
                     onClick={handleMuteToggle}
                     disabled={!activeWallpaper || !settings}
+                    aria-label={settings?.silent ? "Unmute wallpaper" : "Mute wallpaper"}
                     title={settings?.silent ? "Unmute" : "Mute"}
                 >
                     {settings?.silent ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
@@ -191,6 +192,7 @@ export function StatusBar({ className }: StatusBarProps) {
                     className="size-7"
                     onClick={handleStop}
                     disabled={!activeWallpaper}
+                    aria-label="Stop wallpaper"
                     title="Stop wallpaper"
                 >
                     <Square className="size-3.5" />
