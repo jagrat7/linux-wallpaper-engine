@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getOmarchyHyprlandPaths,
   getOmarchyThemePaths,
+  getOmarchyWatchPaths,
   parseOmarchyHyprlandTheme,
   parseOmarchyTheme,
 } from './omarchy'
@@ -15,6 +16,13 @@ describe('getOmarchyThemePaths', () => {
     expect(getOmarchyHyprlandPaths('/home/user')).toEqual([
       '/home/user/.local/state/omarchy/current/theme/hyprland.lua',
       '/home/user/.config/omarchy/current/theme/hyprland.lua',
+    ])
+    expect(getOmarchyWatchPaths('/home/user')).toEqual([
+      '/home/user/.local/state/omarchy/current/theme/colors.toml',
+      '/home/user/.config/omarchy/current/theme/colors.toml',
+      '/home/user/.local/state/omarchy/current/theme/hyprland.lua',
+      '/home/user/.config/omarchy/current/theme/hyprland.lua',
+      '/home/user/.local/state/omarchy/current/theme.name',
     ])
   })
 })

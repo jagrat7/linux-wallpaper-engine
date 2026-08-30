@@ -16,8 +16,17 @@ export const getOmarchyHyprlandPaths = (homeDirectory: string): string[] => [
   path.join(homeDirectory, '.config/omarchy/current/theme/hyprland.lua'),
 ]
 
+export const getOmarchyWatchPaths = (homeDirectory: string): string[] => [
+  ...getOmarchyThemePaths(homeDirectory),
+  ...getOmarchyHyprlandPaths(homeDirectory),
+  // Theme switches replace the entire current/theme directory, then update this
+  // marker in its stable parent directory.
+  path.join(homeDirectory, '.local/state/omarchy/current/theme.name'),
+]
+
 const OMARCHY_THEME_PATHS = getOmarchyThemePaths(homedir())
 const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
+const OMARCHY_WATCH_PATHS = getOmarchyWatchPaths(homedir())
 
 export const parseOmarchyTheme = (source: string): SystemThemePalette | null => {
   const colors = Object.fromEntries(Array.from(source.matchAll(
@@ -182,6 +191,6 @@ const readOmarchyPalette = (): SystemThemePalette | null => {
 
 export const omarchyThemeProvider = {
   matches: (desktop: string) => desktop.includes('hyprland') || desktop.includes('omarchy'),
-  watchPaths: [...OMARCHY_THEME_PATHS, ...OMARCHY_HYPRLAND_PATHS],
+  watchPaths: OMARCHY_WATCH_PATHS,
   readPalette: readOmarchyPalette,
 } satisfies DesktopThemeProvider
