@@ -1,12 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ChildProcess } from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
-import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, pickRandomWallpaper, buildApplyOptions } from './wallpaper.utils'
+import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, pickRandomWallpaper, buildApplyOptions, signalWallpaperProcess } from './wallpaper.utils'
 
 vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(),
   access: vi.fn(),
+}))
+
+const { mockHostExecAsync } = vi.hoisted(() => ({
+  mockHostExecAsync: vi.fn(),
+}))
+
+vi.mock('../../utils/host', () => ({
+  hostExecAsync: mockHostExecAsync,
 }))
 
 const mockReadFile = vi.mocked(fs.readFile)
@@ -162,5 +171,67 @@ describe('buildApplyOptions', () => {
     }, { backgroundId: '/wp/a' })
 
     expect(options.windowed).toBe('emit-flag')
+  })
+})
+
+describe('signalWallpaperProcess', () => {
+  const makeProc = (kill: ReturnType<typeof vi.fn>): ChildProcess =>
+    ({ kill }) as unknown as ChildProcess
+
+  beforeEach(() => {
+    mockHostExecAsync.mockReset()
+  })
+
+  it('signals the tracked process handle and skips the host fallback', async () => {
+    const kill = vi.fn().mockReturnValue(true)
+
+    const delivered = await signalWallpaperProcess('eDP-1', 'SIGSTOP', makeProc(kill))
+
+    expect(delivered).toBe(true)
+    expect(kill).toHaveBeenCalledWith('SIGSTOP')
+    expect(mockHostExecAsync).not.toHaveBeenCalled()
+  })
+
+  it('reports failure when kill returns false without throwing', async () => {
+    const kill = vi.fn().mockReturnValue(false)
+
+    const delivered = await signalWallpaperProcess('eDP-1', 'SIGCONT', makeProc(kill))
+
+    expect(delivered).toBe(false)
+    expect(mockHostExecAsync).not.toHaveBeenCalled()
+  })
+
+  it('reports failure when kill throws', async () => {
+    const kill = vi.fn().mockImplementation(() => { throw new Error('ESRCH') })
+
+    const delivered = await signalWallpaperProcess('eDP-1', 'SIGSTOP', makeProc(kill))
+
+    expect(delivered).toBe(false)
+  })
+
+  it('falls back to pkill for screens without a tracked handle', async () => {
+    mockHostExecAsync.mockResolvedValue({ stdout: '' })
+
+    const delivered = await signalWallpaperProcess('eDP-1', 'SIGSTOP', undefined)
+
+    expect(delivered).toBe(true)
+    expect(mockHostExecAsync).toHaveBeenCalledWith('pkill -STOP -f "linux-wallpaperengine.*--screen-root.*eDP-1"')
+  })
+
+  it('uses the bare process pattern for the window-mode default screen', async () => {
+    mockHostExecAsync.mockResolvedValue({ stdout: '' })
+
+    const delivered = await signalWallpaperProcess('default', 'SIGCONT', undefined)
+
+    expect(delivered).toBe(true)
+    expect(mockHostExecAsync).toHaveBeenCalledWith('pkill -CONT -f linux-wallpaperengine')
+  })
+
+  it('reports failure when the host fallback rejects', async () => {
+    mockHostExecAsync.mockRejectedValue(new Error('no process matched'))
+
+    const delivered = await signalWallpaperProcess('eDP-1', 'SIGSTOP', undefined)
+
+    expect(delivered).toBe(false)
   })
 })

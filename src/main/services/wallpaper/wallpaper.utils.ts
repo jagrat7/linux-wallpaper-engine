@@ -1,5 +1,6 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
+import type { ChildProcess } from 'node:child_process'
 import { CACHE_TTL, STEAM_ROOT_PATHS, type AppSettings } from '../../../shared/constants/app'
 import type { ApplyWallpaperOptions, Wallpaper, WallpaperType } from '../../../shared/constants/wallpaper'
 import { hostExecAsync } from '../../utils/host'
@@ -80,6 +81,40 @@ export const pickRandomWallpaper = (wallpapers: Wallpaper[], activeIds: Readonly
   const unused = wallpapers.filter(w => !activeIds.has(w.path))
   const pool = unused.length > 0 ? unused : wallpapers
   return pool[Math.floor(Math.random() * pool.length)]
+}
+
+// pgrep/pkill pattern matching the backend process driving a screen. The
+// 'default' screen key is app-level window mode, where no --screen-root flag
+// is passed and only one process exists.
+export const screenProcessPattern = (screen: string): string =>
+  screen === 'default'
+    ? 'linux-wallpaperengine'
+    : `"linux-wallpaperengine.*--screen-root.*${screen}"`
+
+// Deliver SIGSTOP/SIGCONT to the backend process driving a screen. Prefers the
+// tracked child-process handle and falls back to pkill when the handle was
+// lost (e.g. state restored after an app restart). Returns whether the signal
+// was actually delivered — kill() reports failure by returning false rather
+// than throwing.
+export const signalWallpaperProcess = async (
+  screen: string,
+  signal: 'SIGSTOP' | 'SIGCONT',
+  proc: ChildProcess | undefined,
+): Promise<boolean> => {
+  if (proc) {
+    try {
+      return proc.kill(signal)
+    } catch {
+      return false
+    }
+  }
+  const flag = signal === 'SIGSTOP' ? 'STOP' : 'CONT'
+  try {
+    await hostExecAsync(`pkill -${flag} -f ${screenProcessPattern(screen)}`)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function parseImageHeader(imagePath: string) {

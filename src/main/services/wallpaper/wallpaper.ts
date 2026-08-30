@@ -12,18 +12,10 @@ import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
 import { playlistService } from '../playlists/playlist'
 import { startPlaylistProcess } from '../playlists/playlist-runner'
-import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, buildApplyOptions, pickRandomWallpaper, type TimedCache } from './wallpaper.utils'
+import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, buildApplyOptions, pickRandomWallpaper, signalWallpaperProcess, type TimedCache } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
 import type { MutationResult, ActiveWallpaperEntry, ApplyTarget, OverrideMutation, ServiceAction, DebugInfo } from './wallpaper.types'
-
-// pgrep/pkill pattern matching the backend process driving a screen. The
-// 'default' screen key is app-level window mode, where no --screen-root flag
-// is passed and only one process exists.
-const screenProcessPattern = (screen: string): string =>
-  screen === 'default'
-    ? 'linux-wallpaperengine'
-    : `"linux-wallpaperengine.*--screen-root.*${screen}"`
 
 class WallpaperService implements IWallpaperService {
   private static instance: WallpaperService | null = null
@@ -109,44 +101,45 @@ class WallpaperService implements IWallpaperService {
   async pause(screen?: string | string[]): Promise<MutationResult> {
     const targets = this.resolveTargetScreens(screen)
     const paused: string[] = []
+    const errors: string[] = []
     for (const target of targets) {
       if (this.state.isPaused(target)) continue
-      const proc = this.state.getProcess(target)
-      if (proc) {
-        try { proc.kill('SIGSTOP') } catch { /* already dead */ }
+      if (await signalWallpaperProcess(target, 'SIGSTOP', this.state.getProcess(target))) {
         paused.push(target)
       } else {
-        // Process handle lost (e.g. state restored after an app restart) —
-        // freeze it on the host instead
-        try {
-          await hostExecAsync(`pkill -STOP -f ${screenProcessPattern(target)}`)
-          paused.push(target)
-        } catch { /* no process found is ok */ }
+        errors.push(`${target}: process is not running`)
       }
     }
+    // Only freeze screens whose process actually received the signal
     this.state.markPaused(paused, true)
-    invalidationService.emit('wallpaper.paused')
-    return { success: true, screens: paused }
+    if (paused.length > 0) invalidationService.emit('wallpaper.paused')
+    return {
+      success: errors.length === 0,
+      error: errors.length > 0 ? errors.join('; ') : undefined,
+      screens: paused.length > 0 ? paused : undefined,
+    }
   }
 
   async resume(screen?: string | string[]): Promise<MutationResult> {
     const pausedSet = new Set(this.state.getPausedScreens())
     const targets = this.resolveTargetScreens(screen).filter(s => pausedSet.has(s))
     const resumed: string[] = []
+    const errors: string[] = []
     for (const target of targets) {
-      const proc = this.state.getProcess(target)
-      if (proc) {
-        try { proc.kill('SIGCONT') } catch { /* already dead */ }
+      if (await signalWallpaperProcess(target, 'SIGCONT', this.state.getProcess(target))) {
+        resumed.push(target)
       } else {
-        try {
-          await hostExecAsync(`pkill -CONT -f ${screenProcessPattern(target)}`)
-        } catch { /* no process found is ok */ }
+        errors.push(`${target}: failed to resume frozen process`)
       }
-      resumed.push(target)
     }
+    // Keep the paused marker on failed targets so a later resume can retry
     this.state.markPaused(resumed, false)
-    invalidationService.emit('wallpaper.resumed')
-    return { success: true, screens: resumed }
+    if (resumed.length > 0) invalidationService.emit('wallpaper.resumed')
+    return {
+      success: errors.length === 0,
+      error: errors.length > 0 ? errors.join('; ') : undefined,
+      screens: resumed.length > 0 ? resumed : undefined,
+    }
   }
 
   // ── Random wallpaper ───────────────────────────────────────────────────
@@ -365,8 +358,9 @@ class WallpaperService implements IWallpaperService {
     const result: ActiveWallpaperEntry[] = []
 
     for (const [screen, wallpaper] of this.state.getActive().entries()) {
-      if (!this.state.getProcess(screen)) continue
-
+      // Entries restored from disk (app restarted while backend processes kept
+      // running) have no tracked handle but are real running wallpapers — keep
+      // them listed so paused ones stay visible and resumable from the UI.
       const cached = allWallpapers.find(w => w.path === wallpaper.backgroundId)
       const title = cached?.title ?? wallpaper.backgroundId.split('/').filter(Boolean).pop() ?? 'Unknown'
       const thumbnail = cached?.thumbnail ?? await resolveThumbnail(wallpaper.backgroundId)
