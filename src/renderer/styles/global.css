@@ -39,8 +39,8 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
   --sidebar-foreground: oklch(0.285 0.03 120);
-  --sidebar-primary: oklch(0.285 0.03 120);
-  --sidebar-primary-foreground: oklch(0.99 0.005 110);
+  --sidebar-primary: var(--sidebar-accent);
+  --sidebar-primary-foreground: var(--sidebar-accent-foreground);
   --sidebar-accent: oklch(0.92 0.012 110);
   --sidebar-accent-foreground: oklch(0.285 0.03 120);
   --sidebar-border: oklch(0.90 0.01 110);
@@ -78,8 +78,8 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--sidebar-accent);
+  --sidebar-primary-foreground: var(--sidebar-accent-foreground);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
@@ -117,8 +117,8 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--sidebar-accent);
+  --sidebar-primary-foreground: var(--sidebar-accent-foreground);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 14%);
@@ -152,8 +152,8 @@
   --ring: oklch(0.77 0.12 235);
   --radius: 0.25rem;
   --sidebar-foreground: oklch(0.87 0.03 236);
-  --sidebar-primary: oklch(0.77 0.12 235);
-  --sidebar-primary-foreground: oklch(0.24 0.04 247);
+  --sidebar-primary: var(--sidebar-accent);
+  --sidebar-primary-foreground: var(--sidebar-accent-foreground);
   --sidebar-accent: oklch(0.36 0.06 242);
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(0.38 0.06 242);
@@ -163,6 +163,11 @@
   --warning: oklch(0.75 0.15 80);
   --warning-foreground: oklch(1 0 0);
   --search-bg: oklch(0.47 0.08 240);
+}
+
+/* System theme tokens are supplied by XDG Portal and optional palette providers */
+.system {
+  color-scheme: light dark;
 }
 
 @theme inline {

@@ -1,69 +1,70 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useLayoutEffect, useState } from 'react'
+import { DEFAULT_SETTINGS } from '../../shared/constants/app'
 import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants/theme'
+import { trpc } from '../lib/trpc'
 
-// Derive type from constants - single source of truth
-type ThemeMode = ThemeOption
+const STORAGE_KEY = 'wallpaper-engine-theme'
+const THEME_CLASSES = THEME_OPTIONS.map(option => option.value)
+const cssVariable = (key: string) => `--${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`
+const preferredSystemScheme = () => window.matchMedia('(prefers-color-scheme: dark)').matches
+  ? 'dark'
+  : 'light'
 
 type ThemeProviderProps = {
   children: React.ReactNode
-  defaultMode?: ThemeMode
-  storageKey?: string
 }
 
 type ThemeProviderState = {
-  mode: ThemeMode
-  setMode: (mode: ThemeMode) => void
+  mode: ThemeOption
+  setMode: (mode: ThemeOption) => void
 }
 
-const initialState: ThemeProviderState = {
-  mode: 'system',
-  setMode: () => null,
-}
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
 
-const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
-
-export function ThemeProvider({
-  children,
-  defaultMode = 'system',
-  storageKey = 'wallpaper-engine-theme',
-  ...props
-}: ThemeProviderProps) {
-  const [mode, setMode] = useState<ThemeMode>(
-    () => (localStorage.getItem(storageKey) as ThemeMode) ?? defaultMode
+export function ThemeProvider({ children }: ThemeProviderProps) {
+  const [mode, setMode] = useState<ThemeOption>(
+    () => (localStorage.getItem(STORAGE_KEY) as ThemeOption | null) ?? DEFAULT_SETTINGS.theme
   )
+  const { data: systemTheme } = trpc.settings.systemTheme.useQuery(undefined, {
+    enabled: mode === 'system',
+  })
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = window.document.documentElement
+    const paletteProperties: string[] = []
 
-    // Remove all theme classes
-    THEME_OPTIONS.forEach((option) => {
-      root.classList.remove(option.value)
-    })
+    root.classList.remove(...THEME_CLASSES)
 
-    // Handle system theme
     if (mode === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light'
-      root.classList.add(systemTheme)
-      return
+      const resolvedScheme = systemTheme?.scheme ?? preferredSystemScheme()
+      root.classList.add('system', resolvedScheme)
+
+      Object.entries(systemTheme?.palette ?? {}).forEach(([key, value]) => {
+        const property = cssVariable(key)
+        root.style.setProperty(property, value)
+        paletteProperties.push(property)
+      })
+    }
+    else {
+      root.classList.add(mode)
     }
 
-    // Apply selected theme
-    root.classList.add(mode)
-  }, [mode])
+    return () => {
+      root.classList.remove(...THEME_CLASSES)
+      paletteProperties.forEach(property => root.style.removeProperty(property))
+    }
+  }, [mode, systemTheme])
 
   const value = {
     mode,
-    setMode: (newMode: ThemeMode) => {
-      localStorage.setItem(storageKey, newMode)
+    setMode: (newMode: ThemeOption) => {
+      localStorage.setItem(STORAGE_KEY, newMode)
       setMode(newMode)
     },
   }
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext.Provider value={value}>
       {children}
     </ThemeProviderContext.Provider>
   )

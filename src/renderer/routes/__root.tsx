@@ -6,7 +6,7 @@ import { WorkshopSearchProvider } from '@/contexts/workshop-search-context'
 
 export const Route = createRootRoute({
   component: () => (
-    <ThemeProvider defaultMode="dark" storageKey="wallpaper-engine-theme">
+    <ThemeProvider>
       <WallpaperSearchProvider>
         <WorkshopSearchProvider>
           <AppShell>
