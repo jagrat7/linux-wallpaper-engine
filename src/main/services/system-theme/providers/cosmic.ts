@@ -4,35 +4,25 @@ import type { DesktopThemeProvider, SystemThemePalette } from '../system-theme.t
 import { readText, subtleSidebarColor } from '../system-theme.utils'
 
 const RON_COLOR_PATTERN = /red:\s*([\d.]+),\s*green:\s*([\d.]+),\s*blue:\s*([\d.]+),\s*alpha:\s*([\d.]+)/
-
-const getCosmicConfigPath = (homeDirectory: string): string =>
-  path.join(homeDirectory, '.config', 'cosmic')
-
-export const getCosmicModePath = (homeDirectory: string): string => path.join(
-  getCosmicConfigPath(homeDirectory),
+const COSMIC_CONFIG_PATH = path.join(homedir(), '.config', 'cosmic')
+const COSMIC_MODE_PATH = path.join(
+  COSMIC_CONFIG_PATH,
   'com.system76.CosmicTheme.Mode/v1/is_dark',
 )
+const COSMIC_THEME_PATHS = ['Dark', 'Light'].flatMap((mode) => [
+  'background',
+  'primary',
+  'secondary',
+  'accent',
+  'destructive',
+  'success',
+  'warning',
+].map((name) => path.join(
+  COSMIC_CONFIG_PATH,
+  `com.system76.CosmicTheme.${mode}/v1/${name}`,
+)))
 
-export const getCosmicThemePaths = (homeDirectory: string): string[] => {
-  const configPath = getCosmicConfigPath(homeDirectory)
-  return ['Dark', 'Light'].flatMap((mode) => [
-    'background',
-    'primary',
-    'secondary',
-    'accent',
-    'destructive',
-    'success',
-    'warning',
-  ].map((name) => path.join(
-    configPath,
-    `com.system76.CosmicTheme.${mode}/v1/${name}`,
-  )))
-}
-
-const COSMIC_MODE_PATH = getCosmicModePath(homedir())
-const COSMIC_THEME_PATHS = getCosmicThemePaths(homedir())
-
-export const parseRonColor = (source: string | null, marker?: string): string | undefined => {
+const parseRonColor = (source: string | null, marker?: string): string | undefined => {
   if (source === null) return undefined
   const start = marker === undefined ? 0 : source.indexOf(`${marker}: (`)
   if (start < 0) return undefined
@@ -43,9 +33,8 @@ export const parseRonColor = (source: string | null, marker?: string): string | 
 }
 
 const readCosmicPalette = (): SystemThemePalette | null => {
-  const configPath = getCosmicConfigPath(homedir())
   const mode = readText(COSMIC_MODE_PATH)?.trim() === 'true' ? 'Dark' : 'Light'
-  const themePath = path.join(configPath, `com.system76.CosmicTheme.${mode}/v1`)
+  const themePath = path.join(COSMIC_CONFIG_PATH, `com.system76.CosmicTheme.${mode}/v1`)
   const readColor = (name: string) => readText(path.join(themePath, name))
   const backgroundSource = readColor('background')
   const primarySource = readColor('primary')

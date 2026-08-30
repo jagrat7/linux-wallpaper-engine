@@ -1,4 +1,4 @@
-import { app, protocol, net, nativeImage, BrowserWindow, Tray, Menu, screen } from 'electron'
+import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, Tray, Menu, screen } from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -9,11 +9,14 @@ import { setAutostart } from './utils/autostart.ts'
 import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
 import { invalidationService } from './services/invalidation.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
+import { electronTheme } from './services/system-theme/system-theme.utils.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
 let trayStartupRetry: TrayStartupRetry | null = null
 let isQuitting = false
+
+systemThemeService.configurePlatform(electronTheme.createPlatform(nativeTheme, systemPreferences))
 
 const resolveAssetPath = (assetName: string): string => {
   // If packaged normally in forge-maker

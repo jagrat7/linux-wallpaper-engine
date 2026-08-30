@@ -3,12 +3,9 @@ import path from 'node:path'
 import type { DesktopThemeProvider, SystemThemePalette } from '../system-theme.types'
 import { readText, subtleSidebarColor } from '../system-theme.utils'
 
-export const getKdeThemePath = (homeDirectory: string): string =>
-  path.join(homeDirectory, '.config', 'kdeglobals')
+const KDE_THEME_PATH = path.join(homedir(), '.config', 'kdeglobals')
 
-const KDE_THEME_PATH = getKdeThemePath(homedir())
-
-export const parseKdeColor = (value: string | undefined): string | undefined => {
+const parseKdeColor = (value: string | undefined): string | undefined => {
   const channels = value?.split(',').slice(0, 3).map(Number)
   if (channels === undefined || channels.length !== 3 || !channels.every(Number.isFinite))
     return undefined

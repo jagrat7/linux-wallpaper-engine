@@ -1,3 +1,5 @@
+import type { ThemeOption } from '../../../shared/constants/theme'
+
 export type SystemThemePalette = Partial<{
   background: string
   foreground: string
@@ -27,7 +29,7 @@ export type SystemThemePalette = Partial<{
   sidebarRing: string
 }>
 
-export type ThemeScheme = 'light' | 'dark'
+export type ThemeScheme = Extract<ThemeOption, 'light' | 'dark'>
 
 export type SystemTheme = {
   scheme: ThemeScheme

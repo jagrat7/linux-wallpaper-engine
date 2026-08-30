@@ -1,7 +1,9 @@
 import { homedir } from 'node:os'
 import path from 'node:path'
 import type { DesktopThemeProvider, SystemThemePalette } from '../system-theme.types'
-import { HEX_COLOR_PATTERN, inferScheme, readText, subtleSidebarColor } from '../system-theme.utils'
+import { inferScheme, readText, subtleSidebarColor } from '../system-theme.utils'
+
+const HEX_COLOR_PATTERN = /^#[\da-f]{6}(?:[\da-f]{2})?$/i
 
 export const getOmarchyThemePaths = (homeDirectory: string): string[] => [
   path.join(homeDirectory, '.local/state/omarchy/current/theme/colors.toml'),
@@ -71,7 +73,7 @@ export const parseOmarchyTheme = (source: string): SystemThemePalette | null => 
   }
 }
 
-export const parseHyprColor = (value: string | undefined): string | undefined => {
+const parseHyprColor = (value: string | undefined): string | undefined => {
   if (value === undefined) return undefined
   const match = value.match(/#([\da-f]{6})(?:[\da-f]{2})?/i)
     ?? value.match(/rgba?\(\s*([\da-f]{6})(?:[\da-f]{2})?\s*\)/i)
@@ -79,7 +81,7 @@ export const parseHyprColor = (value: string | undefined): string | undefined =>
   return match === null ? undefined : `#${match[1]}`
 }
 
-export const findLuaVariableColor = (source: string, names: string[]): string | undefined => {
+const findLuaVariableColor = (source: string, names: string[]): string | undefined => {
   for (const name of names) {
     const declaration = source.match(new RegExp(`\\blocal\\s+${name}\\s*=`, 'i'))
     if (declaration?.index === undefined) continue
@@ -92,7 +94,7 @@ export const findLuaVariableColor = (source: string, names: string[]): string | 
   return undefined
 }
 
-export const findLuaAssignedColor = (source: string, keys: string[]): string | undefined => {
+const findLuaAssignedColor = (source: string, keys: string[]): string | undefined => {
   for (const key of keys) {
     const assignment = source.match(new RegExp(`(?:\\[\"${key.replace('.', '\\.') }\"\\]|\\b${key.replace('.', '\\.')})\\s*=\\s*([^,\\n}]+)`, 'i'))
     if (assignment === null) continue
@@ -159,7 +161,7 @@ export const parseOmarchyHyprlandTheme = (source: string): SystemThemePalette | 
   }
 }
 
-export const readOmarchyPalette = (): SystemThemePalette | null => {
+const readOmarchyPalette = (): SystemThemePalette | null => {
   for (const filePath of OMARCHY_THEME_PATHS) {
     const source = readText(filePath)
     if (source !== null) {
