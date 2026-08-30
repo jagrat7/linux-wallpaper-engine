@@ -1,5 +1,6 @@
+import { homedir } from 'node:os'
 import path from 'node:path'
-import type { ThemeContribution, ThemeProvider } from '../system-theme.types'
+import type { DesktopThemeProvider, SystemThemePalette } from '../system-theme.types'
 import { HEX_COLOR_PATTERN, inferScheme, readText, subtleSidebarColor } from '../system-theme.utils'
 
 export const getOmarchyThemePaths = (homeDirectory: string): string[] => [
@@ -13,7 +14,10 @@ export const getOmarchyHyprlandPaths = (homeDirectory: string): string[] => [
   path.join(homeDirectory, '.config/omarchy/current/theme/hyprland.lua'),
 ]
 
-export const parseOmarchyTheme = (source: string): ThemeContribution | null => {
+const OMARCHY_THEME_PATHS = getOmarchyThemePaths(homedir())
+const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
+
+export const parseOmarchyTheme = (source: string): SystemThemePalette | null => {
   const colors = Object.fromEntries(Array.from(source.matchAll(
     /^\s*([\w]+)\s*=\s*["']([^"']+)["']/gm,
   )).filter(([, , value]) => HEX_COLOR_PATTERN.test(value)).map(([, key, value]) => [
@@ -37,40 +41,33 @@ export const parseOmarchyTheme = (source: string): ThemeContribution | null => {
     ?? colors.color7
     ?? colors.color8
     ?? colors.foreground
-  const mode = source.match(/^\s*mode\s*=\s*["'](light|dark)["']/mi)?.[1]
-
   return {
-    scheme: mode === 'light' || mode === 'dark'
-      ? mode
-      : inferScheme(colors.background) ?? 'dark',
-    palette: {
-      background: colors.background,
-      foreground: colors.foreground,
-      card: surface,
-      cardForeground: colors.foreground,
-      primary: accent,
-      primaryForeground: colors.background,
-      secondary: surface,
-      secondaryForeground: colors.foreground,
-      muted: surface,
-      mutedForeground,
-      accent: selection,
-      accentForeground: selectionForeground,
-      destructive: colors.red ?? colors.color1,
-      border: colors.muted ?? colors.color8,
-      input: surface,
-      success: colors.green ?? colors.color2,
-      warning: colors.yellow ?? colors.color3,
-      ring: accent,
-      sidebar: colors.background,
-      sidebarForeground: colors.foreground,
-      sidebarPrimary: subtleSidebarColor(accent, colors.background),
-      sidebarPrimaryForeground: colors.foreground,
-      sidebarAccent: selection,
-      sidebarAccentForeground: selectionForeground,
-      sidebarBorder: colors.muted ?? colors.color8,
-      sidebarRing: accent,
-    },
+    background: colors.background,
+    foreground: colors.foreground,
+    card: surface,
+    cardForeground: colors.foreground,
+    primary: accent,
+    primaryForeground: colors.background,
+    secondary: surface,
+    secondaryForeground: colors.foreground,
+    muted: surface,
+    mutedForeground,
+    accent: selection,
+    accentForeground: selectionForeground,
+    destructive: colors.red ?? colors.color1,
+    border: colors.muted ?? colors.color8,
+    input: surface,
+    success: colors.green ?? colors.color2,
+    warning: colors.yellow ?? colors.color3,
+    ring: accent,
+    sidebar: colors.background,
+    sidebarForeground: colors.foreground,
+    sidebarPrimary: subtleSidebarColor(accent, colors.background),
+    sidebarPrimaryForeground: colors.foreground,
+    sidebarAccent: selection,
+    sidebarAccentForeground: selectionForeground,
+    sidebarBorder: colors.muted ?? colors.color8,
+    sidebarRing: accent,
   }
 }
 
@@ -112,7 +109,7 @@ export const findLuaAssignedColor = (source: string, keys: string[]): string | u
   return undefined
 }
 
-export const parseOmarchyHyprlandTheme = (source: string): ThemeContribution | null => {
+export const parseOmarchyHyprlandTheme = (source: string): SystemThemePalette | null => {
   const namedColors = Object.fromEntries(Array.from(source.matchAll(
     /^\s*(background|bg|surface|surface_alt|foreground|fg|accent|active|border|muted)\s*=\s*["']([^"']+)["']/gim,
   )).map(([, key, value]) => [key.toLowerCase(), parseHyprColor(value)]).filter((entry): entry is [string, string] => entry[1] !== undefined))
@@ -135,8 +132,7 @@ export const parseOmarchyHyprlandTheme = (source: string): ThemeContribution | n
 
   const activeForeground = background
     ?? (inferScheme(activeBorder) === 'light' ? '#000000' : '#ffffff')
-  const scheme = inferScheme(background)
-  const palette = {
+  return {
     background,
     foreground,
     card: surface,
@@ -161,11 +157,10 @@ export const parseOmarchyHyprlandTheme = (source: string): ThemeContribution | n
     sidebarBorder: inactiveBorder,
     sidebarRing: activeBorder,
   }
-  return scheme === null ? { palette } : { scheme, palette }
 }
 
-export const readOmarchyTheme = (homeDirectory: string): ThemeContribution | null => {
-  for (const filePath of getOmarchyThemePaths(homeDirectory)) {
+export const readOmarchyPalette = (): SystemThemePalette | null => {
+  for (const filePath of OMARCHY_THEME_PATHS) {
     const source = readText(filePath)
     if (source !== null) {
       const theme = parseOmarchyTheme(source)
@@ -173,7 +168,7 @@ export const readOmarchyTheme = (homeDirectory: string): ThemeContribution | nul
     }
   }
 
-  for (const filePath of getOmarchyHyprlandPaths(homeDirectory)) {
+  for (const filePath of OMARCHY_HYPRLAND_PATHS) {
     const source = readText(filePath)
     if (source !== null) {
       const theme = parseOmarchyHyprlandTheme(source)
@@ -184,12 +179,7 @@ export const readOmarchyTheme = (homeDirectory: string): ThemeContribution | nul
 }
 
 export const omarchyThemeProvider = {
-  id: 'omarchy',
-  priority: 300,
-  matches: ({ desktop }) => desktop.includes('hyprland') || desktop.includes('omarchy'),
-  watchPaths: ({ homeDirectory }) => [
-    ...getOmarchyThemePaths(homeDirectory),
-    ...getOmarchyHyprlandPaths(homeDirectory),
-  ],
-  read: ({ homeDirectory }) => readOmarchyTheme(homeDirectory),
-} satisfies ThemeProvider
+  matches: (desktop: string) => desktop.includes('hyprland') || desktop.includes('omarchy'),
+  watchPaths: [...OMARCHY_THEME_PATHS, ...OMARCHY_HYPRLAND_PATHS],
+  readPalette: readOmarchyPalette,
+} satisfies DesktopThemeProvider

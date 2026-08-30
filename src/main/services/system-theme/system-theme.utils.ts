@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs'
 import type {
   SystemThemePalette,
-  ThemeContribution,
   ThemeScheme,
 } from './system-theme.types'
 
@@ -34,21 +33,13 @@ export const inferScheme = (background: string | undefined): ThemeScheme | null 
   return (0.2126 * red + 0.7152 * green + 0.0722 * blue) < 0.5 ? 'dark' : 'light'
 }
 
-export const normalizeThemeContribution = (
-  contribution: ThemeContribution,
-): ThemeContribution | null => {
-  const palette = contribution.palette === undefined
-    ? undefined
-    : Object.fromEntries(Object.entries(contribution.palette).filter(
-      (entry): entry is [string, string] =>
-        typeof entry[1] === 'string' && entry[1].trim().length > 0,
-    )) as SystemThemePalette
-
-  const hasPalette = palette !== undefined && Object.keys(palette).length > 0
-  if (contribution.scheme === undefined && !hasPalette) return null
-  if (!hasPalette)
-    return contribution.scheme === undefined ? null : { scheme: contribution.scheme }
-  return contribution.scheme === undefined
-    ? { palette }
-    : { scheme: contribution.scheme, palette }
+export const normalizeSystemThemePalette = (
+  palette: SystemThemePalette | null,
+): SystemThemePalette | null => {
+  if (palette === null) return null
+  const normalized = Object.fromEntries(Object.entries(palette).filter(
+    (entry): entry is [string, string] =>
+      typeof entry[1] === 'string' && entry[1].trim().length > 0,
+  )) as SystemThemePalette
+  return Object.keys(normalized).length === 0 ? null : normalized
 }
