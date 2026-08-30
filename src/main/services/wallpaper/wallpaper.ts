@@ -378,12 +378,28 @@ class WallpaperService implements IWallpaperService {
   // ── Private: active wallpaper enrichment ───────────────────────────────
 
   private async getActiveWithTitles(allWallpapers: Wallpaper[]): Promise<ActiveWallpaperEntry[]> {
-    const result: ActiveWallpaperEntry[] = []
+    const entries = [...this.state.getActive().entries()]
 
-    for (const [screen, wallpaper] of this.state.getActive().entries()) {
-      // Entries restored from disk (app restarted while backend processes kept
-      // running) have no tracked handle but are real running wallpapers — keep
-      // them listed so paused ones stay visible and resumable from the UI.
+    // Entries restored from disk (app restarted while backend processes kept
+    // running) have no tracked handle. Verify they are actually still running —
+    // a dead one is stale state left behind e.g. by a crash while the app was
+    // closed — and drop it from both the result and the persisted state.
+    const restoredScreens = entries
+      .filter(([screen]) => !this.state.getProcess(screen))
+      .map(([screen]) => screen)
+    let deadScreens = new Set<string>()
+    if (restoredScreens.length > 0) {
+      deadScreens = new Set(await this.findDeadRestoredScreens(restoredScreens))
+      if (deadScreens.size > 0) {
+        // No handles involved, so this just drops the stale state
+        this.state.releaseMany([...deadScreens])
+        invalidationService.emit('wallpaper.stopped')
+      }
+    }
+
+    const result: ActiveWallpaperEntry[] = []
+    for (const [screen, wallpaper] of entries) {
+      if (deadScreens.has(screen)) continue
       const cached = allWallpapers.find(w => w.path === wallpaper.backgroundId)
       const title = cached?.title ?? wallpaper.backgroundId.split('/').filter(Boolean).pop() ?? 'Unknown'
       const thumbnail = cached?.thumbnail ?? await resolveThumbnail(wallpaper.backgroundId)
@@ -392,6 +408,21 @@ class WallpaperService implements IWallpaperService {
     }
 
     return result
+  }
+
+  // One pgrep decides liveness for all restored screens: a screen is alive
+  // when its --screen-root marker appears as a full argument in a backend
+  // command line (or, in window mode, when any backend runs without
+  // --screen-root). Skipped entirely when every entry has a live handle.
+  private async findDeadRestoredScreens(screens: string[]): Promise<string[]> {
+    const { stdout } = await hostExecAsync('pgrep -a linux-wallpaperengine').catch(() => ({ stdout: '' }))
+    const processOutput = stdout.trim()
+    return screens.filter(screen => {
+      const isRunning = screen === 'default'
+        ? processOutput.length > 0 && !processOutput.includes('--screen-root')
+        : new RegExp(backendArgPattern('--screen-root', screen)).test(processOutput)
+      return !isRunning
+    })
   }
 
   // ── Private: process spawning ──────────────────────────────────────────
@@ -724,7 +755,7 @@ class WallpaperService implements IWallpaperService {
       for (const [screen] of this.state.getActive().entries()) {
         const isRunning = screen === 'default'
           ? processOutput.length > 0 && !processOutput.includes('--screen-root')
-          : processOutput.includes(`--screen-root ${screen}`)
+          : new RegExp(backendArgPattern('--screen-root', screen)).test(processOutput)
 
         if (!isRunning) {
           await this.reapplyAll()
