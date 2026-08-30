@@ -14,6 +14,8 @@ export interface ActiveWallpapersSchema {
   activePlaylist: ActivePlaylistInfo | null
   // Screens whose wallpaper process is currently frozen (SIGSTOP), survives restarts
   pausedScreens: string[]
+  // Screen -> other screens sharing its process (needed after restart, when handles are gone)
+  screenGroups: Record<string, string[]>
   // Wallpaper path -> last applied timestamp, drives the "recent" sort
   appliedHistory: Record<string, number>
 }
@@ -42,6 +44,7 @@ class StoreService {
         activePlaylists: {},
         activePlaylist: null,
         pausedScreens: [],
+        screenGroups: {},
         appliedHistory: {},
       },
     })

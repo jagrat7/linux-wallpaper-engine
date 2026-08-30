@@ -2,7 +2,7 @@ import type { ChildProcess } from 'node:child_process'
 import { playlistService } from './playlist'
 import { settingsService } from '../settings'
 import { hostCommandExists, hostExecFileAsync, hostSpawn } from '../../utils/host'
-import { resolveWallpaperEngineAssetsDir, escapeRegExp } from '../wallpaper/wallpaper.utils'
+import { resolveWallpaperEngineAssetsDir, backendArgPattern } from '../wallpaper/wallpaper.utils'
 import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, applyOverridesToSettings, type ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 
 // Injected by the caller to avoid a circular import with the wallpaper service
@@ -58,7 +58,7 @@ export async function startPlaylistProcess(
     if (!settings.windowMode) {
       for (const screen of screenKeys) {
         try {
-          await hostExecFileAsync('pkill', ['-9', '-f', `linux-wallpaperengine.*--screen-root.*${escapeRegExp(screen)}`])
+          await hostExecFileAsync('pkill', ['-9', '-f', backendArgPattern('--screen-root', screen)])
         } catch { /* no process found is ok */ }
       }
       await new Promise(resolve => setTimeout(resolve, 100))

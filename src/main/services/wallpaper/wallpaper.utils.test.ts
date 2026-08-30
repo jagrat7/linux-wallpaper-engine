@@ -3,7 +3,7 @@ import type { ChildProcess } from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
-import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, pickRandomWallpaper, buildApplyOptions, signalWallpaperProcess, escapeRegExp } from './wallpaper.utils'
+import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, pickRandomWallpaper, buildApplyOptions, signalWallpaperProcess, escapeRegExp, backendArgPattern } from './wallpaper.utils'
 
 vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(),
@@ -266,5 +266,19 @@ describe('escapeRegExp', () => {
 
   it('leaves plain screen names untouched', () => {
     expect(escapeRegExp('eDP-1')).toBe('eDP-1')
+  })
+})
+
+describe('backendArgPattern', () => {
+  it('does not let a shorter screen name match a prefixed one', () => {
+    const pattern = new RegExp(backendArgPattern('--screen-root', 'DP-1'))
+    expect(pattern.test('linux-wallpaperengine --screen-root DP-1 --bg /wp')).toBe(true)
+    expect(pattern.test('linux-wallpaperengine --screen-root DP-10 --bg /wp')).toBe(false)
+  })
+
+  it('matches the value as a full argument, not a prefix', () => {
+    const pattern = new RegExp(backendArgPattern('--playlist', 'Mix'))
+    expect(pattern.test('linux-wallpaperengine --playlist Mix --fps 60')).toBe(true)
+    expect(pattern.test('linux-wallpaperengine --playlist Mixer --fps 60')).toBe(false)
   })
 })

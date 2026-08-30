@@ -11,6 +11,7 @@ class WallpaperStateManager implements IStateManager {
   private processScreenGroups = new Map<ChildProcess, Set<string>>()
   private activeWallpapers = new Map<string, ApplyWallpaperOptions>()
   private pausedScreens = new Set<string>()
+  private screenGroups = new Map<string, string[]>()
   private debugLogs = new Map<string, string[]>()
   private debugCommands = new Map<string, string>()
   private store = storeService.activeWallpapers
@@ -36,6 +37,9 @@ class WallpaperStateManager implements IStateManager {
     for (const screen of this.store.get('pausedScreens') ?? []) {
       this.pausedScreens.add(screen)
     }
+    for (const [screen, group] of Object.entries(this.store.get('screenGroups') ?? {})) {
+      this.screenGroups.set(screen, group)
+    }
   }
 
   // ── Process + screen group tracking ────────────────────────────────────
@@ -50,7 +54,9 @@ class WallpaperStateManager implements IStateManager {
     for (const screen of screens) {
       this.runningProcesses.set(screen, proc)
       this.activeWallpapers.set(screen, { ...options, screen })
-      // A freshly spawned process always starts unpaused
+      this.screenGroups.set(screen, screens)
+      // A freshly spawned process always starts unpaused — register is a
+      // new process, not a resume of the previous frozen one
       this.pausedScreens.delete(screen)
     }
     this.save()
@@ -82,12 +88,15 @@ class WallpaperStateManager implements IStateManager {
           this.runningProcesses.delete(s)
         }
         this.pausedScreens.delete(s)
+        this.screenGroups.delete(s)
       }
       this.processScreenGroups.delete(proc)
     }
 
     // Remove the released screen from active wallpapers
     this.activeWallpapers.delete(screen)
+    this.pausedScreens.delete(screen)
+    this.screenGroups.delete(screen)
     this.save()
 
     return { remaining }
@@ -118,14 +127,19 @@ class WallpaperStateManager implements IStateManager {
             this.runningProcesses.delete(screen)
           }
           this.pausedScreens.delete(screen)
+          this.screenGroups.delete(screen)
         }
         this.processScreenGroups.delete(proc)
       }
       try { proc.kill('SIGKILL') } catch { /* already dead */ }
     }
 
+    // Always drop paused/group state for requested screens, even when no
+    // process handle exists (e.g. state restored after an app restart)
     for (const screen of targets) {
       this.activeWallpapers.delete(screen)
+      this.pausedScreens.delete(screen)
+      this.screenGroups.delete(screen)
     }
     this.save()
 
@@ -145,6 +159,7 @@ class WallpaperStateManager implements IStateManager {
         this.runningProcesses.delete(screen)
       }
       this.pausedScreens.delete(screen)
+      this.screenGroups.delete(screen)
       if (this.activeWallpapers.has(screen)) {
         this.activeWallpapers.delete(screen)
         cleanedScreens.push(screen)
@@ -173,6 +188,11 @@ class WallpaperStateManager implements IStateManager {
     }
     this.store.set('activeWallpapers', obj)
     this.store.set('pausedScreens', [...this.pausedScreens])
+    const groups: Record<string, string[]> = {}
+    for (const [screen, group] of this.screenGroups.entries()) {
+      groups[screen] = group
+    }
+    this.store.set('screenGroups', groups)
   }
 
   reset(): void {
@@ -183,6 +203,7 @@ class WallpaperStateManager implements IStateManager {
     this.runningProcesses.clear()
     this.activeWallpapers.clear()
     this.pausedScreens.clear()
+    this.screenGroups.clear()
     this.save()
   }
 
@@ -203,8 +224,9 @@ class WallpaperStateManager implements IStateManager {
     const targets = new Set<string>()
     for (const screen of screens) {
       const proc = this.runningProcesses.get(screen)
-      const group = proc ? this.processScreenGroups.get(proc) : undefined
-      for (const s of group ?? [screen]) {
+      const liveGroup = proc ? this.processScreenGroups.get(proc) : undefined
+      const restoredGroup = this.screenGroups.get(screen)
+      for (const s of liveGroup ?? restoredGroup ?? [screen]) {
         targets.add(s)
       }
     }

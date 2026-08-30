@@ -12,7 +12,7 @@ import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
 import { playlistService } from '../playlists/playlist'
 import { startPlaylistProcess } from '../playlists/playlist-runner'
-import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, buildApplyOptions, pickRandomWallpaper, signalWallpaperProcess, escapeRegExp, type TimedCache } from './wallpaper.utils'
+import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, buildApplyOptions, pickRandomWallpaper, signalWallpaperProcess, backendArgPattern, type TimedCache } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
 import type { MutationResult, ActiveWallpaperEntry, ApplyTarget, OverrideMutation, ServiceAction, DebugInfo } from './wallpaper.types'
@@ -78,7 +78,7 @@ class WallpaperService implements IWallpaperService {
       // Kill any orphaned processes for this screen
       for (const screen of screens) {
         try {
-          await hostExecFileAsync('pkill', ['-9', '-f', `linux-wallpaperengine.*--screen-root.*${escapeRegExp(screen)}`])
+          await hostExecFileAsync('pkill', ['-9', '-f', backendArgPattern('--screen-root', screen)])
         } catch { /* no process found is ok */ }
       }
       // Respawn remaining screens that shared the process
@@ -189,15 +189,15 @@ class WallpaperService implements IWallpaperService {
   // exists rather than falling back to the bare executable name.
   private screenSignalPattern(screen: string): string | null {
     if (screen !== 'default') {
-      return `linux-wallpaperengine.*--screen-root.*${escapeRegExp(screen)}`
+      return backendArgPattern('--screen-root', screen)
     }
     const playlist = playlistService.getActivePlaylistEntries()[screen]
     if (playlist) {
-      return `linux-wallpaperengine.*--playlist.*${escapeRegExp(playlist.name)}`
+      return backendArgPattern('--playlist', playlist.name)
     }
     const backgroundId = this.state.getActive().get(screen)?.backgroundId
     if (backgroundId) {
-      return `linux-wallpaperengine.*--bg.*${escapeRegExp(backgroundId)}`
+      return backendArgPattern('--bg', backgroundId)
     }
     return null
   }
@@ -480,7 +480,7 @@ class WallpaperService implements IWallpaperService {
       // Kill orphaned processes
       for (const screen of screens) {
         try {
-          await hostExecFileAsync('pkill', ['-9', '-f', `linux-wallpaperengine.*--screen-root.*${escapeRegExp(screen)}`])
+          await hostExecFileAsync('pkill', ['-9', '-f', backendArgPattern('--screen-root', screen)])
         } catch { /* no process found is ok */ }
       }
 
@@ -554,6 +554,7 @@ class WallpaperService implements IWallpaperService {
     })
     this.state.register(screens, proc, options)
     this.captureDebugLogs(proc, screens[0] ?? 'default', args)
+    invalidationService.emit('wallpaper.applied')
   }
 
   // ── Private: reapply ───────────────────────────────────────────────────

@@ -115,4 +115,21 @@ describe('wallpaperStateManager paused state', () => {
 
     expect(wallpaperStateManager.getPausedScreens()).toEqual([])
   })
+
+  it('clears paused state on releaseMany even without a process handle', () => {
+    wallpaperStateManager.markPaused(['HDMI-1'], true)
+
+    wallpaperStateManager.releaseMany(['HDMI-1'])
+
+    expect(wallpaperStateManager.getPausedScreens()).toEqual([])
+  })
+
+  it('persists process screen groups so pause can expand after a restart', () => {
+    wallpaperStateManager.register(['eDP-1', 'HDMI-1'], makeProc(), makeOptions())
+
+    expect(mockStore.set).toHaveBeenCalledWith('screenGroups', {
+      'eDP-1': ['eDP-1', 'HDMI-1'],
+      'HDMI-1': ['eDP-1', 'HDMI-1'],
+    })
+  })
 })

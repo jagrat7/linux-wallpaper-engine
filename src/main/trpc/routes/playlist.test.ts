@@ -34,7 +34,7 @@ const { mockPlaylistService, mockWallpaperService, mockSettingsService, mockDisp
   },
   mockWallpaperUtils: {
     resolveWallpaperEngineAssetsDir: vi.fn(),
-    escapeRegExp: vi.fn((value: string) => value),
+    backendArgPattern: vi.fn((flag: string, value: string) => `linux-wallpaperengine.*${flag} ${value}( |$)`),
   },
 }))
 

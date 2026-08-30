@@ -88,6 +88,11 @@ export const pickRandomWallpaper = (wallpapers: Wallpaper[], activeIds: Readonly
 export const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
+// Scoped pkill -f ERE for a backend argv pair. The trailing `( |$)` is required
+// so `--screen-root DP-1` does not also match `--screen-root DP-10`.
+export const backendArgPattern = (flag: string, value: string): string =>
+  `linux-wallpaperengine.*${escapeRegExp(flag)} ${escapeRegExp(value)}( |$)`
+
 // Deliver SIGSTOP/SIGCONT to the backend process driving a screen. Prefers the
 // tracked child-process handle — exactly the process we spawned. Under Flatpak
 // the handle wraps `flatpak-spawn` rather than the real host process, so the
