@@ -1,4 +1,4 @@
-import { useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react"
+import { useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react"
 import { FolderOpen, type LucideIcon } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -8,6 +8,7 @@ import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
 import { findScrollParent, DEFAULT_GRID_COLS, columnsForWidth } from "@/lib/utils"
 import { useGlass } from "@/hooks/use-glass"
+import { useWallpaperGridNavigation } from "@/hooks/use-wallpaper-grid-navigation"
 
 const GAP = 16 // matches gap-4 (1rem)
 const OVERSCAN = 3 // rows rendered beyond the viewport to smooth scrolling
@@ -29,6 +30,7 @@ interface VirtualizedWallpaperGridProps {
     emptyMessage?: string
     emptySubMessage?: string
     renderCardOverlay?: (wallpaper: Wallpaper) => ReactNode
+    selectionMode?: "expanded" | "pressed"
     ref?: Ref<VirtualizedWallpaperGridHandle>
 }
 
@@ -46,6 +48,7 @@ export function VirtualizedWallpaperGrid({
     emptyMessage = "No wallpapers found",
     emptySubMessage,
     renderCardOverlay,
+    selectionMode = "expanded",
     ref,
 }: VirtualizedWallpaperGridProps) {
     const parentRef = useRef<HTMLDivElement>(null)
@@ -55,6 +58,10 @@ export function VirtualizedWallpaperGrid({
     const [width, setWidth] = useState(0)
     const [viewportHeight, setViewportHeight] = useState(0)
     const [scrollMargin, setScrollMargin] = useState(0)
+    const itemIds = useMemo(
+        () => wallpapers.map(wallpaper => wallpaper.path ?? wallpaper.id),
+        [wallpapers],
+    )
 
     // Resolve the scroll container once mounted.
     useLayoutEffect(() => {
@@ -101,6 +108,18 @@ export function VirtualizedWallpaperGrid({
         overscan: OVERSCAN,
         scrollMargin,
     })
+    const handleNavigate = useCallback((index: number) => {
+        if (columns === 0) return
+        virtualizer.scrollToIndex(Math.floor(index / columns), {
+            align: "auto",
+            behavior: "auto",
+        })
+    }, [columns, virtualizer])
+    const { focusId, getItemProps } = useWallpaperGridNavigation({
+        itemIds,
+        columns,
+        onNavigate: handleNavigate,
+    })
 
     // Re-measure rows when geometry changes (column count / width).
     useLayoutEffect(() => {
@@ -109,14 +128,9 @@ export function VirtualizedWallpaperGrid({
 
     useImperativeHandle(ref, () => ({
         scrollToPath: (path: string) => {
-            const index = wallpapers.findIndex(w => w.path === path)
-            if (index < 0 || columns === 0) return
-            virtualizer.scrollToIndex(Math.floor(index / columns), {
-                align: "center",
-                behavior: "auto",
-            })
+            focusId(path)
         },
-    }), [virtualizer, wallpapers, columns])
+    }), [focusId])
 
     const skeleton = (
         <div className={`grid gap-4 ${DEFAULT_GRID_COLS}`}>
@@ -127,13 +141,15 @@ export function VirtualizedWallpaperGrid({
     )
 
     const rows = (
-        <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+        <div role="presentation" style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
             {virtualizer.getVirtualItems().map((virtualRow) => {
                 const start = virtualRow.index * columns
                 const rowItems = wallpapers.slice(start, start + columns)
                 return (
                     <div
                         key={virtualRow.key}
+                        role="row"
+                        aria-rowindex={virtualRow.index + 1}
                         data-index={virtualRow.index}
                         ref={virtualizer.measureElement}
                         className="grid gap-4"
@@ -147,8 +163,20 @@ export function VirtualizedWallpaperGrid({
                             paddingBottom: GAP,
                         }}
                     >
-                        {rowItems.map((wallpaper) => (
-                            <div key={wallpaper.id} className="relative" data-wallpaper-path={wallpaper.path}>
+                        {rowItems.map((wallpaper, columnIndex) => {
+                            const index = start + columnIndex
+                            const id = itemIds[index]
+                            const itemProps = getItemProps(id, index)
+
+                            return (
+                            <div
+                                key={wallpaper.id}
+                                role="gridcell"
+                                aria-rowindex={virtualRow.index + 1}
+                                aria-colindex={columnIndex + 1}
+                                className="relative"
+                                data-wallpaper-path={wallpaper.path}
+                            >
                                 <WallpaperCard
                                     wallpaper={wallpaper}
                                     selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
@@ -156,10 +184,13 @@ export function VirtualizedWallpaperGrid({
                                     compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
                                     showCompatibilityDot={showCompatibilityDot}
                                     glassClassName={glass}
+                                    selectionMode={selectionMode}
+                                    {...itemProps}
                                 />
                                 {renderCardOverlay?.(wallpaper)}
                             </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 )
             })}
@@ -169,7 +200,14 @@ export function VirtualizedWallpaperGrid({
     // The parentRef div is now always mounted so the layout effects above can
     // resolve the scroll parent and attach the ResizeObserver on first mount.
     return (
-        <div ref={parentRef}>
+        <div
+            ref={parentRef}
+            role={isLoading || wallpapers.length === 0 ? undefined : "grid"}
+            aria-label="Wallpapers"
+            aria-busy={isLoading}
+            aria-rowcount={isLoading ? undefined : rowCount}
+            aria-colcount={isLoading ? undefined : columns}
+        >
             {isLoading ? (
                 skeleton
             ) : wallpapers.length === 0 ? (
