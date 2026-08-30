@@ -1,4 +1,4 @@
-import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, Tray, Menu, screen } from 'electron'
+import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, Tray, Menu, screen, Notification } from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -12,6 +12,7 @@ import { systemThemeService } from './services/system-theme/system-theme.ts'
 import { electronTheme } from './services/system-theme/system-theme.utils.ts'
 import { wallpaperService } from './services/wallpaper/wallpaper.ts'
 import { playlistService } from './services/playlists/playlist.ts'
+import { APP_NAME } from '../shared/constants/app.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
@@ -104,6 +105,12 @@ const toggleMainWindow = (mainWindow: BrowserWindow): void => {
   }
 }
 
+// Tray actions have no other feedback surface — report failures as a desktop
+// notification so they aren't silent no-ops
+const notifyFailure = (error: string | undefined, fallback: string): void => {
+  new Notification({ title: APP_NAME, body: error ?? fallback }).show()
+}
+
 // Stop everything (wallpapers and playlists) from the tray
 const stopAllWallpapers = async (): Promise<void> => {
   const result = await wallpaperService.stop()
@@ -129,16 +136,25 @@ const buildTrayContextMenu = (mainWindow: BrowserWindow) => {
     {
       label: 'Pause Wallpaper',
       enabled: hasUnpaused,
-      click: () => { void wallpaperService.pause() }
+      click: async () => {
+        const result = await wallpaperService.pause()
+        if (!result.success) notifyFailure(result.error, 'Failed to pause wallpapers')
+      }
     },
     {
       label: 'Resume Wallpaper',
       enabled: hasPaused,
-      click: () => { void wallpaperService.resume() }
+      click: async () => {
+        const result = await wallpaperService.resume()
+        if (!result.success) notifyFailure(result.error, 'Failed to resume wallpapers')
+      }
     },
     {
       label: 'Random Wallpaper',
-      click: () => { void wallpaperService.applyRandom() }
+      click: async () => {
+        const result = await wallpaperService.applyRandom()
+        if (!result.success) notifyFailure(result.error, 'Failed to apply a random wallpaper')
+      }
     },
     {
       label: 'Stop Wallpaper',
