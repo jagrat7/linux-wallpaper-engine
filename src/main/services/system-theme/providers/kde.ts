@@ -1,9 +1,9 @@
-import { homedir } from 'node:os'
 import path from 'node:path'
-import type { DesktopThemeProvider, SystemThemePalette } from '../system-theme.types'
+import type { SystemThemePalette, ThemeProvider } from '../system-theme.types'
 import { inferScheme, readText, subtleSidebarColor } from '../system-theme.utils'
 
-const KDE_THEME_PATH = path.join(homedir(), '.config', 'kdeglobals')
+export const getKdeThemePath = (homeDirectory: string): string =>
+  path.join(homeDirectory, '.config', 'kdeglobals')
 
 export const parseKdeColor = (value: string | undefined): string | undefined => {
   const channels = value?.split(',').slice(0, 3).map(Number)
@@ -12,8 +12,8 @@ export const parseKdeColor = (value: string | undefined): string | undefined => 
   return `rgb(${channels.join(' ')})`
 }
 
-const readKdePalette = (): SystemThemePalette | null => {
-  const source = readText(KDE_THEME_PATH)
+const readKdePalette = (homeDirectory: string): SystemThemePalette | null => {
+  const source = readText(getKdeThemePath(homeDirectory))
   if (source === null) return null
   const sections = new Map<string, Record<string, string>>()
   let section = ''
@@ -66,10 +66,14 @@ const readKdePalette = (): SystemThemePalette | null => {
 }
 
 export const kdeThemeProvider = {
-  matches: (desktop: string) => desktop.includes('kde') || desktop.includes('plasma'),
-  watchPaths: [KDE_THEME_PATH],
-  read: () => {
-    const palette = readKdePalette()
-    return palette === null ? null : { scheme: inferScheme(palette.background), palette }
+  id: 'kde',
+  priority: 100,
+  matches: ({ desktop }) => desktop.includes('kde') || desktop.includes('plasma'),
+  watchPaths: ({ homeDirectory }) => [getKdeThemePath(homeDirectory)],
+  read: ({ homeDirectory }) => {
+    const palette = readKdePalette(homeDirectory)
+    if (palette === null) return null
+    const scheme = inferScheme(palette.background)
+    return scheme === null ? { palette } : { scheme, palette }
   },
-} satisfies DesktopThemeProvider
+} satisfies ThemeProvider

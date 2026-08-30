@@ -27,18 +27,47 @@ export type SystemThemePalette = Partial<{
   sidebarRing: string
 }>
 
+export type ThemeScheme = 'light' | 'dark'
+
+export type ThemeSource =
+  | 'xdg-portal'
+  | 'cosmic'
+  | 'kde'
+  | 'omarchy'
+  | 'fallback'
+
 export type SystemTheme = {
-  scheme: 'light' | 'dark'
+  scheme: ThemeScheme
   palette: SystemThemePalette | null
+  sources: {
+    scheme: ThemeSource
+    palette: ThemeSource | null
+  }
 }
 
-export type DesktopTheme = {
-  scheme: SystemTheme['scheme'] | null
-  palette: SystemThemePalette | null
+// Providers may contribute a scheme, a palette, or both, but never an empty
+// result. A provider with no usable information returns null instead.
+export type ThemeContribution =
+  | {
+    scheme: ThemeScheme
+    palette?: SystemThemePalette
+  }
+  | {
+    scheme?: ThemeScheme
+    palette: SystemThemePalette
+  }
+
+export type ThemeProviderContext = {
+  desktop: string
+  homeDirectory: string
 }
 
-export type DesktopThemeProvider = {
-  matches: (desktop: string) => boolean
-  watchPaths: string[]
-  read: () => DesktopTheme | null
+export type ThemeProvider = {
+  id: Exclude<ThemeSource, 'xdg-portal' | 'fallback'>
+  priority: number
+  matches: (context: ThemeProviderContext) => boolean
+  watchPaths: (context: ThemeProviderContext) => readonly string[]
+  read: (
+    context: ThemeProviderContext,
+  ) => ThemeContribution | null | Promise<ThemeContribution | null>
 }

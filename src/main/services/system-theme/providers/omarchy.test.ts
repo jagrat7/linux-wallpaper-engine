@@ -136,7 +136,6 @@ hl.config({
 `)
 
     expect(theme).toEqual({
-      scheme: null,
       palette: expect.objectContaining({
         primary: '#8a8588',
         primaryForeground: '#000000',

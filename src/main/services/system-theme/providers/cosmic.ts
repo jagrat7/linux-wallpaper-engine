@@ -1,24 +1,32 @@
-import { homedir } from 'node:os'
 import path from 'node:path'
-import type { DesktopThemeProvider, SystemThemePalette } from '../system-theme.types'
+import type { SystemThemePalette, ThemeProvider } from '../system-theme.types'
 import { inferScheme, readText, subtleSidebarColor } from '../system-theme.utils'
 
-const COSMIC_CONFIG_PATH = path.join(homedir(), '.config', 'cosmic')
-const COSMIC_MODE_PATH = path.join(COSMIC_CONFIG_PATH, 'com.system76.CosmicTheme.Mode/v1/is_dark')
 const RON_COLOR_PATTERN = /red:\s*([\d.]+),\s*green:\s*([\d.]+),\s*blue:\s*([\d.]+),\s*alpha:\s*([\d.]+)/
 
-export const COSMIC_THEME_PATHS = ['Dark', 'Light'].flatMap((mode) => [
-  'background',
-  'primary',
-  'secondary',
-  'accent',
-  'destructive',
-  'success',
-  'warning',
-].map((name) => path.join(
-  COSMIC_CONFIG_PATH,
-  `com.system76.CosmicTheme.${mode}/v1/${name}`,
-)))
+const getCosmicConfigPath = (homeDirectory: string): string =>
+  path.join(homeDirectory, '.config', 'cosmic')
+
+export const getCosmicModePath = (homeDirectory: string): string => path.join(
+  getCosmicConfigPath(homeDirectory),
+  'com.system76.CosmicTheme.Mode/v1/is_dark',
+)
+
+export const getCosmicThemePaths = (homeDirectory: string): string[] => {
+  const configPath = getCosmicConfigPath(homeDirectory)
+  return ['Dark', 'Light'].flatMap((mode) => [
+    'background',
+    'primary',
+    'secondary',
+    'accent',
+    'destructive',
+    'success',
+    'warning',
+  ].map((name) => path.join(
+    configPath,
+    `com.system76.CosmicTheme.${mode}/v1/${name}`,
+  )))
+}
 
 export const parseRonColor = (source: string | null, marker?: string): string | undefined => {
   if (source === null) return undefined
@@ -30,9 +38,11 @@ export const parseRonColor = (source: string | null, marker?: string): string | 
     : `color(srgb ${match[1]} ${match[2]} ${match[3]} / ${match[4]})`
 }
 
-const readCosmicPalette = (): SystemThemePalette | null => {
-  const mode = readText(COSMIC_MODE_PATH)?.trim() === 'true' ? 'Dark' : 'Light'
-  const themePath = path.join(COSMIC_CONFIG_PATH, `com.system76.CosmicTheme.${mode}/v1`)
+const readCosmicPalette = (homeDirectory: string): SystemThemePalette | null => {
+  const configPath = getCosmicConfigPath(homeDirectory)
+  const modePath = getCosmicModePath(homeDirectory)
+  const mode = readText(modePath)?.trim() === 'true' ? 'Dark' : 'Light'
+  const themePath = path.join(configPath, `com.system76.CosmicTheme.${mode}/v1`)
   const readColor = (name: string) => readText(path.join(themePath, name))
   const backgroundSource = readColor('background')
   const primarySource = readColor('primary')
@@ -75,16 +85,20 @@ const readCosmicPalette = (): SystemThemePalette | null => {
 }
 
 export const cosmicThemeProvider = {
-  matches: (desktop: string) => desktop.includes('cosmic'),
-  watchPaths: [COSMIC_MODE_PATH, ...COSMIC_THEME_PATHS],
-  read: () => {
-    const cosmicMode = readText(COSMIC_MODE_PATH)?.trim()
-    const palette = readCosmicPalette()
+  id: 'cosmic',
+  priority: 200,
+  matches: ({ desktop }) => desktop.includes('cosmic'),
+  watchPaths: ({ homeDirectory }) => [
+    getCosmicModePath(homeDirectory),
+    ...getCosmicThemePaths(homeDirectory),
+  ],
+  read: ({ homeDirectory }) => {
+    const cosmicMode = readText(getCosmicModePath(homeDirectory))?.trim()
+    const palette = readCosmicPalette(homeDirectory)
     const scheme = cosmicMode === undefined
       ? inferScheme(palette?.background)
       : cosmicMode === 'true' ? 'dark' : 'light'
-    return palette === null && cosmicMode === undefined
-      ? null
-      : { scheme, palette }
+    if (palette === null) return scheme === null ? null : { scheme }
+    return scheme === null ? { palette } : { scheme, palette }
   },
-} satisfies DesktopThemeProvider
+} satisfies ThemeProvider

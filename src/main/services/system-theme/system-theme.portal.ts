@@ -1,5 +1,5 @@
 import { hostExecAsync } from '../../utils/host'
-import type { SystemTheme } from './system-theme.types'
+import type { ThemeScheme } from './system-theme.types'
 
 const PORTAL_DESTINATION = 'org.freedesktop.portal.Desktop'
 const PORTAL_PATH = '/org/freedesktop/portal/desktop'
@@ -23,7 +23,7 @@ export const readPortalSetting = async (setting: string): Promise<string | null>
   return null
 }
 
-export const parsePortalScheme = (source: string | null): SystemTheme['scheme'] | null => {
+export const parsePortalScheme = (source: string | null): ThemeScheme | null => {
   const value = source?.match(/(?:uint32|\bu)\s+(\d+)/)?.[1]
   if (value === '1') return 'dark'
   if (value === '2') return 'light'
@@ -34,10 +34,18 @@ export const parsePortalAccent = (source: string | null): string | null => {
   if (source === null) return null
   const tuple = source.match(/\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/)
     ?? source.match(/\(ddd\)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/)
-  if (tuple !== null) return `color(srgb ${tuple[1]} ${tuple[2]} ${tuple[3]})`
+  if (tuple !== null) {
+    const channels = tuple.slice(1, 4).map(Number)
+    return channels.every(channel => Number.isFinite(channel) && channel >= 0 && channel <= 1)
+      ? `color(srgb ${channels.join(' ')})`
+      : null
+  }
 
   const values = Array.from(source.matchAll(/double\s+([\d.]+)/g))
-  return values.length >= 3
-    ? `color(srgb ${values[0][1]} ${values[1][1]} ${values[2][1]})`
+    .slice(0, 3)
+    .map(match => Number(match[1]))
+  return values.length === 3
+    && values.every(channel => Number.isFinite(channel) && channel >= 0 && channel <= 1)
+    ? `color(srgb ${values.join(' ')})`
     : null
 }

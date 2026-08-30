@@ -1,6 +1,5 @@
-import { homedir } from 'node:os'
 import path from 'node:path'
-import type { DesktopTheme, DesktopThemeProvider } from '../system-theme.types'
+import type { ThemeContribution, ThemeProvider } from '../system-theme.types'
 import { HEX_COLOR_PATTERN, inferScheme, readText, subtleSidebarColor } from '../system-theme.utils'
 
 export const getOmarchyThemePaths = (homeDirectory: string): string[] => [
@@ -9,16 +8,12 @@ export const getOmarchyThemePaths = (homeDirectory: string): string[] => [
   path.join(homeDirectory, '.config/omarchy/current/theme/colors.toml'),
 ]
 
-const OMARCHY_THEME_PATHS = getOmarchyThemePaths(homedir())
-
 export const getOmarchyHyprlandPaths = (homeDirectory: string): string[] => [
   path.join(homeDirectory, '.local/state/omarchy/current/theme/hyprland.lua'),
   path.join(homeDirectory, '.config/omarchy/current/theme/hyprland.lua'),
 ]
 
-const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
-
-export const parseOmarchyTheme = (source: string): DesktopTheme | null => {
+export const parseOmarchyTheme = (source: string): ThemeContribution | null => {
   const colors = Object.fromEntries(Array.from(source.matchAll(
     /^\s*([\w]+)\s*=\s*["']([^"']+)["']/gm,
   )).filter(([, , value]) => HEX_COLOR_PATTERN.test(value)).map(([, key, value]) => [
@@ -117,7 +112,7 @@ export const findLuaAssignedColor = (source: string, keys: string[]): string | u
   return undefined
 }
 
-export const parseOmarchyHyprlandTheme = (source: string): DesktopTheme | null => {
+export const parseOmarchyHyprlandTheme = (source: string): ThemeContribution | null => {
   const namedColors = Object.fromEntries(Array.from(source.matchAll(
     /^\s*(background|bg|surface|surface_alt|foreground|fg|accent|active|border|muted)\s*=\s*["']([^"']+)["']/gim,
   )).map(([, key, value]) => [key.toLowerCase(), parseHyprColor(value)]).filter((entry): entry is [string, string] => entry[1] !== undefined))
@@ -140,38 +135,37 @@ export const parseOmarchyHyprlandTheme = (source: string): DesktopTheme | null =
 
   const activeForeground = background
     ?? (inferScheme(activeBorder) === 'light' ? '#000000' : '#ffffff')
-  return {
-    scheme: inferScheme(background),
-    palette: {
-      background,
-      foreground,
-      card: surface,
-      cardForeground: foreground,
-      primary: activeBorder,
-      primaryForeground: activeForeground,
-      secondary: surface,
-      secondaryForeground: foreground,
-      muted: surface,
-      mutedForeground: foreground,
-      accent: selection,
-      accentForeground: foreground,
-      border: inactiveBorder,
-      input: surface,
-      ring: activeBorder,
-      sidebar: background,
-      sidebarForeground: foreground,
-      sidebarPrimary: subtleSidebarColor(activeBorder, background),
-      sidebarPrimaryForeground: foreground,
-      sidebarAccent: selection,
-      sidebarAccentForeground: foreground,
-      sidebarBorder: inactiveBorder,
-      sidebarRing: activeBorder,
-    },
+  const scheme = inferScheme(background)
+  const palette = {
+    background,
+    foreground,
+    card: surface,
+    cardForeground: foreground,
+    primary: activeBorder,
+    primaryForeground: activeForeground,
+    secondary: surface,
+    secondaryForeground: foreground,
+    muted: surface,
+    mutedForeground: foreground,
+    accent: selection,
+    accentForeground: foreground,
+    border: inactiveBorder,
+    input: surface,
+    ring: activeBorder,
+    sidebar: background,
+    sidebarForeground: foreground,
+    sidebarPrimary: subtleSidebarColor(activeBorder, background),
+    sidebarPrimaryForeground: foreground,
+    sidebarAccent: selection,
+    sidebarAccentForeground: foreground,
+    sidebarBorder: inactiveBorder,
+    sidebarRing: activeBorder,
   }
+  return scheme === null ? { palette } : { scheme, palette }
 }
 
-export const readOmarchyTheme = (): DesktopTheme | null => {
-  for (const filePath of OMARCHY_THEME_PATHS) {
+export const readOmarchyTheme = (homeDirectory: string): ThemeContribution | null => {
+  for (const filePath of getOmarchyThemePaths(homeDirectory)) {
     const source = readText(filePath)
     if (source !== null) {
       const theme = parseOmarchyTheme(source)
@@ -179,7 +173,7 @@ export const readOmarchyTheme = (): DesktopTheme | null => {
     }
   }
 
-  for (const filePath of OMARCHY_HYPRLAND_PATHS) {
+  for (const filePath of getOmarchyHyprlandPaths(homeDirectory)) {
     const source = readText(filePath)
     if (source !== null) {
       const theme = parseOmarchyHyprlandTheme(source)
@@ -190,7 +184,12 @@ export const readOmarchyTheme = (): DesktopTheme | null => {
 }
 
 export const omarchyThemeProvider = {
-  matches: (desktop: string) => desktop.includes('hyprland') || desktop.includes('omarchy'),
-  watchPaths: [...OMARCHY_THEME_PATHS, ...OMARCHY_HYPRLAND_PATHS],
-  read: readOmarchyTheme,
-} satisfies DesktopThemeProvider
+  id: 'omarchy',
+  priority: 300,
+  matches: ({ desktop }) => desktop.includes('hyprland') || desktop.includes('omarchy'),
+  watchPaths: ({ homeDirectory }) => [
+    ...getOmarchyThemePaths(homeDirectory),
+    ...getOmarchyHyprlandPaths(homeDirectory),
+  ],
+  read: ({ homeDirectory }) => readOmarchyTheme(homeDirectory),
+} satisfies ThemeProvider
