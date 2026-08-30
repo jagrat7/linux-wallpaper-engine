@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
-import { CACHE_TTL, STEAM_ROOT_PATHS } from '../../../shared/constants/app'
-import type { ApplyWallpaperOptions, WallpaperType } from '../../../shared/constants/wallpaper'
+import { CACHE_TTL, STEAM_ROOT_PATHS, type AppSettings } from '../../../shared/constants/app'
+import type { ApplyWallpaperOptions, Wallpaper, WallpaperType } from '../../../shared/constants/wallpaper'
 import { hostExecAsync } from '../../utils/host'
 
 type ImageType = "jpeg" | "png" | "bmp"
@@ -51,6 +51,35 @@ export const parseWindowGeometry = (size: string | null | undefined): ApplyWallp
   if (parsed.width <= 0 || parsed.height <= 0) return 'emit-flag'
 
   return parsed
+}
+
+// Merge global settings (and optional per-call input overrides) into backend
+// apply options. Shared by the setWallpaper tRPC route and random applies.
+export const buildApplyOptions = (
+  settings: AppSettings,
+  input?: Partial<ApplyWallpaperOptions>,
+): ApplyWallpaperOptions => ({
+  backgroundId: input?.backgroundId ?? '',
+  screen: input?.screen,
+  scaling: input?.scaling ?? settings.defaultScaling,
+  fps: input?.fps ?? settings.fps,
+  volume: input?.volume ?? settings.volume,
+  silent: input?.silent ?? settings.silent,
+  noAutomute: input?.noAutomute ?? settings.noAutomute,
+  noAudioProcessing: input?.noAudioProcessing ?? !settings.audioProcessing,
+  disableMouse: input?.disableMouse ?? settings.disableMouse,
+  disableParallax: input?.disableParallax ?? settings.disableParallax,
+  disableParticles: input?.disableParticles ?? settings.disableParticles,
+  noFullscreenPause: input?.noFullscreenPause ?? !settings.pauseOnFullscreen,
+  windowed: settings.windowMode ? parseWindowGeometry(settings.windowGeometry) : input?.windowed,
+})
+
+// Pick a random wallpaper, preferring ones that aren't currently applied.
+// Falls back to the full list when everything is already active.
+export const pickRandomWallpaper = (wallpapers: Wallpaper[], activeIds: ReadonlySet<string>): Wallpaper => {
+  const unused = wallpapers.filter(w => !activeIds.has(w.path))
+  const pool = unused.length > 0 ? unused : wallpapers
+  return pool[Math.floor(Math.random() * pool.length)]
 }
 
 export async function parseImageHeader(imagePath: string) {

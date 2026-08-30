@@ -12,10 +12,18 @@ import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
 import { playlistService } from '../playlists/playlist'
 import { startPlaylistProcess } from '../playlists/playlist-runner'
-import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, type TimedCache } from './wallpaper.utils'
+import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, buildApplyOptions, pickRandomWallpaper, type TimedCache } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
 import type { MutationResult, ActiveWallpaperEntry, ApplyTarget, OverrideMutation, ServiceAction, DebugInfo } from './wallpaper.types'
+
+// pgrep/pkill pattern matching the backend process driving a screen. The
+// 'default' screen key is app-level window mode, where no --screen-root flag
+// is passed and only one process exists.
+const screenProcessPattern = (screen: string): string =>
+  screen === 'default'
+    ? 'linux-wallpaperengine'
+    : `"linux-wallpaperengine.*--screen-root.*${screen}"`
 
 class WallpaperService implements IWallpaperService {
   private static instance: WallpaperService | null = null
@@ -94,6 +102,88 @@ class WallpaperService implements IWallpaperService {
       invalidationService.emit('wallpaper.stopped')
       return { success: true, screens: activeScreens }
     }
+  }
+
+  // ── Pause / resume ─────────────────────────────────────────────────────
+
+  async pause(screen?: string | string[]): Promise<MutationResult> {
+    const targets = this.resolveTargetScreens(screen)
+    const paused: string[] = []
+    for (const target of targets) {
+      if (this.state.isPaused(target)) continue
+      const proc = this.state.getProcess(target)
+      if (proc) {
+        try { proc.kill('SIGSTOP') } catch { /* already dead */ }
+        paused.push(target)
+      } else {
+        // Process handle lost (e.g. state restored after an app restart) —
+        // freeze it on the host instead
+        try {
+          await hostExecAsync(`pkill -STOP -f ${screenProcessPattern(target)}`)
+          paused.push(target)
+        } catch { /* no process found is ok */ }
+      }
+    }
+    this.state.markPaused(paused, true)
+    invalidationService.emit('wallpaper.paused')
+    return { success: true, screens: paused }
+  }
+
+  async resume(screen?: string | string[]): Promise<MutationResult> {
+    const pausedSet = new Set(this.state.getPausedScreens())
+    const targets = this.resolveTargetScreens(screen).filter(s => pausedSet.has(s))
+    const resumed: string[] = []
+    for (const target of targets) {
+      const proc = this.state.getProcess(target)
+      if (proc) {
+        try { proc.kill('SIGCONT') } catch { /* already dead */ }
+      } else {
+        try {
+          await hostExecAsync(`pkill -CONT -f ${screenProcessPattern(target)}`)
+        } catch { /* no process found is ok */ }
+      }
+      resumed.push(target)
+    }
+    this.state.markPaused(resumed, false)
+    invalidationService.emit('wallpaper.resumed')
+    return { success: true, screens: resumed }
+  }
+
+  // ── Random wallpaper ───────────────────────────────────────────────────
+
+  async applyRandom(screen?: string): Promise<MutationResult & { wallpaperTitle?: string }> {
+    const wallpapers = await this.getWallpapers()
+    if (wallpapers.length === 0) {
+      return { success: false, error: 'No wallpapers installed' }
+    }
+
+    const activeIds = new Set([...this.state.getActive().values()].map(o => o.backgroundId))
+    const pick = pickRandomWallpaper(wallpapers, activeIds)
+
+    const settings = await settingsService.loadSettings()
+    const options = buildApplyOptions(settings, { backgroundId: pick.path, screen })
+    const result = await this.apply({ kind: 'wallpaper', options })
+    if (result.success && result.screens) {
+      playlistService.clearActivePlaylist(result.screens)
+    }
+    return { ...result, wallpaperTitle: pick.title }
+  }
+
+  // Snapshot for tray/UI builders
+  getActiveScreens(): string[] {
+    return [...this.state.getActive().keys()]
+  }
+
+  getPausedScreens(): string[] {
+    return this.state.getPausedScreens()
+  }
+
+  // Screens targeted by a pause/resume/stop-style call: the given screen(s),
+  // or every active screen when none were given
+  private resolveTargetScreens(screen?: string | string[]): string[] {
+    if (Array.isArray(screen)) return screen
+    if (screen) return [screen]
+    return [...this.state.getActive().keys()]
   }
 
   // ── Overrides ──────────────────────────────────────────────────────────
@@ -281,7 +371,7 @@ class WallpaperService implements IWallpaperService {
       const title = cached?.title ?? wallpaper.backgroundId.split('/').filter(Boolean).pop() ?? 'Unknown'
       const thumbnail = cached?.thumbnail ?? await resolveThumbnail(wallpaper.backgroundId)
 
-      result.push({ screen, wallpaper, title, thumbnail })
+      result.push({ screen, wallpaper, title, thumbnail, paused: this.state.isPaused(screen) })
     }
 
     return result

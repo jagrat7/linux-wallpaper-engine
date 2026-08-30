@@ -10,6 +10,7 @@ class WallpaperStateManager implements IStateManager {
   private runningProcesses = new Map<string, ChildProcess>()
   private processScreenGroups = new Map<ChildProcess, Set<string>>()
   private activeWallpapers = new Map<string, ApplyWallpaperOptions>()
+  private pausedScreens = new Set<string>()
   private debugLogs = new Map<string, string[]>()
   private debugCommands = new Map<string, string>()
   private store = storeService.activeWallpapers
@@ -32,6 +33,9 @@ class WallpaperStateManager implements IStateManager {
     for (const [screen, options] of Object.entries(stored)) {
       this.activeWallpapers.set(screen, options)
     }
+    for (const screen of this.store.get('pausedScreens') ?? []) {
+      this.pausedScreens.add(screen)
+    }
   }
 
   // ── Process + screen group tracking ────────────────────────────────────
@@ -46,6 +50,8 @@ class WallpaperStateManager implements IStateManager {
     for (const screen of screens) {
       this.runningProcesses.set(screen, proc)
       this.activeWallpapers.set(screen, { ...options, screen })
+      // A freshly spawned process always starts unpaused
+      this.pausedScreens.delete(screen)
     }
     this.save()
   }
@@ -75,6 +81,7 @@ class WallpaperStateManager implements IStateManager {
         if (this.runningProcesses.get(s) === proc) {
           this.runningProcesses.delete(s)
         }
+        this.pausedScreens.delete(s)
       }
       this.processScreenGroups.delete(proc)
     }
@@ -110,6 +117,7 @@ class WallpaperStateManager implements IStateManager {
           if (this.runningProcesses.get(screen) === proc) {
             this.runningProcesses.delete(screen)
           }
+          this.pausedScreens.delete(screen)
         }
         this.processScreenGroups.delete(proc)
       }
@@ -136,6 +144,7 @@ class WallpaperStateManager implements IStateManager {
       if (this.runningProcesses.get(screen) === proc) {
         this.runningProcesses.delete(screen)
       }
+      this.pausedScreens.delete(screen)
       if (this.activeWallpapers.has(screen)) {
         this.activeWallpapers.delete(screen)
         cleanedScreens.push(screen)
@@ -163,6 +172,7 @@ class WallpaperStateManager implements IStateManager {
       obj[screen] = options
     }
     this.store.set('activeWallpapers', obj)
+    this.store.set('pausedScreens', [...this.pausedScreens])
   }
 
   reset(): void {
@@ -172,6 +182,39 @@ class WallpaperStateManager implements IStateManager {
     this.processScreenGroups.clear()
     this.runningProcesses.clear()
     this.activeWallpapers.clear()
+    this.pausedScreens.clear()
+    this.save()
+  }
+
+  // ── Paused (frozen) process state ──────────────────────────────────────
+
+  getPausedScreens(): string[] {
+    return [...this.pausedScreens]
+  }
+
+  isPaused(screen: string): boolean {
+    return this.pausedScreens.has(screen)
+  }
+
+  // Mark screens as paused/unpaused. A screen shares its process with its
+  // whole screen group, so pausing one screen freezes (and unpausing unfreezes)
+  // every screen in that group — expand the mark accordingly.
+  markPaused(screens: string[], paused: boolean): void {
+    const targets = new Set<string>()
+    for (const screen of screens) {
+      const proc = this.runningProcesses.get(screen)
+      const group = proc ? this.processScreenGroups.get(proc) : undefined
+      for (const s of group ?? [screen]) {
+        targets.add(s)
+      }
+    }
+    for (const screen of targets) {
+      if (paused) {
+        this.pausedScreens.add(screen)
+      } else {
+        this.pausedScreens.delete(screen)
+      }
+    }
     this.save()
   }
 
