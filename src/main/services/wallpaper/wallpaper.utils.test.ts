@@ -3,19 +3,21 @@ import type { ChildProcess } from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
-import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, pickRandomWallpaper, buildApplyOptions, signalWallpaperProcess } from './wallpaper.utils'
+import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, pickRandomWallpaper, buildApplyOptions, signalWallpaperProcess, escapeRegExp } from './wallpaper.utils'
 
 vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(),
   access: vi.fn(),
 }))
 
-const { mockHostExecAsync } = vi.hoisted(() => ({
-  mockHostExecAsync: vi.fn(),
+const { mockHostExecFileAsync, mockUsesFlatpakSpawn } = vi.hoisted(() => ({
+  mockHostExecFileAsync: vi.fn(),
+  mockUsesFlatpakSpawn: vi.fn(),
 }))
 
 vi.mock('../../utils/host', () => ({
-  hostExecAsync: mockHostExecAsync,
+  hostExecFileAsync: mockHostExecFileAsync,
+  usesFlatpakSpawn: mockUsesFlatpakSpawn,
 }))
 
 const mockReadFile = vi.mocked(fs.readFile)
@@ -179,59 +181,90 @@ describe('signalWallpaperProcess', () => {
     ({ kill }) as unknown as ChildProcess
 
   beforeEach(() => {
-    mockHostExecAsync.mockReset()
+    mockHostExecFileAsync.mockReset()
+    mockUsesFlatpakSpawn.mockReset()
+    mockUsesFlatpakSpawn.mockReturnValue(false)
   })
 
   it('signals the tracked process handle and skips the host fallback', async () => {
     const kill = vi.fn().mockReturnValue(true)
 
-    const delivered = await signalWallpaperProcess('eDP-1', 'SIGSTOP', makeProc(kill))
+    const delivered = await signalWallpaperProcess('SIGSTOP', makeProc(kill), 'linux-wallpaperengine.*--screen-root.*eDP-1')
 
     expect(delivered).toBe(true)
     expect(kill).toHaveBeenCalledWith('SIGSTOP')
-    expect(mockHostExecAsync).not.toHaveBeenCalled()
+    expect(mockHostExecFileAsync).not.toHaveBeenCalled()
+  })
+
+  it('falls back to a host-side pkill when the handle wraps flatpak-spawn', async () => {
+    mockUsesFlatpakSpawn.mockReturnValue(true)
+    mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
+    const kill = vi.fn().mockReturnValue(true)
+
+    const delivered = await signalWallpaperProcess('SIGSTOP', makeProc(kill), 'linux-wallpaperengine.*--screen-root.*eDP-1')
+
+    expect(delivered).toBe(true)
+    expect(kill).not.toHaveBeenCalled()
+    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', ['-STOP', '-f', 'linux-wallpaperengine.*--screen-root.*eDP-1'])
   })
 
   it('reports failure when kill returns false without throwing', async () => {
     const kill = vi.fn().mockReturnValue(false)
 
-    const delivered = await signalWallpaperProcess('eDP-1', 'SIGCONT', makeProc(kill))
+    const delivered = await signalWallpaperProcess('SIGCONT', makeProc(kill), 'linux-wallpaperengine.*--screen-root.*eDP-1')
 
     expect(delivered).toBe(false)
-    expect(mockHostExecAsync).not.toHaveBeenCalled()
+    expect(mockHostExecFileAsync).not.toHaveBeenCalled()
   })
 
   it('reports failure when kill throws', async () => {
     const kill = vi.fn().mockImplementation(() => { throw new Error('ESRCH') })
 
-    const delivered = await signalWallpaperProcess('eDP-1', 'SIGSTOP', makeProc(kill))
+    const delivered = await signalWallpaperProcess('SIGSTOP', makeProc(kill), 'linux-wallpaperengine.*--screen-root.*eDP-1')
 
     expect(delivered).toBe(false)
+  })
+
+  it('refuses to signal by bare executable name when no scoped pattern exists', async () => {
+    const delivered = await signalWallpaperProcess('SIGSTOP', undefined, null)
+
+    expect(delivered).toBe(false)
+    expect(mockHostExecFileAsync).not.toHaveBeenCalled()
   })
 
   it('falls back to pkill for screens without a tracked handle', async () => {
-    mockHostExecAsync.mockResolvedValue({ stdout: '' })
+    mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
 
-    const delivered = await signalWallpaperProcess('eDP-1', 'SIGSTOP', undefined)
+    const delivered = await signalWallpaperProcess('SIGSTOP', undefined, 'linux-wallpaperengine.*--screen-root.*eDP-1')
 
     expect(delivered).toBe(true)
-    expect(mockHostExecAsync).toHaveBeenCalledWith('pkill -STOP -f "linux-wallpaperengine.*--screen-root.*eDP-1"')
+    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', ['-STOP', '-f', 'linux-wallpaperengine.*--screen-root.*eDP-1'])
   })
 
-  it('uses the bare process pattern for the window-mode default screen', async () => {
-    mockHostExecAsync.mockResolvedValue({ stdout: '' })
+  it('sends SIGCONT via pkill when resuming without a handle', async () => {
+    mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
 
-    const delivered = await signalWallpaperProcess('default', 'SIGCONT', undefined)
+    const delivered = await signalWallpaperProcess('SIGCONT', undefined, 'linux-wallpaperengine.*--screen-root.*eDP-1')
 
     expect(delivered).toBe(true)
-    expect(mockHostExecAsync).toHaveBeenCalledWith('pkill -CONT -f linux-wallpaperengine')
+    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', ['-CONT', '-f', 'linux-wallpaperengine.*--screen-root.*eDP-1'])
   })
 
   it('reports failure when the host fallback rejects', async () => {
-    mockHostExecAsync.mockRejectedValue(new Error('no process matched'))
+    mockHostExecFileAsync.mockRejectedValue(new Error('no process matched'))
 
-    const delivered = await signalWallpaperProcess('eDP-1', 'SIGSTOP', undefined)
+    const delivered = await signalWallpaperProcess('SIGSTOP', undefined, 'linux-wallpaperengine.*--screen-root.*eDP-1')
 
     expect(delivered).toBe(false)
+  })
+})
+
+describe('escapeRegExp', () => {
+  it('escapes regex metacharacters so interpolated values match literally', () => {
+    expect(escapeRegExp('/wp/a.b(c)[d]')).toBe('/wp/a\\.b\\(c\\)\\[d\\]')
+  })
+
+  it('leaves plain screen names untouched', () => {
+    expect(escapeRegExp('eDP-1')).toBe('eDP-1')
   })
 })

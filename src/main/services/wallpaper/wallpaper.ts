@@ -5,14 +5,14 @@ import { glob } from 'glob'
 import { displayService } from '../display'
 import { settingsService, type AppSettings } from '../settings'
 import { storeService } from '../store'
-import { hostSpawn, hostExecAsync, hostCommandExists, isFlatpak } from '../../utils/host'
+import { hostSpawn, hostExecAsync, hostExecFileAsync, hostCommandExists, isFlatpak } from '../../utils/host'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, pickScanManagedFields, type ApplyWallpaperOptions, type Wallpaper, type WallpaperOverrides } from '../../../shared/constants/wallpaper'
 import { invalidationService } from '../invalidation'
 import { compatibilityService } from '../compatibility'
 import { playlistService } from '../playlists/playlist'
 import { startPlaylistProcess } from '../playlists/playlist-runner'
-import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, buildApplyOptions, pickRandomWallpaper, signalWallpaperProcess, type TimedCache } from './wallpaper.utils'
+import { expandPath, parseWallpaperType, detectResolution, resolveThumbnail, parseWindowGeometry, resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, resolveTimedCache, buildApplyOptions, pickRandomWallpaper, signalWallpaperProcess, escapeRegExp, type TimedCache } from './wallpaper.utils'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import type { IWallpaperService } from './wallpaper.interface'
 import type { MutationResult, ActiveWallpaperEntry, ApplyTarget, OverrideMutation, ServiceAction, DebugInfo } from './wallpaper.types'
@@ -78,7 +78,7 @@ class WallpaperService implements IWallpaperService {
       // Kill any orphaned processes for this screen
       for (const screen of screens) {
         try {
-          await hostExecAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${screen}"`)
+          await hostExecFileAsync('pkill', ['-9', '-f', `linux-wallpaperengine.*--screen-root.*${escapeRegExp(screen)}`])
         } catch { /* no process found is ok */ }
       }
       // Respawn remaining screens that shared the process
@@ -89,7 +89,7 @@ class WallpaperService implements IWallpaperService {
       const activeScreens = [...this.state.getActive().keys()]
       this.state.reset()
       try {
-        await hostExecAsync('pkill -9 -f linux-wallpaperengine')
+        await hostExecFileAsync('pkill', ['-9', '-f', 'linux-wallpaperengine'])
       } catch { /* no process found is ok */ }
       invalidationService.emit('wallpaper.stopped')
       return { success: true, screens: activeScreens }
@@ -104,7 +104,7 @@ class WallpaperService implements IWallpaperService {
     const errors: string[] = []
     for (const target of targets) {
       if (this.state.isPaused(target)) continue
-      if (await signalWallpaperProcess(target, 'SIGSTOP', this.state.getProcess(target))) {
+      if (await signalWallpaperProcess('SIGSTOP', this.state.getProcess(target), this.screenSignalPattern(target))) {
         paused.push(target)
       } else {
         errors.push(`${target}: process is not running`)
@@ -126,7 +126,7 @@ class WallpaperService implements IWallpaperService {
     const resumed: string[] = []
     const errors: string[] = []
     for (const target of targets) {
-      if (await signalWallpaperProcess(target, 'SIGCONT', this.state.getProcess(target))) {
+      if (await signalWallpaperProcess('SIGCONT', this.state.getProcess(target), this.screenSignalPattern(target))) {
         resumed.push(target)
       } else {
         errors.push(`${target}: failed to resume frozen process`)
@@ -171,12 +171,35 @@ class WallpaperService implements IWallpaperService {
     return this.state.getPausedScreens()
   }
 
-  // Screens targeted by a pause/resume/stop-style call: the given screen(s),
-  // or every active screen when none were given
+  // Screens targeted by a pause/resume-style call: the given screen(s)
+  // constrained to screens we actually track (route input is renderer-
+  // controlled), or every active screen when none were given
   private resolveTargetScreens(screen?: string | string[]): string[] {
-    if (Array.isArray(screen)) return screen
-    if (screen) return [screen]
-    return [...this.state.getActive().keys()]
+    const active = new Set(this.state.getActive().keys())
+    if (Array.isArray(screen)) return screen.filter(s => active.has(s))
+    if (screen) return active.has(screen) ? [screen] : []
+    return [...active]
+  }
+
+  // pkill -f ERE matched against the full command line — scoped to the exact
+  // argument structure we spawn with, so unrelated backend instances never
+  // match. The 'default' screen key is app-level window mode: no --screen-root
+  // flag is passed, so scope to what the process renders instead (a playlist
+  // name or the applied wallpaper path). Returns null when no safe pattern
+  // exists rather than falling back to the bare executable name.
+  private screenSignalPattern(screen: string): string | null {
+    if (screen !== 'default') {
+      return `linux-wallpaperengine.*--screen-root.*${escapeRegExp(screen)}`
+    }
+    const playlist = playlistService.getActivePlaylistEntries()[screen]
+    if (playlist) {
+      return `linux-wallpaperengine.*--playlist.*${escapeRegExp(playlist.name)}`
+    }
+    const backgroundId = this.state.getActive().get(screen)?.backgroundId
+    if (backgroundId) {
+      return `linux-wallpaperengine.*--bg.*${escapeRegExp(backgroundId)}`
+    }
+    return null
   }
 
   // ── Overrides ──────────────────────────────────────────────────────────
@@ -305,7 +328,7 @@ class WallpaperService implements IWallpaperService {
 
             let fileSize = 0
             try {
-              const { stdout } = await hostExecAsync(`du -sb "${wallpaperPath}"`)
+              const { stdout } = await hostExecFileAsync('du', ['-sb', wallpaperPath])
               fileSize = parseInt(stdout.split('\t')[0], 10) || 0
             } catch { /* ignore */ }
 
@@ -457,7 +480,7 @@ class WallpaperService implements IWallpaperService {
       // Kill orphaned processes
       for (const screen of screens) {
         try {
-          await hostExecAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${screen}"`)
+          await hostExecFileAsync('pkill', ['-9', '-f', `linux-wallpaperengine.*--screen-root.*${escapeRegExp(screen)}`])
         } catch { /* no process found is ok */ }
       }
 

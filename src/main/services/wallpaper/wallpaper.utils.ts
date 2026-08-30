@@ -3,7 +3,7 @@ import * as path from "node:path"
 import type { ChildProcess } from 'node:child_process'
 import { CACHE_TTL, STEAM_ROOT_PATHS, type AppSettings } from '../../../shared/constants/app'
 import type { ApplyWallpaperOptions, Wallpaper, WallpaperType } from '../../../shared/constants/wallpaper'
-import { hostExecAsync } from '../../utils/host'
+import { hostExecFileAsync, usesFlatpakSpawn } from '../../utils/host'
 
 type ImageType = "jpeg" | "png" | "bmp"
 export type TimedCache<T> = {
@@ -83,34 +83,34 @@ export const pickRandomWallpaper = (wallpapers: Wallpaper[], activeIds: Readonly
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
-// pgrep/pkill pattern matching the backend process driving a screen. The
-// 'default' screen key is app-level window mode, where no --screen-root flag
-// is passed and only one process exists.
-export const screenProcessPattern = (screen: string): string =>
-  screen === 'default'
-    ? 'linux-wallpaperengine'
-    : `"linux-wallpaperengine.*--screen-root.*${screen}"`
+// pgrep/pkill patterns are EREs matched against the full command line, so any
+// interpolated value must be escaped to its literal form
+export const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // Deliver SIGSTOP/SIGCONT to the backend process driving a screen. Prefers the
-// tracked child-process handle and falls back to pkill when the handle was
-// lost (e.g. state restored after an app restart). Returns whether the signal
-// was actually delivered — kill() reports failure by returning false rather
-// than throwing.
+// tracked child-process handle — exactly the process we spawned. Under Flatpak
+// the handle wraps `flatpak-spawn` rather than the real host process, so the
+// signal is delivered through a host-side pkill with a pre-built pattern
+// instead. The pattern is passed to pkill via execFile (no shell), so screen
+// names and paths can't inject commands, and a null pattern is refused so we
+// never signal by bare executable name.
 export const signalWallpaperProcess = async (
-  screen: string,
   signal: 'SIGSTOP' | 'SIGCONT',
   proc: ChildProcess | undefined,
+  pattern: string | null,
 ): Promise<boolean> => {
-  if (proc) {
+  if (proc && !usesFlatpakSpawn()) {
     try {
       return proc.kill(signal)
     } catch {
       return false
     }
   }
-  const flag = signal === 'SIGSTOP' ? 'STOP' : 'CONT'
+  if (!pattern) return false
+  const flag = signal === 'SIGSTOP' ? '-STOP' : '-CONT'
   try {
-    await hostExecAsync(`pkill -${flag} -f ${screenProcessPattern(screen)}`)
+    await hostExecFileAsync('pkill', [flag, '-f', pattern])
     return true
   } catch {
     return false
@@ -273,7 +273,13 @@ export async function detectResolution(wallpaperPath: string): Promise<{ width: 
 
     if (videoFile) {
       const videoPath = path.join(wallpaperPath, videoFile)
-      const { stdout } = await hostExecAsync(`ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`)
+      const { stdout } = await hostExecFileAsync('ffprobe', [
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=width,height',
+        '-of', 'csv=p=0',
+        videoPath,
+      ])
       const [w, h] = stdout.trim().split(',')
       if (w && h) {
         return { width: parseInt(w, 10), height: parseInt(h, 10) }
@@ -288,7 +294,7 @@ export async function detectResolution(wallpaperPath: string): Promise<{ width: 
 
       if (imageFile) {
         const imagePath = path.join(wallpaperPath, imageFile)
-        const { stdout } = await hostExecAsync(`file "${imagePath}"`)
+        const { stdout } = await hostExecFileAsync('file', [imagePath])
         const match = stdout.match(/(\d+)\s*x\s*(\d+)/)
         if (match) {
           return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) }
