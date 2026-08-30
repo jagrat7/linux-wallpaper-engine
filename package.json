@@ -1,7 +1,7 @@
 {
   "name": "linux-wallpaper-engine",
   "productName": "Linux Wallpaper Engine",
-  "version": "0.4.10",
+  "version": "0.4.11",
   "description": "A linux implementation of Wallpaper Engine — browse, manage, and apply your wallpapers.",
   "homepage": "https://github.com/jagrat7/linux-wallpaper-engine",
   "repository": {
@@ -15,7 +15,7 @@
     "make": "electron-forge make",
     "built": "DEBUG=* ELECTRON_ENABLE_LOGGING=1 './out/Linux Wallpaper Engine-linux-x64/linux-wallpaper-engine'",
     "built:v": "DEBUG=* ELECTRON_ENABLE_LOGGING=1 './out/Linux Wallpaper Engine-linux-x64/linux-wallpaper-engine' --enable-logging --v=1",
-    "publish": "source .env && electron-forge publish",
+    "publish": "bash scripts/publish.sh",
     "publish:script": "bash scripts/publish.sh",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern demo-video .",
     "typecheck": "tsc --noEmit",
