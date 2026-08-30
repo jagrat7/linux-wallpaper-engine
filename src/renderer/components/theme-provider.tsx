@@ -1,109 +1,70 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useLayoutEffect, useState } from 'react'
+import { DEFAULT_SETTINGS } from '../../shared/constants/app'
 import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants/theme'
 import { trpc } from '../lib/trpc'
 
-const SYSTEM_THEME_PROPERTIES = {
-  background: '--background',
-  foreground: '--foreground',
-  card: '--card',
-  cardForeground: '--card-foreground',
-  primary: '--primary',
-  primaryForeground: '--primary-foreground',
-  secondary: '--secondary',
-  secondaryForeground: '--secondary-foreground',
-  muted: '--muted',
-  mutedForeground: '--muted-foreground',
-  accent: '--accent',
-  accentForeground: '--accent-foreground',
-  destructive: '--destructive',
-  border: '--border',
-  input: '--input',
-  success: '--success',
-  warning: '--warning',
-  ring: '--ring',
-  sidebar: '--sidebar',
-  sidebarForeground: '--sidebar-foreground',
-  sidebarPrimary: '--sidebar-primary',
-  sidebarPrimaryForeground: '--sidebar-primary-foreground',
-  sidebarAccent: '--sidebar-accent',
-  sidebarAccentForeground: '--sidebar-accent-foreground',
-  sidebarBorder: '--sidebar-border',
-  sidebarRing: '--sidebar-ring',
-} as const
-
-// Derive type from constants - single source of truth
-type ThemeMode = ThemeOption
+const STORAGE_KEY = 'wallpaper-engine-theme'
+const THEME_CLASSES = THEME_OPTIONS.map(option => option.value)
+const cssVariable = (key: string) => `--${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`
+const preferredSystemScheme = () => window.matchMedia('(prefers-color-scheme: dark)').matches
+  ? 'dark'
+  : 'light'
 
 type ThemeProviderProps = {
   children: React.ReactNode
-  defaultMode?: ThemeMode
-  storageKey?: string
 }
 
 type ThemeProviderState = {
-  mode: ThemeMode
-  setMode: (mode: ThemeMode) => void
+  mode: ThemeOption
+  setMode: (mode: ThemeOption) => void
 }
 
-const initialState: ThemeProviderState = {
-  mode: 'system',
-  setMode: () => null,
-}
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
 
-const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
-
-export function ThemeProvider({
-  children,
-  defaultMode = 'system',
-  storageKey = 'wallpaper-engine-theme',
-  ...props
-}: ThemeProviderProps) {
-  const [mode, setMode] = useState<ThemeMode>(
-    () => (localStorage.getItem(storageKey) as ThemeMode) ?? defaultMode
+export function ThemeProvider({ children }: ThemeProviderProps) {
+  const [mode, setMode] = useState<ThemeOption>(
+    () => (localStorage.getItem(STORAGE_KEY) as ThemeOption | null) ?? DEFAULT_SETTINGS.theme
   )
   const { data: systemTheme } = trpc.settings.systemTheme.useQuery(undefined, {
     enabled: mode === 'system',
   })
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = window.document.documentElement
+    const paletteProperties: string[] = []
 
-    // Remove all theme classes
-    THEME_OPTIONS.forEach((option) => {
-      root.classList.remove(option.value)
-    })
+    root.classList.remove(...THEME_CLASSES)
 
-    Object.values(SYSTEM_THEME_PROPERTIES).forEach((property) => {
-      root.style.removeProperty(property)
-    })
-
-    // Handle system theme
     if (mode === 'system') {
-      const isDark = systemTheme?.scheme !== 'light'
-      root.classList.add('system', isDark ? 'dark' : 'light')
+      const resolvedScheme = systemTheme?.scheme ?? preferredSystemScheme()
+      root.classList.add('system', resolvedScheme)
 
       Object.entries(systemTheme?.palette ?? {}).forEach(([key, value]) => {
-        const property = SYSTEM_THEME_PROPERTIES[key as keyof typeof SYSTEM_THEME_PROPERTIES]
-        if (property !== undefined) root.style.setProperty(property, value)
+        const property = cssVariable(key)
+        root.style.setProperty(property, value)
+        paletteProperties.push(property)
       })
-
-      return
+    }
+    else {
+      root.classList.add(mode)
     }
 
-    // Apply selected theme
-    root.classList.add(mode)
+    return () => {
+      root.classList.remove(...THEME_CLASSES)
+      paletteProperties.forEach(property => root.style.removeProperty(property))
+    }
   }, [mode, systemTheme])
 
   const value = {
     mode,
-    setMode: (newMode: ThemeMode) => {
-      localStorage.setItem(storageKey, newMode)
+    setMode: (newMode: ThemeOption) => {
+      localStorage.setItem(STORAGE_KEY, newMode)
       setMode(newMode)
     },
   }
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext.Provider value={value}>
       {children}
     </ThemeProviderContext.Provider>
   )
