@@ -3,12 +3,14 @@ import {
   getOmarchyHyprlandPaths,
   getOmarchyThemePaths,
   getOmarchyWatchPaths,
+  getPywalThemePaths,
+  getVanillaHyprlandPaths,
   parseOmarchyHyprlandTheme,
   parseOmarchyTheme,
 } from './omarchy'
 
 describe('getOmarchyThemePaths', () => {
-  it('prefers current Omarchy state and falls back to its legacy config path', () => {
+  it('prefers current Omarchy state and falls back to vanilla Hyprland and pywal paths', () => {
     expect(getOmarchyThemePaths('/home/user')).toEqual([
       '/home/user/.local/state/omarchy/current/theme/colors.toml',
       '/home/user/.config/omarchy/current/theme/colors.toml',
@@ -17,11 +19,21 @@ describe('getOmarchyThemePaths', () => {
       '/home/user/.local/state/omarchy/current/theme/hyprland.lua',
       '/home/user/.config/omarchy/current/theme/hyprland.lua',
     ])
+    expect(getPywalThemePaths('/home/user')).toEqual([
+      '/home/user/.cache/wal/colors.sh',
+    ])
+    expect(getVanillaHyprlandPaths('/home/user')).toEqual([
+      '/home/user/.config/hypr/hyprland.conf',
+      '/home/user/.config/hypr/colors.conf',
+    ])
     expect(getOmarchyWatchPaths('/home/user')).toEqual([
       '/home/user/.local/state/omarchy/current/theme/colors.toml',
       '/home/user/.config/omarchy/current/theme/colors.toml',
       '/home/user/.local/state/omarchy/current/theme/hyprland.lua',
       '/home/user/.config/omarchy/current/theme/hyprland.lua',
+      '/home/user/.cache/wal/colors.sh',
+      '/home/user/.config/hypr/hyprland.conf',
+      '/home/user/.config/hypr/colors.conf',
       '/home/user/.local/state/omarchy/current/theme.name',
     ])
   })
@@ -63,6 +75,34 @@ green = "#4a2fd0"
       destructive: '#c900c4',
       success: '#4a2fd0',
       warning: '#026fde',
+    }))
+  })
+
+  it('parses a pywal colors.sh palette', () => {
+    const theme = parseOmarchyTheme(`
+wallpaper='/home/user/pic.png'
+foreground='#cdd6f4'
+background='#1e1e2e'
+cursor='#cdd6f4'
+color0='#313244'
+color1='#f38ba8'
+color2='#a6e3a1'
+color3='#f9e2af'
+color4='#89b4fa'
+color7='#bac2de'
+color8='#585b70'
+color15='#cdd6f4'
+`)
+
+    expect(theme).toEqual(expect.objectContaining({
+      background: '#1e1e2e',
+      foreground: '#cdd6f4',
+      card: '#313244',
+      primary: '#89b4fa',
+      mutedForeground: '#bac2de',
+      destructive: '#f38ba8',
+      success: '#a6e3a1',
+      warning: '#f9e2af',
     }))
   })
 
@@ -141,6 +181,24 @@ hl.config({
       border: '#584e51',
       sidebarPrimary: 'color-mix(in oklch, #8a8588 22%, var(--sidebar))',
       sidebarAccent: '#584e51',
+    }))
+  })
+
+  it('parses vanilla hyprland.conf border colors', () => {
+    const theme = parseOmarchyHyprlandTheme(`
+general {
+    col.active_border = rgba(33ccffee) rgba(00ff99ee) 45deg
+    col.inactive_border = rgba(595959aa)
+}
+`)
+
+    expect(theme).toEqual(expect.objectContaining({
+      primary: '#33ccff',
+      primaryForeground: '#000000',
+      accent: '#595959',
+      border: '#595959',
+      sidebarPrimary: 'color-mix(in oklch, #33ccff 22%, var(--sidebar))',
+      sidebarAccent: '#595959',
     }))
   })
 

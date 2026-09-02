@@ -16,9 +16,20 @@ export const getOmarchyHyprlandPaths = (homeDirectory: string): string[] => [
   path.join(homeDirectory, '.config/omarchy/current/theme/hyprland.lua'),
 ]
 
+export const getVanillaHyprlandPaths = (homeDirectory: string): string[] => [
+  path.join(homeDirectory, '.config/hypr/hyprland.conf'),
+  path.join(homeDirectory, '.config/hypr/colors.conf'),
+]
+
+export const getPywalThemePaths = (homeDirectory: string): string[] => [
+  path.join(homeDirectory, '.cache/wal/colors.sh'),
+]
+
 export const getOmarchyWatchPaths = (homeDirectory: string): string[] => [
   ...getOmarchyThemePaths(homeDirectory),
   ...getOmarchyHyprlandPaths(homeDirectory),
+  ...getPywalThemePaths(homeDirectory),
+  ...getVanillaHyprlandPaths(homeDirectory),
   // Theme switches replace the entire current/theme directory, then update this
   // marker in its stable parent directory.
   path.join(homeDirectory, '.local/state/omarchy/current/theme.name'),
@@ -26,6 +37,8 @@ export const getOmarchyWatchPaths = (homeDirectory: string): string[] => [
 
 const OMARCHY_THEME_PATHS = getOmarchyThemePaths(homedir())
 const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
+const PYWAL_THEME_PATHS = getPywalThemePaths(homedir())
+const VANILLA_HYPRLAND_PATHS = getVanillaHyprlandPaths(homedir())
 const OMARCHY_WATCH_PATHS = getOmarchyWatchPaths(homedir())
 
 export const parseOmarchyTheme = (source: string): SystemThemePalette | null => {
@@ -170,24 +183,24 @@ export const parseOmarchyHyprlandTheme = (source: string): SystemThemePalette | 
   }
 }
 
-const readOmarchyPalette = (): SystemThemePalette | null => {
-  for (const filePath of OMARCHY_THEME_PATHS) {
+const readFirstPalette = (
+  filePaths: readonly string[],
+  parse: (source: string) => SystemThemePalette | null,
+): SystemThemePalette | null => {
+  for (const filePath of filePaths) {
     const source = readText(filePath)
-    if (source !== null) {
-      const theme = parseOmarchyTheme(source)
-      if (theme !== null) return theme
-    }
-  }
-
-  for (const filePath of OMARCHY_HYPRLAND_PATHS) {
-    const source = readText(filePath)
-    if (source !== null) {
-      const theme = parseOmarchyHyprlandTheme(source)
-      if (theme !== null) return theme
-    }
+    if (source === null) continue
+    const theme = parse(source)
+    if (theme !== null) return theme
   }
   return null
 }
+
+const readOmarchyPalette = (): SystemThemePalette | null =>
+  readFirstPalette(OMARCHY_THEME_PATHS, parseOmarchyTheme)
+  ?? readFirstPalette(OMARCHY_HYPRLAND_PATHS, parseOmarchyHyprlandTheme)
+  ?? readFirstPalette(PYWAL_THEME_PATHS, parseOmarchyTheme)
+  ?? readFirstPalette(VANILLA_HYPRLAND_PATHS, parseOmarchyHyprlandTheme)
 
 export const omarchyThemeProvider = {
   matches: (desktop: string) => desktop.includes('hyprland') || desktop.includes('omarchy'),
