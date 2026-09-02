@@ -19,7 +19,7 @@ export function WallpaperDetailsShell({ wallpaper, onClose, actions, children }:
     const glass = useGlass()
 
     return (
-        <div id="wallpaper-details" className={cn("sticky top-0 max-h-[calc(100vh_-_var(--status-bar-h,0rem)_-_2rem)] w-80 shrink-0 overflow-y-auto rounded-xl border border-border bg-card scrollbar-thin", glass)}>
+        <div id="wallpaper-details" className={cn("sticky top-0 max-h-[calc(100vh_-_var(--status-bar-h,0rem)_-_2rem)] w-full shrink-0 overflow-y-auto rounded-xl border border-border bg-card scrollbar-thin", glass)}>
             <div className="sticky top-2 z-10 flex justify-end pr-2 h-0">
                 <Button
                     variant="ghost"

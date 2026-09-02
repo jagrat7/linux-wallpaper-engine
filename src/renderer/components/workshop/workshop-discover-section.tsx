@@ -14,7 +14,7 @@ interface WorkshopDiscoverSectionProps {
   onCardClick: (wallpaper: Wallpaper) => void
   onFavoriteToggle: (sectionId: string) => void
   onSeeMore: (sectionId: string) => void
-  gridClassName?: string
+  columns: number
 }
 
 export function WorkshopDiscoverSection({
@@ -27,7 +27,7 @@ export function WorkshopDiscoverSection({
   onCardClick,
   onFavoriteToggle,
   onSeeMore,
-  gridClassName,
+  columns,
 }: WorkshopDiscoverSectionProps) {
   const hasMore = totalResults > wallpapers.length
 
@@ -71,7 +71,7 @@ export function WorkshopDiscoverSection({
         showCompatibilityDot={false}
         selectedId={selectedId}
         onCardClick={onCardClick}
-        gridClassName={gridClassName}
+        columns={columns}
       />
     </motion.section>
   )

@@ -14,7 +14,7 @@ interface WorkshopBrowseViewProps {
   sortBy: WorkshopSortBy
   selectedId: string | undefined
   onCardClick: (w: Wallpaper) => void
-  gridClassName: string
+  columns: number
 }
 
 export function WorkshopBrowseView({
@@ -22,7 +22,7 @@ export function WorkshopBrowseView({
   sortBy,
   selectedId,
   onCardClick,
-  gridClassName,
+  columns,
 }: WorkshopBrowseViewProps) {
   const [page, setPage] = useState(1)
   const utils = trpc.useUtils()
@@ -53,7 +53,7 @@ export function WorkshopBrowseView({
         showCompatibilityDot={false}
         selectedId={selectedId}
         onCardClick={onCardClick}
-        gridClassName={gridClassName}
+        columns={columns}
         emptyIcon={Store}
         emptyMessage="No workshop items found"
         emptySubMessage="Try a different search term"

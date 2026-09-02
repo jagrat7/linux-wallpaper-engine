@@ -109,13 +109,15 @@ describe('settingsRouter', () => {
         expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'reapply' })
       })
 
-      const NON_BACKEND_KEYS = ['theme', 'launchOnLogin', 'enableSystemTray', 'minimizeOnClose'] as const
+      const NON_BACKEND_KEYS = ['theme', 'wallpaperGridDensity', 'launchOnLogin', 'enableSystemTray', 'minimizeOnClose'] as const
 
       it.each(NON_BACKEND_KEYS)('should NOT reapply wallpapers when %s changes', async (key) => {
         mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
 
         const input: Record<string, unknown> = {}
-        if (typeof DEFAULT_SETTINGS[key] === 'boolean') {
+        if (key === 'wallpaperGridDensity') {
+          input[key] = 'compact'
+        } else if (typeof DEFAULT_SETTINGS[key] === 'boolean') {
           input[key] = !DEFAULT_SETTINGS[key]
         } else {
           input[key] = 'dark'

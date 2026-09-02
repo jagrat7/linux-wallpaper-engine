@@ -8,6 +8,7 @@ import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS, type AgeRating, type Wallpaper
 import { COMPATIBILITY_OPTIONS, type CompatibilityStatus } from '../../../shared/constants/compatibility'
 import { SORT_OPTIONS, type SortBy, SORT_ORDER_OPTIONS, type SortOrder } from '../../../shared/constants/sort'
 import { WORKSHOP_SORT_OPTIONS, type WorkshopSortBy } from '../../../shared/constants/workshop'
+import { WALLPAPER_GRID_DENSITY_OPTIONS, type WallpaperGridDensity } from '../../../shared/constants/grid'
 import { isFlatpak, setFlatpakBypass } from '../../utils/host'
 import { setAutostart } from '../../utils/autostart'
 import { systemThemeService } from '../../services/system-theme/system-theme'
@@ -57,6 +58,7 @@ const settingsSchema = z.object({
   showCompatibilityDot: z.boolean().optional(),
   showStatusBar: z.boolean().optional(),
   dynamicBackground: z.boolean().optional(),
+  wallpaperGridDensity: z.enum(WALLPAPER_GRID_DENSITY_OPTIONS.map(o => o.value) as [WallpaperGridDensity, ...WallpaperGridDensity[]]).optional(),
   dismissedScanReminder: z.boolean().optional(),
   dismissedUpdateVersion: z.string().nullable().optional(),
 

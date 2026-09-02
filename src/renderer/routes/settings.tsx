@@ -9,6 +9,9 @@ import {
     ScanSearch,
     ChevronDown,
     Check,
+    Grid3x3,
+    Grid2x2,
+    Square,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
@@ -20,8 +23,10 @@ import { trpc } from "@/lib/trpc"
 import { useTheme } from "@/components/theme-provider"
 import { THEME_OPTIONS } from "../../shared/constants/theme"
 import { SCALING_OPTIONS } from "../../shared/constants/display"
+import { WALLPAPER_GRID_DENSITY_OPTIONS } from "../../shared/constants/grid"
+import type { WallpaperGridDensity } from "../../shared/constants/grid"
 import type { AppSettings } from "../../shared/constants/app"
-import { getFpsOptions } from "@/lib/utils"
+import { getFpsOptions, cn } from "@/lib/utils"
 import { CompatibilityScanRow } from "@/components/settings/compatibility-scan-row"
 import { LoadingButton } from "@/components/loading-button"
 import { PageHeader } from "@/components/page-header"
@@ -36,6 +41,12 @@ const windowGeometrySchema = z.object({
     windowGeometry: z.string().trim().refine((value) => !value || /^[1-9]\d*x[1-9]\d*$/.test(value), "Use widthxheight, for example 800x600"),
 })
 type WindowGeometryForm = z.infer<typeof windowGeometrySchema>
+
+const DENSITY_ICONS: Record<WallpaperGridDensity, typeof Grid3x3> = {
+    compact: Grid3x3,
+    medium: Grid2x2,
+    large: Square,
+}
 
 export const Route = createFileRoute("/settings")({
     component: SettingsPage,
@@ -380,6 +391,30 @@ function SettingsPage() {
                             checked={settings.showCompatibilityDot}
                             onCheckedChange={(checked) => updateSetting("showCompatibilityDot", checked)}
                         />
+                    </SettingRow>
+                    <SettingRow label="Grid size">
+                        <div role="radiogroup" aria-label="Grid size" className="inline-flex items-center gap-0.5">
+                            {WALLPAPER_GRID_DENSITY_OPTIONS.map(({ label, value }) => {
+                                const Icon = DENSITY_ICONS[value]
+                                const selected = settings.wallpaperGridDensity === value
+                                return (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={selected}
+                                        title={label}
+                                        onClick={() => updateSetting("wallpaperGridDensity", value)}
+                                        className={cn(
+                                            "inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                                            selected && "bg-accent text-accent-foreground",
+                                        )}
+                                    >
+                                        <Icon className="size-4" />
+                                    </button>
+                                )
+                            })}
+                        </div>
                     </SettingRow>
                     <SettingRow label="Show status bar">
                         <Switch

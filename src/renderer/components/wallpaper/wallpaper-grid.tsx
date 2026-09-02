@@ -1,8 +1,9 @@
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 import { type Wallpaper } from "./wallpaper-card"
 import { GridHeader } from "./wallpaper-grid-header"
 import { VirtualizedWallpaperGrid } from "./virtualized-wallpaper-grid"
+import { WallpaperGridShell } from "./wallpaper-grid-shell"
 import { AlertCircle, FolderOpen } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
@@ -15,7 +16,6 @@ import { unsubscribedWorkshopIdsAtom } from "@/contexts/atoms/workshop-atoms"
 
 const WallpaperDetails = lazy(() => import("./details-card/wallpaper-details").then(m => ({ default: m.WallpaperDetails })))
 
-// TODO: Fix wallpaper details size so that is consistent width with a column
 export function WallpaperGrid() {
     const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
     const unsubscribedWorkshopIds = useAtomValue(unsubscribedWorkshopIdsAtom)
@@ -141,8 +141,20 @@ export function WallpaperGrid() {
         <div className="flex flex-col h-full">
             <GridHeader onRefresh={handleRefresh} isLoading={isFetching} />
 
-            <div className="flex items-start gap-6 flex-1">
-                <div className="flex-1 h-fit transition-all duration-300">
+            <WallpaperGridShell
+                detailsKey={selectedWallpaper?.id}
+                details={selectedWallpaper ? (
+                    <Suspense fallback={<Skeleton className="w-full h-96 rounded-xl" />}>
+                        <WallpaperDetails
+                            key={selectedWallpaper.id}
+                            wallpaper={selectedWallpaper}
+                            onClose={() => setSelectedWallpaper(null)}
+                            onUnsubscribe={handleUnsubscribe}
+                        />
+                    </Suspense>
+                ) : null}
+            >
+                {(columns) => (
                     <VirtualizedWallpaperGrid
                         wallpapers={wallpapers}
                         isLoading={isLoading}
@@ -150,6 +162,7 @@ export function WallpaperGrid() {
                         showCompatibilityDot={appSettings?.showCompatibilityDot ?? true}
                         selectedId={selectedWallpaper?.id}
                         onCardClick={toggleWallpaper}
+                        columns={columns}
                         emptyIcon={FolderOpen}
                         emptyMessage="No wallpapers found"
                         emptySubMessage={
@@ -158,30 +171,8 @@ export function WallpaperGrid() {
                                 : "Install wallpapers from Steam Workshop via Wallpaper Engine"
                         }
                     />
-                </div>
-
-                <AnimatePresence mode="wait">
-                    {selectedWallpaper && (
-                        <motion.div
-                            key={selectedWallpaper.id}
-                            className="sticky top-0"
-                            initial={{ opacity: 0, x: -40 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -40 }}
-                            transition={{ duration: 0.3, ease: "easeOut" }}
-                        >
-                            <Suspense fallback={<Skeleton className="w-80 h-96 rounded-xl" />}>
-                                <WallpaperDetails
-                                    key={selectedWallpaper.id}
-                                    wallpaper={selectedWallpaper}
-                                    onClose={() => setSelectedWallpaper(null)}
-                                    onUnsubscribe={handleUnsubscribe}
-                                />
-                            </Suspense>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+                )}
+            </WallpaperGridShell>
 
         </div>
     )

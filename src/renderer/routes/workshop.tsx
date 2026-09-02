@@ -6,6 +6,7 @@ import { WorkshopToolbar } from "@/components/workshop/workshop-toolbar"
 import { WorkshopBrowseView } from "@/components/workshop/workshop-browse-view"
 import { WorkshopDiscoverView } from "@/components/workshop/workshop-discover-view"
 import { WorkshopDetailsPanel } from "@/components/workshop/workshop-details-panel"
+import { WallpaperGridShell } from "@/components/wallpaper/wallpaper-grid-shell"
 import { ScrollToTopButton } from "@/components/scroll-to-top-button"
 import { RefreshButton } from "@/components/wallpaper/refresh-button"
 import { useDebouncedWorkshopSearchQuery, useWorkshopFilter, useWorkshopSort } from "@/contexts/workshop-search-context"
@@ -22,7 +23,6 @@ function WorkshopPage() {
   const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
   const [mode, setMode] = useAtom(workshopModeAtom)
   const { sortBy: workshopSortBy } = useWorkshopSort()
-  const [detailsVisible, setDetailsVisible] = useState(false)
   const { debouncedSearchQuery } = useDebouncedWorkshopSearchQuery()
   const { filterType, filterAgeRating, filterTags, filterResolution } = useWorkshopFilter()
   const { setSelectedUrl } = useWallpaperBackground()
@@ -36,12 +36,6 @@ function WorkshopPage() {
   useEffect(() => {
     setSelectedUrl(selectedWallpaper?.thumbnail ?? null)
   }, [selectedWallpaper, setSelectedUrl])
-
-  // Shrink grid immediately when a wallpaper is selected; the false flip is
-  // deferred to onExitComplete so columns expand only after the panel exits.
-  useEffect(() => {
-    if (selectedWallpaper) setDetailsVisible(true)
-  }, [selectedWallpaper])
 
   trpc.workshop.onConnectionEvent.useSubscription(undefined, {
     onData: () => {
@@ -59,10 +53,6 @@ function WorkshopPage() {
     filterResolution.join(","),
     workshopSortBy,
   ].join("|")
-
-  const gridCols = detailsVisible
-    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
-    : "grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -89,38 +79,38 @@ function WorkshopPage() {
         />
       </PageHeader>
 
-      <div className="flex items-start gap-6 flex-1">
-        <div className="flex-1 h-fit transition-all duration-300 space-y-4">
-          {showBrowse ? (
-            <WorkshopBrowseView
-              key={viewKey}
-              searchQuery={debouncedSearchQuery}
-              sortBy={workshopSortBy}
-              selectedId={selectedWallpaper?.id}
-              onCardClick={toggleWallpaper}
-              gridClassName={gridCols}
-            />
-          ) : (
-            <WorkshopDiscoverView
-              key={viewKey}
-              sortBy={workshopSortBy}
-              selectedId={selectedWallpaper?.id}
-              onCardClick={toggleWallpaper}
-              gridClassName={gridCols}
-            />
-          )}
-        </div>
-
-        <WorkshopDetailsPanel
-          wallpaper={selectedWallpaper}
-          onClose={() => setSelectedWallpaper(null)}
-          onExitComplete={() => {
-            // Only collapse columns when the panel is fully gone. When switching
-            // between cards the exit fires too, but a selection still exists.
-            if (!selectedWallpaper) setDetailsVisible(false)
-          }}
-        />
-      </div>
+      <WallpaperGridShell
+        detailsKey={selectedWallpaper?.id}
+        details={selectedWallpaper ? (
+          <WorkshopDetailsPanel
+            wallpaper={selectedWallpaper}
+            onClose={() => setSelectedWallpaper(null)}
+          />
+        ) : null}
+      >
+        {(columns) => (
+          <div className="space-y-4">
+            {showBrowse ? (
+              <WorkshopBrowseView
+                key={viewKey}
+                searchQuery={debouncedSearchQuery}
+                sortBy={workshopSortBy}
+                selectedId={selectedWallpaper?.id}
+                onCardClick={toggleWallpaper}
+                columns={columns}
+              />
+            ) : (
+              <WorkshopDiscoverView
+                key={viewKey}
+                sortBy={workshopSortBy}
+                selectedId={selectedWallpaper?.id}
+                onCardClick={toggleWallpaper}
+                columns={columns}
+              />
+            )}
+          </div>
+        )}
+      </WallpaperGridShell>
       <ScrollToTopButton />
     </div>
   )

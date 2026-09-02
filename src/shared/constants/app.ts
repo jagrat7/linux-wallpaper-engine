@@ -2,6 +2,7 @@ import type { CompatibilityStatus } from './compatibility'
 import type { ScalingOption } from './display'
 import type { SortBy, SortOrder } from './sort'
 import type { ThemeOption } from './theme'
+import { DEFAULT_WALLPAPER_GRID_DENSITY, type WallpaperGridDensity } from './grid'
 import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS, type WorkshopSortBy } from './workshop'
 import type { AgeRating, WallpaperFilterType } from './wallpaper'
 import packageJson from '../../../package.json'
@@ -39,6 +40,7 @@ export interface AppSettings {
   showCompatibilityDot: boolean
   showStatusBar: boolean
   dynamicBackground: boolean
+  wallpaperGridDensity: WallpaperGridDensity
   dismissedScanReminder: boolean
   dismissedUpdateVersion: string | null
 
@@ -98,6 +100,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showCompatibilityDot: true,
   showStatusBar: true,
   dynamicBackground: true,
+  wallpaperGridDensity: DEFAULT_WALLPAPER_GRID_DENSITY,
   dismissedScanReminder: false,
   dismissedUpdateVersion: null,
 
