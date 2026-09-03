@@ -45,6 +45,19 @@ export function parseWorkshopAgeRating(tags: string[]): AgeRating | undefined {
   return undefined
 }
 
+// Best-effort map of workshop item id -> age rating from raw steamworks item payloads
+export function mapWorkshopAgeRatings(
+  items: Array<{ publishedFileId: bigint; tags: string[] } | null | undefined>,
+): Record<string, AgeRating> {
+  const ratings: Record<string, AgeRating> = {}
+  for (const item of items) {
+    if (!item) continue
+    const rating = parseWorkshopAgeRating(item.tags)
+    if (rating) ratings[item.publishedFileId.toString()] = rating
+  }
+  return ratings
+}
+
 export function parseWorkshopType(tags: string[]): WallpaperType {
   const normalizedTags = new Set(tags.map(tag => tag.trim().toLowerCase()))
 

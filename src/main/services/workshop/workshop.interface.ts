@@ -1,5 +1,6 @@
 import type { WorkshopDiscoverOptions, WorkshopDiscoverResult, WorkshopQueryOptions, WorkshopQueryResult, WorkshopStatus } from './workshop.types'
 import type { WorkshopConnectionEvent } from './workshop'
+import type { AgeRating } from '@/../shared/constants/wallpaper'
 
 export interface IWorkshopService {
   /**
@@ -35,4 +36,11 @@ export interface IWorkshopService {
    * active download progress when available.
    */
   itemStatus(workshopId: string): Promise<WorkshopStatus | null>
+
+  /**
+   * Resolves age ratings for the given workshop item ids from Steam UGC tags.
+   * Only numeric workshop ids are queried; unknown items are skipped.
+   * Throws when Steam is unavailable (callers should catch).
+   */
+  getAgeRatings(workshopIds: string[]): Promise<Record<string, AgeRating>>
 }
