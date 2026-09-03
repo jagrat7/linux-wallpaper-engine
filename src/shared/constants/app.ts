@@ -112,7 +112,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   // Filters & sort
   filterType: [],
-  filterAgeRating: ['g'],
+  filterAgeRating: [],
   filterTags: [],
   filterResolution: [],
   favoriteDiscoverSectionIds: DEFAULT_FAVORITE_DISCOVER_SECTION_IDS,
