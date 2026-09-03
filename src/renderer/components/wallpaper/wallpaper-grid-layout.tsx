@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react"
+import { memo, useId, type ReactNode } from "react"
 import { LayoutGroup, motion } from "framer-motion"
 import { FolderOpen, type LucideIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,6 +24,48 @@ interface WallpaperGridLayoutProps {
     renderCardOverlay?: (wallpaper: Wallpaper) => ReactNode
     columns: number
 }
+
+interface WallpaperGridCardItemProps {
+    wallpaper: Wallpaper
+    selected: boolean
+    onClick: (wallpaper: Wallpaper) => void
+    compatibilityStatus?: CompatibilityStatus
+    showCompatibilityDot: boolean
+    glassClassName: string
+    overlay?: ReactNode
+}
+
+// Memoized so a parent re-render (e.g. selection change) only re-renders the
+// cards whose props actually changed, not the whole grid.
+const WallpaperGridCardItem = memo(function WallpaperGridCardItem({
+    wallpaper,
+    selected,
+    onClick,
+    compatibilityStatus,
+    showCompatibilityDot,
+    glassClassName,
+    overlay,
+}: WallpaperGridCardItemProps) {
+    return (
+        <motion.div
+            layout
+            layoutId={wallpaper.id}
+            transition={WALLPAPER_GRID_TRANSITION}
+            className="relative"
+            data-wallpaper-path={wallpaper.path}
+        >
+            <WallpaperCard
+                wallpaper={wallpaper}
+                selected={selected}
+                onClick={onClick}
+                compatibilityStatus={compatibilityStatus}
+                showCompatibilityDot={showCompatibilityDot}
+                glassClassName={glassClassName}
+            />
+            {overlay}
+        </motion.div>
+    )
+})
 
 export function WallpaperGridLayout({
     wallpapers,
@@ -62,24 +104,16 @@ export function WallpaperGridLayout({
         <LayoutGroup id={layoutGroupId}>
             <div className="grid gap-4" style={gridStyle}>
                 {wallpapers.map((wallpaper) => (
-                    <motion.div
+                    <WallpaperGridCardItem
                         key={wallpaper.id}
-                        layout
-                        layoutId={wallpaper.id}
-                        transition={WALLPAPER_GRID_TRANSITION}
-                        className="relative"
-                        data-wallpaper-path={wallpaper.path}
-                    >
-                        <WallpaperCard
-                            wallpaper={wallpaper}
-                            selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
-                            onClick={onCardClick}
-                            compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
-                            showCompatibilityDot={showCompatibilityDot}
-                            glassClassName={glass}
-                        />
-                        {renderCardOverlay?.(wallpaper)}
-                    </motion.div>
+                        wallpaper={wallpaper}
+                        selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+                        onClick={onCardClick}
+                        compatibilityStatus={compatibilityMap?.[wallpaper.path ?? ""]}
+                        showCompatibilityDot={showCompatibilityDot}
+                        glassClassName={glass}
+                        overlay={renderCardOverlay?.(wallpaper)}
+                    />
                 ))}
             </div>
         </LayoutGroup>
