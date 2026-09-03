@@ -117,7 +117,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   filterResolution: [],
   favoriteDiscoverSectionIds: DEFAULT_FAVORITE_DISCOVER_SECTION_IDS,
   workshopFilterType: [],
-  workshopFilterAgeRating: [],
+  workshopFilterAgeRating: ['g'],
   workshopFilterTags: [],
   workshopFilterResolution: [],
   filterCompatibility: [],
