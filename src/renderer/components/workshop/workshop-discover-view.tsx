@@ -14,25 +14,26 @@ import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { WorkshopSortBy } from "../../../shared/constants/workshop"
 import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS } from "../../../shared/constants/workshop"
 import type { RouterOutputs } from "../../../main/trpc/router"
+import {
+  DISCOVER_SECTION_BATCH_SIZE,
+  SKELETON_SECTION_COUNT,
+  SKELETON_CARDS_PER_SECTION,
+} from "../../../shared/constants/grid"
 
 type WorkshopDiscoverSectionData = RouterOutputs["workshop"]["discover"]["sections"][number]
-
-const DISCOVER_SECTION_BATCH_SIZE = 4
-const SKELETON_SECTION_COUNT = 2
-const SKELETON_CARDS_PER_SECTION = 6
 
 interface WorkshopDiscoverViewProps {
   sortBy: WorkshopSortBy
   selectedId: string | undefined
   onCardClick: (w: Wallpaper) => void
-  gridClassName: string
+  columns: number
 }
 
 export function WorkshopDiscoverView({
   sortBy,
   selectedId,
   onCardClick,
-  gridClassName,
+  columns,
 }: WorkshopDiscoverViewProps) {
   const glass = useGlass()
   const [visibleSectionCount, setVisibleSectionCount] = useState(DISCOVER_SECTION_BATCH_SIZE)
@@ -155,7 +156,10 @@ export function WorkshopDiscoverView({
                 />
               </div>
             </div>
-            <div className={`grid gap-4 ${gridClassName}`}>
+            <div
+              className="grid gap-4"
+              style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+            >
               {Array.from({ length: SKELETON_CARDS_PER_SECTION }).map((__, skeletonIndex) => (
                 <Skeleton key={skeletonIndex} className="aspect-[4/3] rounded-xl" />
               ))}
@@ -191,7 +195,7 @@ export function WorkshopDiscoverView({
           showCompatibilityDot={false}
           selectedId={selectedId}
           onCardClick={onCardClick}
-          gridClassName={gridClassName}
+          columns={columns}
           emptyIcon={Store}
           emptyMessage="No wallpapers in this category"
         />
@@ -218,7 +222,7 @@ export function WorkshopDiscoverView({
         showCompatibilityDot={false}
         selectedId={selectedId}
         onCardClick={onCardClick}
-        gridClassName={gridClassName}
+        columns={columns}
         emptyIcon={Store}
         emptyMessage="No discover categories found"
         emptySubMessage="Try adjusting your workshop filters"
@@ -240,7 +244,7 @@ export function WorkshopDiscoverView({
           onCardClick={onCardClick}
           onFavoriteToggle={onToggleFavoriteSection}
           onSeeMore={onSeeMore}
-          gridClassName={gridClassName}
+          columns={columns}
         />
       ))}
 
