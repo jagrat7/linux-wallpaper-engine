@@ -30,9 +30,11 @@ const { mockPlaylistService, mockWallpaperService, mockSettingsService, mockDisp
   mockHost: {
     hostCommandExists: vi.fn(),
     hostSpawn: vi.fn(),
+    hostExecFileAsync: vi.fn(),
   },
   mockWallpaperUtils: {
     resolveWallpaperEngineAssetsDir: vi.fn(),
+    backendArgPattern: vi.fn((flag: string, value: string) => `linux-wallpaperengine.*${flag} ${value}( |$)`),
   },
 }))
 
@@ -90,6 +92,7 @@ beforeEach(() => {
   ])
   mockHost.hostCommandExists.mockResolvedValue(true)
   mockHost.hostSpawn.mockReturnValue(new EventEmitter())
+  mockHost.hostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
   mockWallpaperUtils.resolveWallpaperEngineAssetsDir.mockResolvedValue('/assets')
 })
 

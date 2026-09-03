@@ -16,6 +16,8 @@ export interface ActiveWallpaperEntry {
   wallpaper: ApplyWallpaperOptions
   title: string
   thumbnail: string
+  // Whether the screen's process is currently frozen (paused)
+  paused: boolean
 }
 
 export interface DebugInfo {

@@ -1,8 +1,9 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
-import { CACHE_TTL, STEAM_ROOT_PATHS } from '../../../shared/constants/app'
-import type { ApplyWallpaperOptions, WallpaperType } from '../../../shared/constants/wallpaper'
-import { hostExecAsync } from '../../utils/host'
+import type { ChildProcess } from 'node:child_process'
+import { CACHE_TTL, STEAM_ROOT_PATHS, type AppSettings } from '../../../shared/constants/app'
+import type { ApplyWallpaperOptions, Wallpaper, WallpaperType } from '../../../shared/constants/wallpaper'
+import { hostExecFileAsync, usesFlatpakSpawn } from '../../utils/host'
 
 type ImageType = "jpeg" | "png" | "bmp"
 export type TimedCache<T> = {
@@ -51,6 +52,74 @@ export const parseWindowGeometry = (size: string | null | undefined): ApplyWallp
   if (parsed.width <= 0 || parsed.height <= 0) return 'emit-flag'
 
   return parsed
+}
+
+// Merge global settings (and optional per-call input overrides) into backend
+// apply options. Shared by the setWallpaper tRPC route and random applies.
+export const buildApplyOptions = (
+  settings: AppSettings,
+  input?: Partial<ApplyWallpaperOptions>,
+): ApplyWallpaperOptions => ({
+  backgroundId: input?.backgroundId ?? '',
+  screen: input?.screen,
+  scaling: input?.scaling ?? settings.defaultScaling,
+  fps: input?.fps ?? settings.fps,
+  volume: input?.volume ?? settings.volume,
+  silent: input?.silent ?? settings.silent,
+  noAutomute: input?.noAutomute ?? settings.noAutomute,
+  noAudioProcessing: input?.noAudioProcessing ?? !settings.audioProcessing,
+  disableMouse: input?.disableMouse ?? settings.disableMouse,
+  disableParallax: input?.disableParallax ?? settings.disableParallax,
+  disableParticles: input?.disableParticles ?? settings.disableParticles,
+  noFullscreenPause: input?.noFullscreenPause ?? !settings.pauseOnFullscreen,
+  windowed: settings.windowMode ? parseWindowGeometry(settings.windowGeometry) : input?.windowed,
+})
+
+// Pick a random wallpaper, preferring ones that aren't currently applied.
+// Falls back to the full list when everything is already active.
+export const pickRandomWallpaper = (wallpapers: Wallpaper[], activeIds: ReadonlySet<string>): Wallpaper => {
+  const unused = wallpapers.filter(w => !activeIds.has(w.path))
+  const pool = unused.length > 0 ? unused : wallpapers
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
+// pgrep/pkill patterns are EREs matched against the full command line, so any
+// interpolated value must be escaped to its literal form
+export const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// Scoped pkill -f ERE for a backend argv pair. The trailing `( |$)` is required
+// so `--screen-root DP-1` does not also match `--screen-root DP-10`.
+export const backendArgPattern = (flag: string, value: string): string =>
+  `linux-wallpaperengine.*${escapeRegExp(flag)} ${escapeRegExp(value)}( |$)`
+
+// Deliver SIGSTOP/SIGCONT to the backend process driving a screen. Prefers the
+// tracked child-process handle — exactly the process we spawned. Under Flatpak
+// the handle wraps `flatpak-spawn` rather than the real host process, so the
+// signal is delivered through a host-side pkill with a pre-built pattern
+// instead. The pattern is passed to pkill via execFile (no shell), so screen
+// names and paths can't inject commands, and a null pattern is refused so we
+// never signal by bare executable name.
+export const signalWallpaperProcess = async (
+  signal: 'SIGSTOP' | 'SIGCONT',
+  proc: ChildProcess | undefined,
+  pattern: string | null,
+): Promise<boolean> => {
+  if (proc && !usesFlatpakSpawn()) {
+    try {
+      return proc.kill(signal)
+    } catch {
+      return false
+    }
+  }
+  if (!pattern) return false
+  const flag = signal === 'SIGSTOP' ? '-STOP' : '-CONT'
+  try {
+    await hostExecFileAsync('pkill', [flag, '-f', pattern])
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function parseImageHeader(imagePath: string) {
@@ -209,7 +278,13 @@ export async function detectResolution(wallpaperPath: string): Promise<{ width: 
 
     if (videoFile) {
       const videoPath = path.join(wallpaperPath, videoFile)
-      const { stdout } = await hostExecAsync(`ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`)
+      const { stdout } = await hostExecFileAsync('ffprobe', [
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=width,height',
+        '-of', 'csv=p=0',
+        videoPath,
+      ])
       const [w, h] = stdout.trim().split(',')
       if (w && h) {
         return { width: parseInt(w, 10), height: parseInt(h, 10) }
@@ -224,7 +299,7 @@ export async function detectResolution(wallpaperPath: string): Promise<{ width: 
 
       if (imageFile) {
         const imagePath = path.join(wallpaperPath, imageFile)
-        const { stdout } = await hostExecAsync(`file "${imagePath}"`)
+        const { stdout } = await hostExecFileAsync('file', [imagePath])
         const match = stdout.match(/(\d+)\s*x\s*(\d+)/)
         if (match) {
           return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) }

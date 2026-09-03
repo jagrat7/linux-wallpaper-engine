@@ -1,4 +1,4 @@
-import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, Tray, Menu, screen } from 'electron'
+import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, Tray, Menu, screen, Notification } from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -10,6 +10,9 @@ import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-star
 import { invalidationService } from './services/invalidation.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
 import { electronTheme } from './services/system-theme/system-theme.utils.ts'
+import { wallpaperService } from './services/wallpaper/wallpaper.ts'
+import { playlistService } from './services/playlists/playlist.ts'
+import { APP_NAME } from '../shared/constants/app.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
@@ -94,23 +97,69 @@ const createWindow = () => {
   return mainWindow
 }
 
-// Initialize the system tray with context menu
-const initializeTray = (mainWindow: BrowserWindow): void => {
-  if (tray !== null) return
-  tray = new Tray(trayIcon)
-
-  const toggleMainWindow = (): void => {
-    if (!mainWindow.isVisible()) {
-      mainWindow.show()
-    } else if (!mainWindow.isFocused()) {
-      mainWindow.focus()
-    }
+const toggleMainWindow = (mainWindow: BrowserWindow): void => {
+  if (!mainWindow.isVisible()) {
+    mainWindow.show()
+  } else if (!mainWindow.isFocused()) {
+    mainWindow.focus()
   }
+}
 
-  const contextMenu = Menu.buildFromTemplate([
+// Tray actions have no other feedback surface — report failures as a desktop
+// notification so they aren't silent no-ops
+const notifyFailure = (error: string | undefined, fallback: string): void => {
+  new Notification({ title: APP_NAME, body: error ?? fallback }).show()
+}
+
+// Stop everything (wallpapers and playlists) from the tray
+const stopAllWallpapers = async (): Promise<void> => {
+  const result = await wallpaperService.stop()
+  if (result.success) playlistService.clearActivePlaylist()
+}
+
+// Tray menu reflects live playback state; rebuilt whenever it changes.
+// Pause/resume/stop work for playlists too — a playlist runs as the same
+// tracked backend process, so freezing it halts rendering and rotation.
+const buildTrayContextMenu = (mainWindow: BrowserWindow) => {
+  const activeScreens = wallpaperService.getActiveScreens()
+  const pausedScreens = wallpaperService.getPausedScreens()
+  const hasActive = activeScreens.length > 0
+  const hasPaused = pausedScreens.length > 0
+  const hasUnpaused = activeScreens.some(screen => !pausedScreens.includes(screen))
+
+  return Menu.buildFromTemplate([
     {
       label: 'Toggle App',
-      click: toggleMainWindow
+      click: () => toggleMainWindow(mainWindow)
+    },
+    { type: 'separator' },
+    {
+      label: 'Pause Wallpaper',
+      enabled: hasUnpaused,
+      click: async () => {
+        const result = await wallpaperService.pause()
+        if (!result.success) notifyFailure(result.error, 'Failed to pause wallpapers')
+      }
+    },
+    {
+      label: 'Resume Wallpaper',
+      enabled: hasPaused,
+      click: async () => {
+        const result = await wallpaperService.resume()
+        if (!result.success) notifyFailure(result.error, 'Failed to resume wallpapers')
+      }
+    },
+    {
+      label: 'Random Wallpaper',
+      click: async () => {
+        const result = await wallpaperService.applyRandom()
+        if (!result.success) notifyFailure(result.error, 'Failed to apply a random wallpaper')
+      }
+    },
+    {
+      label: 'Stop Wallpaper',
+      enabled: hasActive,
+      click: () => { void stopAllWallpapers() }
     },
     { type: 'separator' },
     {
@@ -120,10 +169,22 @@ const initializeTray = (mainWindow: BrowserWindow): void => {
       }
     }
   ])
+}
+
+const refreshTrayMenu = (mainWindow: BrowserWindow): void => {
+  if (tray !== null) {
+    tray.setContextMenu(buildTrayContextMenu(mainWindow))
+  }
+}
+
+// Initialize the system tray with context menu
+const initializeTray = (mainWindow: BrowserWindow): void => {
+  if (tray !== null) return
+  tray = new Tray(trayIcon)
 
   tray.setToolTip(mainWindow.title)
-  tray.setContextMenu(contextMenu)
-  tray.on('click', toggleMainWindow)
+  tray.setContextMenu(buildTrayContextMenu(mainWindow))
+  tray.on('click', () => toggleMainWindow(mainWindow))
 }
 
 const ensureTray = (mainWindow: BrowserWindow): void => {
@@ -173,6 +234,18 @@ app.whenReady().then(() => {
     router: appRouter,
     windows: [mainWindow],
     createContext: async () => createTrpcContext(),
+  })
+
+  // Keep the tray menu in sync with playback state (apply/stop/pause/resume)
+  invalidationService.subscribe((key) => {
+    if (
+      key === 'wallpaper.applied' ||
+      key === 'wallpaper.stopped' ||
+      key === 'wallpaper.paused' ||
+      key === 'wallpaper.resumed'
+    ) {
+      refreshTrayMenu(mainWindow)
+    }
   })
 
   // Push a display.list invalidation to the renderer whenever monitors
