@@ -14,12 +14,13 @@ import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { WorkshopSortBy } from "../../../shared/constants/workshop"
 import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS } from "../../../shared/constants/workshop"
 import type { RouterOutputs } from "../../../main/trpc/router"
+import {
+  DISCOVER_SECTION_BATCH_SIZE,
+  SKELETON_SECTION_COUNT,
+  SKELETON_CARDS_PER_SECTION,
+} from "../../../shared/constants/grid"
 
 type WorkshopDiscoverSectionData = RouterOutputs["workshop"]["discover"]["sections"][number]
-
-const DISCOVER_SECTION_BATCH_SIZE = 4
-const SKELETON_SECTION_COUNT = 2
-const SKELETON_CARDS_PER_SECTION = 6
 
 interface WorkshopDiscoverViewProps {
   sortBy: WorkshopSortBy

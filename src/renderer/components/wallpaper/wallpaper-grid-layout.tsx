@@ -6,10 +6,9 @@ import { EmptyState } from "@/components/empty-state"
 import { WallpaperCard } from "./wallpaper-card"
 import type { Wallpaper } from "../../../shared/constants/wallpaper"
 import type { CompatibilityStatus } from "../../../shared/constants/compatibility"
+import { WALLPAPER_GRID_SKELETON_COUNT } from "../../../shared/constants/grid"
 import { useGlass } from "@/hooks/use-glass"
 import { WALLPAPER_GRID_TRANSITION } from "./wallpaper-grid-shell"
-
-const SKELETON_COUNT = 12
 
 interface WallpaperGridLayoutProps {
     wallpapers: Wallpaper[]
@@ -48,7 +47,7 @@ export function WallpaperGridLayout({
     if (isLoading) {
         return (
             <div className="grid gap-4" style={gridStyle}>
-                {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                {Array.from({ length: WALLPAPER_GRID_SKELETON_COUNT }).map((_, i) => (
                     <Skeleton key={i} className="aspect-square rounded-xl" />
                 ))}
             </div>

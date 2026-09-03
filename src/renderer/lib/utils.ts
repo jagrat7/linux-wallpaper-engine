@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { BASE_FPS_OPTIONS } from "../../shared/constants/display"
-import { DEFAULT_WALLPAPER_GRID_DENSITY, WALLPAPER_GRID_MIN_CARD_WIDTH, type WallpaperGridDensity } from "../../shared/constants/grid"
+import { DEFAULT_WALLPAPER_GRID_DENSITY, WALLPAPER_GRID_GAP, MAX_WALLPAPER_GRID_COLUMNS, WALLPAPER_GRID_MIN_CARD_WIDTH, type WallpaperGridDensity } from "../../shared/constants/grid"
 import type { PlaylistTimeUnit } from "../../shared/constants/playlist"
 import { WorkshopItem } from "src/main/services/workshop/workshop.types"
 import { Wallpaper } from "src/shared/constants/wallpaper"
@@ -135,9 +135,6 @@ export function findScrollParent(node: HTMLElement | null): HTMLElement | null {
 }
 
 
-
-const WALLPAPER_GRID_GAP = 16
-const MAX_WALLPAPER_GRID_COLUMNS = 6
 
 export function columnsForWidth(
     width: number,

@@ -2,9 +2,8 @@ import { useLayoutEffect, useRef, useState, type Key, type ReactNode } from "rea
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion"
 import { columnsForWidth } from "@/lib/utils"
 import { trpc } from "@/lib/trpc"
-import { DEFAULT_WALLPAPER_GRID_DENSITY } from "../../../shared/constants/grid"
+import { DEFAULT_WALLPAPER_GRID_DENSITY, WALLPAPER_GRID_GAP } from "../../../shared/constants/grid"
 
-const GRID_GAP = 16 // matches gap-4
 const WALLPAPER_DETAILS_MIN_WIDTH = 320 // matches the original Installed w-80 panel
 export const WALLPAPER_GRID_TRANSITION = { duration: 0.3, ease: "easeOut" } as const
 
@@ -48,7 +47,7 @@ export function WallpaperGridShell({ children, details, detailsKey }: WallpaperG
 
     const density = settings?.wallpaperGridDensity ?? DEFAULT_WALLPAPER_GRID_DENSITY
     const gridWidth = reserveDetailsColumn
-        ? Math.max(0, width - WALLPAPER_DETAILS_MIN_WIDTH - GRID_GAP)
+        ? Math.max(0, width - WALLPAPER_DETAILS_MIN_WIDTH - WALLPAPER_GRID_GAP)
         : width
     const gridColumns = columnsForWidth(gridWidth, density)
 
@@ -64,7 +63,7 @@ export function WallpaperGridShell({ children, details, detailsKey }: WallpaperG
                     style={{
                         width: reserveDetailsColumn ? WALLPAPER_DETAILS_MIN_WIDTH : 0,
                         minWidth: reserveDetailsColumn ? WALLPAPER_DETAILS_MIN_WIDTH : 0,
-                        marginLeft: reserveDetailsColumn ? GRID_GAP : 0,
+                        marginLeft: reserveDetailsColumn ? WALLPAPER_GRID_GAP : 0,
                         pointerEvents: hasDetails ? "auto" : "none",
                     }}
                 >
