@@ -3,12 +3,11 @@ import {
   getOmarchyHyprlandPaths,
   getOmarchyThemePaths,
   getOmarchyWatchPaths,
-  parseOmarchyHyprlandTheme,
   parseOmarchyTheme,
 } from './omarchy'
 
 describe('getOmarchyThemePaths', () => {
-  it('prefers current Omarchy state and falls back to its legacy config path', () => {
+  it('uses Omarchy theme files and the Hyprland child for everything else', () => {
     expect(getOmarchyThemePaths('/home/user')).toEqual([
       '/home/user/.local/state/omarchy/current/theme/colors.toml',
       '/home/user/.config/omarchy/current/theme/colors.toml',
@@ -93,58 +92,5 @@ color8 = "#585b70"
 
   it('rejects an incomplete palette', () => {
     expect(parseOmarchyTheme('accent = "#89b4fa"')).toBeNull()
-  })
-})
-
-describe('parseOmarchyHyprlandTheme', () => {
-  it('uses a semantic Lua color table when one is available', () => {
-    const theme = parseOmarchyHyprlandTheme(`
-local colors = {
-  background = "302270",
-  surface = "3a2b80",
-  surface_alt = "4c39a0",
-  border = "9368bf",
-  accent = "898efa",
-  foreground = "86f3f5",
-}
-`)
-
-    expect(theme).toEqual(expect.objectContaining({
-      background: '#302270',
-      foreground: '#86f3f5',
-      card: '#3a2b80',
-      primary: '#898efa',
-      accent: '#4c39a0',
-      border: '#9368bf',
-      sidebarPrimary: 'color-mix(in oklch, #898efa 22%, #302270)',
-      sidebarAccent: '#4c39a0',
-    }))
-  })
-
-  it('falls back to Lua border colors and gradients', () => {
-    const theme = parseOmarchyHyprlandTheme(`
-local active_border_color = { colors = { "rgba(8a8588ee)", "rgba(e2dddcee)" }, angle = 45 }
-local inactive_border_color = "rgba(584e51aa)"
-
-hl.config({
-  general = { col = {
-    active_border = active_border_color,
-    inactive_border = inactive_border_color,
-  } },
-})
-`)
-
-    expect(theme).toEqual(expect.objectContaining({
-      primary: '#8a8588',
-      primaryForeground: '#000000',
-      accent: '#584e51',
-      border: '#584e51',
-      sidebarPrimary: 'color-mix(in oklch, #8a8588 22%, var(--sidebar))',
-      sidebarAccent: '#584e51',
-    }))
-  })
-
-  it('rejects Lua without usable colors', () => {
-    expect(parseOmarchyHyprlandTheme('hl.config({ decoration = { rounding = 8 } })')).toBeNull()
   })
 })
