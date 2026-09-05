@@ -1,0 +1,77 @@
+name: Devin Issue Trigger
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  devin:
+    if: |
+      (
+        (github.event_name == 'issues' && github.event.issue.user.login == 'jagrat7' && contains(github.event.issue.body, '@devin')) ||
+        (github.event_name == 'issue_comment' && github.event.comment.user.login == 'jagrat7' && contains(github.event.comment.body, '@devin')) ||
+        (github.event_name == 'pull_request_review_comment' && github.event.comment.user.login == 'jagrat7' && contains(github.event.comment.body, '@devin'))
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: React to trigger
+        if: github.event.comment != null
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method POST \
+            "/repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" \
+            -f content='eyes' || true
+
+      - name: Create Devin session
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
+          REPO: ${{ github.repository }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          IS_PR: ${{ github.event.issue.pull_request != null || github.event_name == 'pull_request_review_comment' }}
+        run: |
+          BODY=$(jq -r '.comment.body // .issue.body // ""' "$GITHUB_EVENT_PATH")
+
+          if [ "$IS_PR" = "true" ]; then
+            KIND="pull request"
+          else
+            KIND="issue"
+          fi
+
+          PROMPT=$(printf '%s\n\n%s\n\n%s' \
+            "Investigate and handle the GitHub $KIND at $ISSUE_URL in repo $REPO." \
+            "Triggering comment / body:" \
+            "$BODY")
+
+          PAYLOAD=$(jq -n \
+            --arg prompt "$PROMPT" \
+            --arg title  "[$REPO] $ISSUE_TITLE" \
+            --arg repo   "$REPO" \
+            '{prompt: $prompt, title: $title, repos: [$repo]}')
+
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST \
+            "https://api.devin.ai/v3/organizations/$DEVIN_ORG_ID/sessions" \
+            -H "Authorization: Bearer $DEVIN_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY_RESP=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP $STATUS"
+          echo "$BODY_RESP"
+
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "201" ]; then
+            echo "::error::Failed to create Devin session (HTTP $STATUS)"
+            exit 1
+          fi
