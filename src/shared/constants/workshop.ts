@@ -26,6 +26,12 @@ export const WORKSHOP_TREND_DAYS = 30
 // We clamp the results surfaced to the UI so pagination never offers an unreachable page.
 export const WORKSHOP_MAX_RESULTS = 50000
 
+// Steam EItemState bitmask flags returned by workshop.state()
+// https://partner.steamgames.com/doc/api/ISteamUGC#EItemState
+export const ITEM_STATE_SUBSCRIBED = 1
+export const ITEM_STATE_INSTALLED = 4
+export const ITEM_STATE_NEEDS_UPDATE = 8
+
 // Number of Steam UGC pages we fetch in parallel per UI page. Bigger = fewer UI pages, more items
 // per request. Steam returns up to ~50 items per page, so a batch of 5 yields ~250 items per UI page.
 export const WORKSHOP_PAGE_BATCH_SIZE = 5

@@ -35,4 +35,10 @@ export interface IWorkshopService {
    * active download progress when available.
    */
   itemStatus(workshopId: string): Promise<WorkshopStatus | null>
+
+  /**
+   * Syncs subscribed Workshop items on init — downloads any that are subscribed
+   * but not yet installed locally.
+   */
+  syncSubscribedItems(): Promise<void>
 }
