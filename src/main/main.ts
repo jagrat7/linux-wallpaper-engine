@@ -1,4 +1,4 @@
-import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, Tray, Menu, screen } from 'electron'
+import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, screen } from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -6,37 +6,19 @@ import { appRouter } from './trpc/router.ts'
 import { settingsService as settings } from './services/settings.ts'
 import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
-import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
+import { resolveAssetPath } from './utils/assets.ts'
+import { createAppTray, type AppTray } from './utils/tray.ts'
 import { invalidationService } from './services/invalidation.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
 import { electronTheme } from './services/system-theme/system-theme.utils.ts'
 
 // Global ref to tray to avoid GC
-let tray: Tray | null = null
-let trayStartupRetry: TrayStartupRetry | null = null
+let appTray: AppTray | null = null
 let isQuitting = false
 
 systemThemeService.configurePlatform(electronTheme.createPlatform(nativeTheme, systemPreferences))
 
-const resolveAssetPath = (assetName: string): string => {
-  // If packaged normally in forge-maker
-  if (app.isPackaged)
-    return path.join(process.resourcesPath, 'assets', assetName)
-
-  // If packaged with Nix, the resource path will point to Electron's default,
-  // so it needs to point to the app directory, where the assets are copied
-  const appPath = app.getAppPath()
-  if (appPath.includes('app.asar'))
-    return path.join(path.dirname(appPath), 'assets', assetName)
-
-  // For local dev, relative paths just work
-  return path.join(__dirname, '../../assets', assetName)
-}
-
 const appIcon = nativeImage.createFromPath(resolveAssetPath('transparent-logo.png'))
-// Standard tray icon size (22x22 ensures pixmap data is sent via SNI on Wayland)
-const TRAY_ICON_SIZE = 22
-const trayIcon = appIcon.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE })
 
 const shouldMinimizeOnClose = (): boolean => {
   return settings.getSetting('enableSystemTray') && settings.getSetting('minimizeOnClose')
@@ -94,50 +76,6 @@ const createWindow = () => {
   return mainWindow
 }
 
-// Initialize the system tray with context menu
-const initializeTray = (mainWindow: BrowserWindow): void => {
-  if (tray !== null) return
-  tray = new Tray(trayIcon)
-
-  const toggleMainWindow = (): void => {
-    if (!mainWindow.isVisible()) {
-      mainWindow.show()
-    } else if (!mainWindow.isFocused()) {
-      mainWindow.focus()
-    }
-  }
-
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'Toggle App',
-      click: toggleMainWindow
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => {
-        app.quit()
-      }
-    }
-  ])
-
-  tray.setToolTip(mainWindow.title)
-  tray.setContextMenu(contextMenu)
-  tray.on('click', toggleMainWindow)
-}
-
-const ensureTray = (mainWindow: BrowserWindow): void => {
-  if (trayStartupRetry === null) {
-    trayStartupRetry = createTrayStartupRetry({
-      createTray: () => initializeTray(mainWindow),
-      hasTray: () => tray !== null,
-      shouldStop: () => isQuitting,
-    })
-  }
-
-  trayStartupRetry.start()
-}
-
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -157,15 +95,16 @@ app.whenReady().then(() => {
 
   const mainWindow = createWindow()
 
+  appTray = createAppTray({ mainWindow, appIcon, isQuitting: () => isQuitting })
+
   if (settings.getSetting('enableSystemTray'))
-    ensureTray(mainWindow)
+    appTray.ensure()
 
   mainWindow.on('close', (e) => {
     if (shouldMinimizeOnClose() && !isQuitting) {
       e.preventDefault()
       mainWindow.hide()
-      if (tray === null)
-        ensureTray(mainWindow)
+      appTray?.ensure()
     }
   })
 
@@ -187,14 +126,8 @@ app.whenReady().then(() => {
 app.on('before-quit', () => {
   systemThemeService.stopWatching()
   isQuitting = true
-  if (trayStartupRetry !== null) {
-    trayStartupRetry.stop()
-    trayStartupRetry = null
-  }
-  if (tray) {
-    tray.destroy()
-    tray = null
-  }
+  appTray?.dispose()
+  appTray = null
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

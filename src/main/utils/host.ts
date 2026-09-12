@@ -1,8 +1,9 @@
-import { spawn, exec, type ChildProcess, type SpawnOptions } from 'node:child_process'
+import { spawn, exec, execFile, type ChildProcess, type SpawnOptions } from 'node:child_process'
 import { promisify } from 'node:util'
 import * as fs from 'node:fs'
 
 const execPromise = promisify(exec)
+const execFilePromise = promisify(execFile)
 
 /**
  * Detect whether the app is running inside a Flatpak sandbox.
@@ -57,6 +58,13 @@ const shouldUseFlatpakSpawn = (): boolean =>
     isFlatpak() && !flatpakBypass
 
 /**
+ * Exported so callers can avoid paths that assume a directly-owned child
+ * process — under Flatpak, ChildProcess handles wrap `flatpak-spawn` rather
+ * than the real host process.
+ */
+export const usesFlatpakSpawn = (): boolean => shouldUseFlatpakSpawn()
+
+/**
  * Spawn a process, routing through `flatpak-spawn --host` when inside a Flatpak.
  */
 export const hostSpawn = (
@@ -81,6 +89,38 @@ export const hostExecAsync = (
         ? `flatpak-spawn ${envArgs} --host sh -c '${command.replace(/'/g, "'\\''")}'`
         : command
     return execPromise(cmd) as Promise<{ stdout: string; stderr: string }>
+}
+
+/**
+ * Promisified execFile that routes through `flatpak-spawn --host` when inside
+ * a Flatpak. Unlike hostExecAsync, the command is never run through a shell —
+ * arguments are passed verbatim as an argv array, so inputs containing shell
+ * metacharacters can't inject commands.
+ */
+export const hostExecFileAsync = (
+    file: string,
+    args: string[],
+): Promise<{ stdout: string; stderr: string }> => {
+    if (shouldUseFlatpakSpawn()) {
+        return new Promise((resolve, reject) => {
+            const proc = spawn('flatpak-spawn', [...getEnvForwardArgs(), '--host', file, ...args], {
+                stdio: ['ignore', 'pipe', 'pipe'],
+            })
+            let stdout = ''
+            let stderr = ''
+            proc.stdout?.on('data', (chunk) => { stdout += chunk })
+            proc.stderr?.on('data', (chunk) => { stderr += chunk })
+            proc.on('error', reject)
+            proc.on('close', (code) => {
+                if (code === 0) {
+                    resolve({ stdout, stderr })
+                } else {
+                    reject(new Error(`${file} exited with code ${code}`))
+                }
+            })
+        })
+    }
+    return execFilePromise(file, args) as Promise<{ stdout: string; stderr: string }>
 }
 
 export const hostCommandExists = async (command: string): Promise<boolean> => {

@@ -1,4 +1,4 @@
-import { Square, Volume2, VolumeX, Monitor, ListVideo } from "lucide-react"
+import { Square, Volume2, VolumeX, Monitor, ListVideo, Pause, Play } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -50,6 +50,8 @@ export function StatusBar({ className }: StatusBarProps) {
 
     const stopMutation = trpc.wallpaper.stopWalpaper.useMutation()
     const stopPlaylistMutation = trpc.playlist.stop.useMutation()
+    const pauseMutation = trpc.wallpaper.pause.useMutation()
+    const resumeMutation = trpc.wallpaper.resume.useMutation()
     const updateSettingsMutation = trpc.settings.update.useMutation()
     const utils = trpc.useUtils()
     const navigate = useNavigate()
@@ -67,6 +69,9 @@ export function StatusBar({ className }: StatusBarProps) {
 
     // Playlist driving the shown wallpaper's screen, if any
     const activePlaylist = activePlaylists.find(entry => entry.screen === activeWallpaper?.screen)
+
+    // Freezing the screen's process pauses wallpapers and playlists alike
+    const isPaused = activeWallpaper?.paused ?? false
 
     const hasMultipleScreens = displays.length > 1
     const otherActiveCount = activeWallpapers.filter(w => w.screen !== activeWallpaper?.screen).length
@@ -90,6 +95,17 @@ export function StatusBar({ className }: StatusBarProps) {
             })
         } else {
             await stopMutation.mutateAsync({ screen: activeWallpaper.screen })
+        }
+        utils.wallpaper.getActiveWallpaper.invalidate()
+        utils.playlist.active.invalidate()
+    }
+
+    const handlePauseToggle = async () => {
+        if (!activeWallpaper) return
+        if (isPaused) {
+            await resumeMutation.mutateAsync({ screen: activeWallpaper.screen })
+        } else {
+            await pauseMutation.mutateAsync({ screen: activeWallpaper.screen })
         }
         utils.wallpaper.getActiveWallpaper.invalidate()
         utils.playlist.active.invalidate()
@@ -131,7 +147,7 @@ export function StatusBar({ className }: StatusBarProps) {
                 <div className="flex items-center gap-2">
                     {activeWallpaper ? (
                         <>
-                            <div className="size-2 rounded-full bg-success" />
+                            <div className={cn("size-2 rounded-full", isPaused ? "bg-warning" : "bg-success")} />
                             {activePlaylist ? (
                                 // The backend rotates playlist wallpapers internally, so the
                                 // current title is unknown — show the playlist itself instead
@@ -184,6 +200,16 @@ export function StatusBar({ className }: StatusBarProps) {
                     title={settings?.silent ? "Unmute" : "Mute"}
                 >
                     {settings?.silent ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-7"
+                    onClick={handlePauseToggle}
+                    disabled={!activeWallpaper}
+                    title={isPaused ? "Resume wallpaper" : "Pause wallpaper"}
+                >
+                    {isPaused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
                 </Button>
                 <Button
                     variant="ghost"

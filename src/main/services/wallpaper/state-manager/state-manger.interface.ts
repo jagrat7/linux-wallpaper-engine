@@ -17,6 +17,11 @@ export interface IStateManager {
   save(): void
   reset(): void
 
+  // Paused (frozen) process state
+  getPausedScreens(): string[]
+  isPaused(screen: string): boolean
+  markPaused(screens: string[], paused: boolean): void
+
   // Applied history (drives the "recent" sort)
   getAppliedHistory(): Record<string, number>
   recordApplied(backgroundId: string): void
