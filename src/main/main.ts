@@ -1,4 +1,4 @@
-import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, Tray, Menu, screen, Notification } from 'electron'
+import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, screen } from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -6,40 +6,19 @@ import { appRouter } from './trpc/router.ts'
 import { settingsService as settings } from './services/settings.ts'
 import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
-import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
+import { resolveAssetPath } from './utils/assets.ts'
+import { createAppTray, type AppTray } from './utils/tray.ts'
 import { invalidationService } from './services/invalidation.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
 import { electronTheme } from './services/system-theme/system-theme.utils.ts'
-import { wallpaperService } from './services/wallpaper/wallpaper.ts'
-import { playlistService } from './services/playlists/playlist.ts'
-import { APP_NAME } from '../shared/constants/app.ts'
 
 // Global ref to tray to avoid GC
-let tray: Tray | null = null
-let trayStartupRetry: TrayStartupRetry | null = null
+let appTray: AppTray | null = null
 let isQuitting = false
 
 systemThemeService.configurePlatform(electronTheme.createPlatform(nativeTheme, systemPreferences))
 
-const resolveAssetPath = (assetName: string): string => {
-  // If packaged normally in forge-maker
-  if (app.isPackaged)
-    return path.join(process.resourcesPath, 'assets', assetName)
-
-  // If packaged with Nix, the resource path will point to Electron's default,
-  // so it needs to point to the app directory, where the assets are copied
-  const appPath = app.getAppPath()
-  if (appPath.includes('app.asar'))
-    return path.join(path.dirname(appPath), 'assets', assetName)
-
-  // For local dev, relative paths just work
-  return path.join(__dirname, '../../assets', assetName)
-}
-
 const appIcon = nativeImage.createFromPath(resolveAssetPath('transparent-logo.png'))
-// Standard tray icon size (22x22 ensures pixmap data is sent via SNI on Wayland)
-const TRAY_ICON_SIZE = 22
-const trayIcon = appIcon.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE })
 
 const shouldMinimizeOnClose = (): boolean => {
   return settings.getSetting('enableSystemTray') && settings.getSetting('minimizeOnClose')
@@ -97,108 +76,6 @@ const createWindow = () => {
   return mainWindow
 }
 
-const toggleMainWindow = (mainWindow: BrowserWindow): void => {
-  if (!mainWindow.isVisible()) {
-    mainWindow.show()
-  } else if (!mainWindow.isFocused()) {
-    mainWindow.focus()
-  }
-}
-
-// Tray actions have no other feedback surface — report failures as a desktop
-// notification so they aren't silent no-ops
-const notifyFailure = (error: string | undefined, fallback: string): void => {
-  new Notification({ title: APP_NAME, body: error ?? fallback }).show()
-}
-
-// Stop everything (wallpapers and playlists) from the tray
-const stopAllWallpapers = async (): Promise<void> => {
-  const result = await wallpaperService.stop()
-  if (result.success) playlistService.clearActivePlaylist()
-}
-
-// Tray menu reflects live playback state; rebuilt whenever it changes.
-// Pause/resume/stop work for playlists too — a playlist runs as the same
-// tracked backend process, so freezing it halts rendering and rotation.
-const buildTrayContextMenu = (mainWindow: BrowserWindow) => {
-  const activeScreens = wallpaperService.getActiveScreens()
-  const pausedScreens = wallpaperService.getPausedScreens()
-  const hasActive = activeScreens.length > 0
-  const hasPaused = pausedScreens.length > 0
-  const hasUnpaused = activeScreens.some(screen => !pausedScreens.includes(screen))
-
-  return Menu.buildFromTemplate([
-    {
-      label: 'Toggle App',
-      click: () => toggleMainWindow(mainWindow)
-    },
-    { type: 'separator' },
-    {
-      label: 'Pause Wallpaper',
-      enabled: hasUnpaused,
-      click: async () => {
-        const result = await wallpaperService.pause()
-        if (!result.success) notifyFailure(result.error, 'Failed to pause wallpapers')
-      }
-    },
-    {
-      label: 'Resume Wallpaper',
-      enabled: hasPaused,
-      click: async () => {
-        const result = await wallpaperService.resume()
-        if (!result.success) notifyFailure(result.error, 'Failed to resume wallpapers')
-      }
-    },
-    {
-      label: 'Random Wallpaper',
-      click: async () => {
-        const result = await wallpaperService.applyRandom()
-        if (!result.success) notifyFailure(result.error, 'Failed to apply a random wallpaper')
-      }
-    },
-    {
-      label: 'Stop Wallpaper',
-      enabled: hasActive,
-      click: () => { void stopAllWallpapers() }
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => {
-        app.quit()
-      }
-    }
-  ])
-}
-
-const refreshTrayMenu = (mainWindow: BrowserWindow): void => {
-  if (tray !== null) {
-    tray.setContextMenu(buildTrayContextMenu(mainWindow))
-  }
-}
-
-// Initialize the system tray with context menu
-const initializeTray = (mainWindow: BrowserWindow): void => {
-  if (tray !== null) return
-  tray = new Tray(trayIcon)
-
-  tray.setToolTip(mainWindow.title)
-  tray.setContextMenu(buildTrayContextMenu(mainWindow))
-  tray.on('click', () => toggleMainWindow(mainWindow))
-}
-
-const ensureTray = (mainWindow: BrowserWindow): void => {
-  if (trayStartupRetry === null) {
-    trayStartupRetry = createTrayStartupRetry({
-      createTray: () => initializeTray(mainWindow),
-      hasTray: () => tray !== null,
-      shouldStop: () => isQuitting,
-    })
-  }
-
-  trayStartupRetry.start()
-}
-
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -218,15 +95,16 @@ app.whenReady().then(() => {
 
   const mainWindow = createWindow()
 
+  appTray = createAppTray({ mainWindow, appIcon, isQuitting: () => isQuitting })
+
   if (settings.getSetting('enableSystemTray'))
-    ensureTray(mainWindow)
+    appTray.ensure()
 
   mainWindow.on('close', (e) => {
     if (shouldMinimizeOnClose() && !isQuitting) {
       e.preventDefault()
       mainWindow.hide()
-      if (tray === null)
-        ensureTray(mainWindow)
+      appTray?.ensure()
     }
   })
 
@@ -234,18 +112,6 @@ app.whenReady().then(() => {
     router: appRouter,
     windows: [mainWindow],
     createContext: async () => createTrpcContext(),
-  })
-
-  // Keep the tray menu in sync with playback state (apply/stop/pause/resume)
-  invalidationService.subscribe((key) => {
-    if (
-      key === 'wallpaper.applied' ||
-      key === 'wallpaper.stopped' ||
-      key === 'wallpaper.paused' ||
-      key === 'wallpaper.resumed'
-    ) {
-      refreshTrayMenu(mainWindow)
-    }
   })
 
   // Push a display.list invalidation to the renderer whenever monitors
@@ -260,14 +126,8 @@ app.whenReady().then(() => {
 app.on('before-quit', () => {
   systemThemeService.stopWatching()
   isQuitting = true
-  if (trayStartupRetry !== null) {
-    trayStartupRetry.stop()
-    trayStartupRetry = null
-  }
-  if (tray) {
-    tray.destroy()
-    tray = null
-  }
+  appTray?.dispose()
+  appTray = null
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
