@@ -172,7 +172,7 @@ Item {
                             property bool valid: text.length === 0 || /^[1-9]\d*x[1-9]\d*$/.test(text)
                         }
                         Button {
-                            text: "✓"
+                            icon.source: "../icons/check.svg"
                             enabled: geomField.valid
                             onClicked: page.update("windowGeometry", geomField.text.length ? geomField.text : null)
                         }

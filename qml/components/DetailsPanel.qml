@@ -137,7 +137,7 @@ Rectangle {
                     wrapMode: Text.WordWrap
                 }
                 Button {
-                    text: "✕"
+                    icon.source: "../icons/x.svg"
                     flat: true
                     onClicked: panel.closed()
                 }
@@ -155,6 +155,11 @@ Rectangle {
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                     sourceSize: Qt.size(680, 340)
+                }
+                CornerMask {
+                    anchors.fill: parent
+                    radius: 10
+                    maskColor: AppState.colors.surface
                 }
             }
 
@@ -217,7 +222,7 @@ Rectangle {
                 }
                 Button {
                     visible: !!(panel.wallpaper && panel.wallpaper.workshopId)
-                    text: "↗"
+                    icon.source: "../icons/external-link.svg"
                     ToolTip.visible: hovered; ToolTip.text: "Open in browser"
                     onClicked: AppState.rpc("window.openExternal", { url: "https://steamcommunity.com/sharedfiles/filedetails/?id=" + panel.wallpaper.workshopId })
                 }

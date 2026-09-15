@@ -57,10 +57,11 @@ Button {
         width: 22
         cursorShape: Qt.PointingHandCursor
         onClicked: menu.open()
-        Label {
+        Icon {
             anchors.centerIn: parent
-            text: "▾"
-            color: AppState.colors.fg
+            src: "../icons/chevron-down.svg"
+            tint: AppState.colors.fg
+            size: 14
         }
     }
 }

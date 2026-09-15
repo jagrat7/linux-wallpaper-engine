@@ -151,7 +151,7 @@ Item {
                     }
                     Label {
                         visible: row.activeScreens.length > 0
-                        text: "▶ Active on: " + row.activeScreens.join(", ")
+                        text: "Active on: " + row.activeScreens.join(", ")
                         color: AppState.colors.success
                         font.pixelSize: 11
                     }
@@ -179,6 +179,11 @@ Item {
                                 fillMode: Image.PreserveAspectCrop
                                 asynchronous: true
                                 sourceSize: Qt.size(88, 60)
+                            }
+                            CornerMask {
+                                anchors.fill: parent
+                                radius: 5
+                                maskColor: AppState.colors.card
                             }
                         }
                     }

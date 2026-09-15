@@ -76,6 +76,11 @@ Item {
                             sourceSize: Qt.size(360, 220)
                             visible: status === AnimatedImage.Ready
                         }
+                        CornerMask {
+                            anchors.fill: parent
+                            radius: 8
+                            maskColor: AppState.colors.bg
+                        }
                         Label {
                             visible: !parent.active
                             anchors.centerIn: parent
@@ -135,7 +140,7 @@ Item {
                             Rectangle {
                                 width: 36; height: 36; radius: 6
                                 color: AppState.colors.secondary
-                                Label { anchors.centerIn: parent; text: "🖥"; font.pixelSize: 16 }
+                                Icon { anchors.centerIn: parent; src: "../icons/monitor.svg"; tint: AppState.colors.mutedFg; size: 16 }
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true

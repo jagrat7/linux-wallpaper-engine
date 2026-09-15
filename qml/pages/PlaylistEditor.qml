@@ -118,7 +118,7 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Button { text: "← Back"; flat: true; onClicked: editor.done() }
+                Button { text: "Back"; icon.source: "../icons/arrow-left.svg"; flat: true; onClicked: editor.done() }
                 Label {
                     text: editor.editName ? "Edit Playlist" : "New Playlist"
                     font.bold: true; font.pixelSize: 18; color: AppState.colors.fg

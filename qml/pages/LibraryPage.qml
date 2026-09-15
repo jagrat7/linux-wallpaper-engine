@@ -63,6 +63,7 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: grid.refreshing ? "Refreshing…" : "Refresh"
+                    icon.source: "../icons/rotate-cw.svg"
                     enabled: !grid.refreshing
                     onClicked: {
                         grid.refreshing = true
@@ -88,13 +89,13 @@ Item {
                     leftPadding: 34
                     onTextChanged: searchDebounce.restart()
                     Keys.onEscapePressed: { text = ""; AppState.librarySearch = ""; focus = false }
-                    Label {
+                    Icon {
                         anchors.left: parent.left
-                        anchors.leftMargin: 12
+                        anchors.leftMargin: 10
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "⌕"
-                        font.pixelSize: 14
-                        color: AppState.colors.mutedFg
+                        src: "../icons/search.svg"
+                        tint: AppState.colors.mutedFg
+                        size: 15
                     }
 
                     Timer {
@@ -102,18 +103,17 @@ Item {
                         interval: 250
                         onTriggered: AppState.librarySearch = searchField.text
                     }
-                    Label {
+                    ToolButton {
                         visible: searchField.text.length > 0
                         anchors.right: parent.right
-                        anchors.rightMargin: 6
+                        anchors.rightMargin: 4
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "✕"
-                        color: AppState.colors.mutedFg
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: { searchField.text = ""; AppState.librarySearch = "" }
-                        }
+                        icon.source: "../icons/x.svg"
+                        icon.color: AppState.colors.mutedFg
+                        icon.width: 13; icon.height: 13
+                        flat: true
+                        implicitWidth: 26; implicitHeight: 26
+                        onClicked: { searchField.text = ""; AppState.librarySearch = "" }
                     }
                     Shortcut {
                         sequence: "Ctrl+K"
@@ -145,6 +145,7 @@ Item {
                 }
                 Button {
                     text: "Filters" + (page.activeFilterCount() ? " (" + page.activeFilterCount() + ")" : "")
+                    icon.source: "../icons/sliders-horizontal.svg"
                     highlighted: page.activeFilterCount() > 0
                     onClicked: {
                         filterPopup.sections = page.filterSections()
@@ -164,7 +165,8 @@ Item {
                     onActivated: AppState.updateSetting("sortBy", model[currentIndex].value)
                 }
                 Button {
-                    text: (AppState.settings && AppState.settings.sortOrder === "asc") ? "↑ Asc" : "↓ Desc"
+                    text: (AppState.settings && AppState.settings.sortOrder === "asc") ? "Asc" : "Desc"
+                    icon.source: (AppState.settings && AppState.settings.sortOrder === "asc") ? "../icons/arrow-up.svg" : "../icons/arrow-down.svg"
                     onClicked: AppState.updateSetting("sortOrder", (AppState.settings && AppState.settings.sortOrder === "asc") ? "desc" : "asc")
                 }
                 Item { Layout.fillWidth: true }
@@ -226,7 +228,8 @@ Item {
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     anchors.margins: 16
-                    text: "↑"
+                    icon.source: "../icons/arrow-up.svg"
+                    icon.color: AppState.colors.fg
                     onClicked: grid.positionViewAtBeginning()
                 }
             }

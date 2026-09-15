@@ -4,6 +4,7 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Qt.labs.platform as Labs
 import "."
+import "components"
 import "pages"
 
 ApplicationWindow {
@@ -26,11 +27,11 @@ ApplicationWindow {
 
     property int navIndex: 0
     readonly property var navModel: [
-        { label: "Library", icon: "🖼" },
-        { label: "Displays", icon: "🖥" },
-        { label: "Playlists", icon: "▶" },
-        { label: "Workshop", icon: "🛒" },
-        { label: "Settings", icon: "⚙" }
+        { label: "Library", icon: "icons/download.svg" },
+        { label: "Workshop", icon: "icons/steam.svg" },
+        { label: "Playlists", icon: "icons/list-video.svg" },
+        { label: "Displays", icon: "icons/monitor.svg" },
+        { label: "Settings", icon: "icons/settings.svg" }
     ]
 
     Component.onCompleted: {
@@ -87,6 +88,8 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+4"; onActivated: win.navIndex = 3 }
     Shortcut { sequence: "Ctrl+5"; onActivated: win.navIndex = 4 }
 
+    function goToSettings() { win.navIndex = 4 }
+
     // Palette for QtQuick.Controls
     palette.window: AppState.colors.bg
     palette.windowText: AppState.colors.fg
@@ -107,10 +110,10 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 0
 
-        // ── Sidebar ──────────────────────────────────────────────────
+        // ── Sidebar: icon rail, same as the React app ────────────────
         Rectangle {
             Layout.fillHeight: true
-            width: 216
+            width: 60
             color: AppState.colors.surface
             // right edge separator
             Rectangle {
@@ -122,94 +125,68 @@ ApplicationWindow {
             }
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 12
-                spacing: 4
+                anchors.topMargin: 10
+                anchors.bottomMargin: 10
+                spacing: 6
 
-                // brand
-                RowLayout {
+                // app logo
+                Item {
                     Layout.fillWidth: true
-                    Layout.bottomMargin: 14
-                    spacing: 10
-                    Rectangle {
-                        width: 30; height: 30; radius: 9
-                        color: AppState.colors.primary
-                        Label {
-                            anchors.centerIn: parent
-                            text: "🖼"
-                            font.pixelSize: 15
-                        }
+                    Layout.preferredHeight: 44
+                    Image {
+                        anchors.centerIn: parent
+                        width: 30; height: 30
+                        source: "../assets/transparent-logo.png"
+                        fillMode: Image.PreserveAspectFit
                     }
-                    ColumnLayout {
-                        spacing: 0
-                        Label {
-                            text: "Wallpaper Engine"
-                            font.bold: true
-                            font.pixelSize: 14
-                            color: AppState.colors.fg
-                        }
-                        Label {
-                            text: "for Linux"
-                            font.pixelSize: 10
-                            color: AppState.colors.mutedFg
-                        }
-                    }
+                }
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 8
+                    Layout.rightMargin: 8
+                    Layout.bottomMargin: 4
+                    height: 1
+                    color: AppState.colors.border
                 }
 
                 Repeater {
                     model: win.navModel
-                    delegate: Rectangle {
-                        id: navItem
-                        Layout.fillWidth: true
-                        height: 38
-                        radius: 10
+                    delegate: ToolButton {
+                        id: navBtn
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: 42
+                        Layout.preferredHeight: 42
                         readonly property bool active: win.navIndex === index
-                        color: active ? AppState.colors.primarySoft
-                             : (navHover.hovered ? AppState.colors.card : "transparent")
-                        Behavior on color { ColorAnimation { duration: 100 } }
-
-                        // accent indicator on the selected item
-                        Rectangle {
-                            visible: navItem.active
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.leftMargin: 6
-                            width: 3; height: 16; radius: 2
-                            color: AppState.colors.primary
-                        }
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 16
-                            spacing: 10
-                            Label { text: modelData.icon; font.pixelSize: 15 }
-                            Label {
-                                text: modelData.label
-                                color: navItem.active ? AppState.colors.primary : AppState.colors.fg
-                                font.weight: navItem.active ? Font.DemiBold : Font.Normal
-                            }
-                        }
-                        HoverHandler { id: navHover }
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: win.navIndex = index
+                        icon.source: modelData.icon
+                        icon.width: 19
+                        icon.height: 19
+                        icon.color: active ? AppState.colors.primary : AppState.colors.mutedFg
+                        flat: true
+                        checkable: true
+                        checked: active
+                        autoExclusive: false
+                        ToolTip.text: modelData.label
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 400
+                        onClicked: win.navIndex = index
+                        background: Rectangle {
+                            radius: 10
+                            color: navBtn.active ? AppState.colors.primarySoft
+                               : (navBtn.hovered ? AppState.colors.card : "transparent")
+                            Behavior on color { ColorAnimation { duration: 100 } }
                         }
                     }
                 }
                 Item { Layout.fillHeight: true }
 
-                // daemon status footer
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Rectangle {
-                        width: 8; height: 8; radius: 4
-                        color: AppState.daemonConnected ? AppState.colors.success : AppState.colors.destructive
-                    }
-                    Label {
-                        text: AppState.daemonConnected ? "Daemon connected" : "Daemon offline"
-                        color: AppState.colors.mutedFg
-                        font.pixelSize: 11
-                    }
+                // daemon status
+                Rectangle {
+                    Layout.alignment: Qt.AlignHCenter
+                    width: 8; height: 8; radius: 4
+                    color: AppState.daemonConnected ? AppState.colors.success : AppState.colors.destructive
+                    ToolTip.visible: statusHover.hovered
+                    ToolTip.text: AppState.daemonConnected ? "Daemon connected" : "Daemon offline"
+                    HoverHandler { id: statusHover }
                 }
             }
         }
@@ -299,9 +276,9 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 currentIndex: win.navIndex
                 LibraryPage {}
-                DisplaysPage {}
-                PlaylistsPage {}
                 WorkshopPage { id: workshopPage }
+                PlaylistsPage {}
+                DisplaysPage {}
                 SettingsPage { id: settingsPage }
             }
 
@@ -342,9 +319,14 @@ ApplicationWindow {
                     anchors.fill: parent
                     anchors.leftMargin: 12
                     anchors.rightMargin: 12
-                    spacing: 12
+                    spacing: 10
+                    Icon {
+                        src: "icons/monitor.svg"
+                        tint: AppState.colors.mutedFg
+                        size: 14
+                    }
                     Label {
-                        text: "🖥 " + (parent.parent.primary ? parent.parent.primary.name : "No display")
+                        text: parent.parent.primary ? parent.parent.primary.name : "No display"
                         color: AppState.colors.mutedFg
                         font.pixelSize: 12
                     }
@@ -362,7 +344,7 @@ ApplicationWindow {
                         text: {
                             var a = parent.parent.activeOnPrimary
                             var p = parent.parent.playlistHere
-                            if (p) return "▶ " + p.name
+                            if (p) return p.name
                             return a ? a.title : "No wallpaper"
                         }
                         color: AppState.colors.fg
@@ -382,14 +364,22 @@ ApplicationWindow {
                             }
                         }
                     }
-                    Button {
-                        text: AppState.settings && AppState.settings.silent ? "🔇" : "🔊"
+                    ToolButton {
+                        icon.source: AppState.settings && AppState.settings.silent ? "icons/volume-x.svg" : "icons/volume-2.svg"
+                        icon.color: AppState.colors.mutedFg
+                        icon.width: 16; icon.height: 16
                         flat: true
+                        ToolTip.text: AppState.settings && AppState.settings.silent ? "Unmute" : "Mute"
+                        ToolTip.visible: hovered
                         onClicked: AppState.updateSetting("silent", !(AppState.settings && AppState.settings.silent))
                     }
-                    Button {
-                        text: "■"
+                    ToolButton {
+                        icon.source: "icons/square.svg"
+                        icon.color: enabled ? AppState.colors.mutedFg : AppState.colors.border
+                        icon.width: 14; icon.height: 14
                         flat: true
+                        ToolTip.text: "Stop wallpaper"
+                        ToolTip.visible: hovered
                         enabled: !!parent.parent.activeOnPrimary
                         onClicked: {
                             var bar = parent.parent

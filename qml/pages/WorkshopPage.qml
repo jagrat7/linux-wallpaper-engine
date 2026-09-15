@@ -296,8 +296,11 @@ Item {
                             RowLayout {
                                 Layout.fillWidth: true
                                 Label { text: section.title; font.bold: true; font.pixelSize: 14; color: AppState.colors.fg }
-                                Button {
-                                    text: (AppState.settings && (AppState.settings.favoriteDiscoverSectionIds || []).indexOf(section.id) >= 0) ? "★" : "☆"
+                                ToolButton {
+                                    property bool favorited: AppState.settings && (AppState.settings.favoriteDiscoverSectionIds || []).indexOf(section.id) >= 0
+                                    icon.source: "../icons/star.svg"
+                                    icon.color: favorited ? AppState.colors.warning : AppState.colors.mutedFg
+                                    icon.width: 16; icon.height: 16
                                     flat: true
                                     ToolTip.visible: hovered; ToolTip.text: "Favorite section"
                                     onClicked: page.toggleFavoriteSection(section.id)
@@ -364,9 +367,9 @@ Item {
                 }
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter
-                    Button { text: "← Prev"; enabled: page.browsePage > 1 && !page.loading; onClicked: page.loadBrowse(page.browsePage - 1) }
+                    Button { text: "Prev"; icon.source: "../icons/arrow-left.svg"; enabled: page.browsePage > 1 && !page.loading; onClicked: page.loadBrowse(page.browsePage - 1) }
                     Label { text: "Page " + page.browsePage + (page.browseTotal ? " · " + page.browseTotal + " results" : ""); color: AppState.colors.mutedFg }
-                    Button { text: "Next →"; enabled: page.browseHasNext && !page.loading; onClicked: page.loadBrowse(page.browsePage + 1) }
+                    Button { text: "Next"; icon.source: "../icons/arrow-right.svg"; enabled: page.browseHasNext && !page.loading; onClicked: page.loadBrowse(page.browsePage + 1) }
                 }
             }
         }
@@ -400,7 +403,7 @@ Item {
                             font.bold: true; font.pixelSize: 16; color: AppState.colors.fg
                             wrapMode: Text.WordWrap; Layout.fillWidth: true
                         }
-                        Button { text: "✕"; flat: true; onClicked: page.selected = null }
+                        ToolButton { icon.source: "../icons/x.svg"; icon.color: AppState.colors.mutedFg; flat: true; onClicked: page.selected = null }
                     }
                     Rectangle {
                         Layout.fillWidth: true
@@ -414,6 +417,11 @@ Item {
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                             sourceSize: Qt.size(680, 340)
+                        }
+                        CornerMask {
+                            anchors.fill: parent
+                            radius: 10
+                            maskColor: AppState.colors.surface
                         }
                     }
                     Label { text: "by " + (page.selected ? (page.selected.author || "Unknown") : ""); color: AppState.colors.mutedFg; font.pixelSize: 11 }
@@ -456,8 +464,10 @@ Item {
                             enabled: !page.subscribing
                             onClicked: (page.selectedStatus && page.selectedStatus.path) ? page.unsubscribe() : page.subscribe()
                         }
-                        Button {
-                            text: "↗"
+                        ToolButton {
+                            icon.source: "../icons/external-link.svg"
+                            icon.color: AppState.colors.mutedFg
+                            flat: true
                             ToolTip.visible: hovered; ToolTip.text: "Open in browser"
                             onClicked: AppState.rpc("window.openExternal", { url: "https://steamcommunity.com/sharedfiles/filedetails/?id=" + page.selected.id })
                         }
