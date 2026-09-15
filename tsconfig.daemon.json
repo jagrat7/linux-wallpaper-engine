@@ -1,0 +1,9 @@
+{
+  "include": ["src/daemon/**/*.ts"],
+  "compilerOptions": {
+    "target": "ESNext", "module": "ESNext", "moduleResolution": "bundler",
+    "strict": true, "skipLibCheck": true, "noEmit": true,
+    "allowImportingTsExtensions": true, "esModuleInterop": true,
+    "resolveJsonModule": true, 
+  }
+}
