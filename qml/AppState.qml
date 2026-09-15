@@ -38,36 +38,36 @@ QtObject {
 
     // ── Theme ──────────────────────────────────────────────────────────
     readonly property var paletteDark: ({
-        scheme: "dark", bg: "#1e1e2e", fg: "#cdd6f4", card: "#313244",
-        cardFg: "#cdd6f4", primary: "#89b4fa", primaryFg: "#1e1e2e",
-        secondary: "#313244", secondaryFg: "#cdd6f4", muted: "#313244",
-        mutedFg: "#a6adc8", accent: "#45475a", accentFg: "#cdd6f4",
-        destructive: "#f38ba8", border: "#585b70", success: "#a6e3a1",
-        warning: "#f9e2af"
+        scheme: "dark", bg: "#0f1219", surface: "#151b27", card: "#1c2433",
+        fg: "#e6eaf5", cardFg: "#e6eaf5", primary: "#7aa2f7", primaryFg: "#0d1119",
+        primarySoft: "#2e7aa2f7", secondary: "#232c3f", secondaryFg: "#cdd6ea",
+        muted: "#1c2433", mutedFg: "#8b94ab", accent: "#232c3f",
+        accentFg: "#e6eaf5", destructive: "#f7768e", border: "#2a3448",
+        success: "#9ece6a", warning: "#e0af68", chip: "#b3000000"
     })
     readonly property var paletteLight: ({
-        scheme: "light", bg: "#fafafa", fg: "#18181b", card: "#ffffff",
-        cardFg: "#18181b", primary: "#2563eb", primaryFg: "#ffffff",
-        secondary: "#e4e4e7", secondaryFg: "#18181b", muted: "#f4f4f5",
-        mutedFg: "#71717a", accent: "#e4e4e7", accentFg: "#18181b",
-        destructive: "#dc2626", border: "#d4d4d8", success: "#16a34a",
-        warning: "#ca8a04"
+        scheme: "light", bg: "#f3f5f9", surface: "#eaeef5", card: "#ffffff",
+        fg: "#1c2331", cardFg: "#1c2331", primary: "#4c6ef5", primaryFg: "#ffffff",
+        primarySoft: "#1f4c6ef5", secondary: "#e6eaf1", secondaryFg: "#1c2331",
+        muted: "#eef1f7", mutedFg: "#667085", accent: "#e6eaf1",
+        accentFg: "#1c2331", destructive: "#dc2626", border: "#dbe0ea",
+        success: "#16a34a", warning: "#d97706", chip: "#b3000000"
     })
     readonly property var paletteSteam: ({
-        scheme: "dark", bg: "#1b2838", fg: "#c7d5e0", card: "#171d25",
-        cardFg: "#c7d5e0", primary: "#66c0f4", primaryFg: "#171d25",
-        secondary: "#2a475e", secondaryFg: "#c7d5e0", muted: "#2a475e",
-        mutedFg: "#8f98a0", accent: "#2a475e", accentFg: "#c7d5e0",
-        destructive: "#c94b4b", border: "#2a475e", success: "#5c7e10",
-        warning: "#b8a34a"
+        scheme: "dark", bg: "#1b2838", surface: "#16202d", card: "#22303f",
+        fg: "#c7d5e0", cardFg: "#c7d5e0", primary: "#66c0f4", primaryFg: "#171d25",
+        primarySoft: "#3366c0f4", secondary: "#2a475e", secondaryFg: "#c7d5e0",
+        muted: "#1f2c3a", mutedFg: "#8f98a0", accent: "#2a475e",
+        accentFg: "#c7d5e0", destructive: "#c94b4b", border: "#2a475e",
+        success: "#5c7e10", warning: "#b8a34a", chip: "#b3000000"
     })
     readonly property var paletteHardLight: ({
-        scheme: "light", bg: "#ffffff", fg: "#000000", card: "#ffffff",
-        cardFg: "#000000", primary: "#0000ee", primaryFg: "#ffffff",
-        secondary: "#e8e8e8", secondaryFg: "#000000", muted: "#f0f0f0",
-        mutedFg: "#333333", accent: "#d0d0d0", accentFg: "#000000",
-        destructive: "#cc0000", border: "#888888", success: "#006600",
-        warning: "#996600"
+        scheme: "light", bg: "#ffffff", surface: "#f0f0f0", card: "#ffffff",
+        fg: "#000000", cardFg: "#000000", primary: "#0000ee", primaryFg: "#ffffff",
+        primarySoft: "#200000ee", secondary: "#e8e8e8", secondaryFg: "#000000",
+        muted: "#f0f0f0", mutedFg: "#333333", accent: "#d0d0d0",
+        accentFg: "#000000", destructive: "#cc0000", border: "#888888",
+        success: "#006600", warning: "#996600", chip: "#b3000000"
     })
 
     // Resolved color set. theme=system follows the OS color scheme live via

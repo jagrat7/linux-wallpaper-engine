@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import ".."
 import "../components"
@@ -129,6 +130,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.maximumWidth: 320
                 placeholderText: "Search wallpapers…"
+                Material.containerStyle: Material.Filled
                 onTextChanged: editor.search = text
             }
 
@@ -141,7 +143,7 @@ Item {
                     model: editor.items
                     delegate: Rectangle {
                         height: 22; width: chipLbl.implicitWidth + 28; radius: 11
-                        color: AppState.colors.accent
+                        color: AppState.colors.primarySoft
                         Label {
                             id: chipLbl
                             anchors.centerIn: parent
@@ -152,7 +154,7 @@ Item {
                                 return (index + 1) + ". " + String(modelData).split("/").pop()
                             }
                             font.pixelSize: 10
-                            color: AppState.colors.accentFg
+                            color: AppState.colors.primary
                         }
                         MouseArea {
                             anchors.fill: parent
@@ -184,8 +186,8 @@ Item {
                     onClicked: editor.toggleItem(modelData.path)
                     Rectangle {
                         visible: editor.items.indexOf(modelData.path) >= 0
-                        anchors.top: parent.top
-                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                        anchors.right: parent.right
                         anchors.margins: 6
                         width: 22; height: 22; radius: 11
                         color: AppState.colors.primary
@@ -281,6 +283,7 @@ Item {
                 Button {
                     Layout.fillWidth: true
                     text: editor.editName ? "Save Playlist" : "Create Playlist"
+                    highlighted: true
                     onClicked: editor.save()
                 }
             }

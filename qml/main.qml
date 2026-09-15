@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Qt.labs.platform as Labs
 import "."
@@ -12,6 +13,16 @@ ApplicationWindow {
     height: 800
     title: "Linux Wallpaper Engine"
     color: AppState.colors.bg
+
+    // Material style, driven live by the resolved palette (light/dark/system).
+    // Note: the style owns Material.background on the window (it re-assigns
+    // it when the theme flips), so the window background is an explicit item.
+    Material.theme: AppState.dark ? Material.Dark : Material.Light
+    Material.primary: AppState.colors.primary
+    Material.accent: AppState.colors.primary
+    Material.foreground: AppState.colors.fg
+    Material.roundedScale: Material.MediumScale
+    background: Rectangle { color: AppState.colors.bg }
 
     property int navIndex: 0
     readonly property var navModel: [
@@ -87,45 +98,96 @@ ApplicationWindow {
     palette.highlightedText: AppState.colors.primaryFg
     palette.placeholderText: AppState.colors.mutedFg
 
-    RowLayout {
+    // Explicit fill so the app bg paints inside contentItem (also what the
+    // grab harness captures — window-level color/background wouldn't show).
+    Rectangle {
+        anchors.fill: parent
+        color: AppState.colors.bg
+        RowLayout {
         anchors.fill: parent
         spacing: 0
 
         // ── Sidebar ──────────────────────────────────────────────────
         Rectangle {
             Layout.fillHeight: true
-            width: 200
-            color: AppState.colors.card
+            width: 216
+            color: AppState.colors.surface
+            // right edge separator
+            Rectangle {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 1
+                color: AppState.colors.border
+            }
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 8
-                spacing: 2
-                Label {
-                    text: "Wallpaper Engine"
-                    font.bold: true
-                    font.pixelSize: 15
-                    color: AppState.colors.fg
+                anchors.margins: 12
+                spacing: 4
+
+                // brand
+                RowLayout {
                     Layout.fillWidth: true
-                    Layout.bottomMargin: 12
+                    Layout.bottomMargin: 14
+                    spacing: 10
+                    Rectangle {
+                        width: 30; height: 30; radius: 9
+                        color: AppState.colors.primary
+                        Label {
+                            anchors.centerIn: parent
+                            text: "🖼"
+                            font.pixelSize: 15
+                        }
+                    }
+                    ColumnLayout {
+                        spacing: 0
+                        Label {
+                            text: "Wallpaper Engine"
+                            font.bold: true
+                            font.pixelSize: 14
+                            color: AppState.colors.fg
+                        }
+                        Label {
+                            text: "for Linux"
+                            font.pixelSize: 10
+                            color: AppState.colors.mutedFg
+                        }
+                    }
                 }
+
                 Repeater {
                     model: win.navModel
                     delegate: Rectangle {
+                        id: navItem
                         Layout.fillWidth: true
-                        height: 40
-                        radius: 8
-                        color: win.navIndex === index ? AppState.colors.accent : "transparent"
+                        height: 38
+                        radius: 10
+                        readonly property bool active: win.navIndex === index
+                        color: active ? AppState.colors.primarySoft
+                             : (navHover.hovered ? AppState.colors.card : "transparent")
+                        Behavior on color { ColorAnimation { duration: 100 } }
+
+                        // accent indicator on the selected item
+                        Rectangle {
+                            visible: navItem.active
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 6
+                            width: 3; height: 16; radius: 2
+                            color: AppState.colors.primary
+                        }
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 12
+                            anchors.leftMargin: 16
                             spacing: 10
                             Label { text: modelData.icon; font.pixelSize: 15 }
                             Label {
                                 text: modelData.label
-                                color: win.navIndex === index ? AppState.colors.accentFg : AppState.colors.fg
-                                font.weight: win.navIndex === index ? Font.DemiBold : Font.Normal
+                                color: navItem.active ? AppState.colors.primary : AppState.colors.fg
+                                font.weight: navItem.active ? Font.DemiBold : Font.Normal
                             }
                         }
+                        HoverHandler { id: navHover }
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
@@ -134,6 +196,21 @@ ApplicationWindow {
                     }
                 }
                 Item { Layout.fillHeight: true }
+
+                // daemon status footer
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Rectangle {
+                        width: 8; height: 8; radius: 4
+                        color: AppState.daemonConnected ? AppState.colors.success : AppState.colors.destructive
+                    }
+                    Label {
+                        text: AppState.daemonConnected ? "Daemon connected" : "Daemon offline"
+                        color: AppState.colors.mutedFg
+                        font.pixelSize: 11
+                    }
+                }
             }
         }
 
@@ -143,20 +220,25 @@ ApplicationWindow {
             Layout.fillHeight: true
             spacing: 0
 
-            // Banners
+            // Banners — tonal rounded bars inset from the content edges
             Rectangle {
                 visible: AppState.updateInfo && AppState.updateInfo.hasUpdate && AppState.settings
                          && AppState.settings.dismissedUpdateVersion !== AppState.updateInfo.latestVersion
                 Layout.fillWidth: true
-                height: visible ? 40 : 0
-                color: AppState.colors.accent
+                Layout.leftMargin: 12
+                Layout.rightMargin: 12
+                Layout.topMargin: 10
+                height: visible ? 44 : 0
+                radius: 10
+                color: AppState.colors.primarySoft
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 16
+                    anchors.leftMargin: 14
                     anchors.rightMargin: 8
                     Label {
                         text: "Update available: v" + (AppState.updateInfo ? AppState.updateInfo.latestVersion : "")
-                        color: AppState.colors.accentFg
+                        color: AppState.colors.fg
+                        font.weight: Font.DemiBold
                         Layout.fillWidth: true
                     }
                     Button {
@@ -165,6 +247,7 @@ ApplicationWindow {
                     }
                     Button {
                         text: "Dismiss"
+                        flat: true
                         onClicked: AppState.updateSetting("dismissedUpdateVersion", AppState.updateInfo.latestVersion)
                     }
                 }
@@ -174,31 +257,40 @@ ApplicationWindow {
                 visible: AppState.settings && !AppState.settings.dismissedScanReminder
                          && AppState.wallpapers.length > 0 && win.navIndex === 0
                 Layout.fillWidth: true
-                height: visible ? 40 : 0
-                color: AppState.colors.accent
+                Layout.leftMargin: 12
+                Layout.rightMargin: 12
+                Layout.topMargin: 10
+                height: visible ? 44 : 0
+                radius: 10
+                color: AppState.colors.primarySoft
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 16
+                    anchors.leftMargin: 14
                     anchors.rightMargin: 8
                     Label {
                         text: "Scan your wallpapers to see Linux compatibility ratings"
-                        color: AppState.colors.accentFg
+                        color: AppState.colors.fg
                         Layout.fillWidth: true
                     }
                     Button { text: "Scan"; onClicked: { win.navIndex = 4; settingsPage.startScan() } }
-                    Button { text: "Dismiss"; onClicked: AppState.updateSetting("dismissedScanReminder", true) }
+                    Button { text: "Dismiss"; flat: true; onClicked: AppState.updateSetting("dismissedScanReminder", true) }
                 }
             }
 
             Rectangle {
                 visible: !AppState.daemonConnected
                 Layout.fillWidth: true
-                height: visible ? 40 : 0
+                Layout.leftMargin: 12
+                Layout.rightMargin: 12
+                Layout.topMargin: 10
+                height: visible ? 44 : 0
+                radius: 10
                 color: AppState.colors.destructive
                 Label {
                     anchors.centerIn: parent
                     text: "Backend daemon unreachable — retrying… (run `bun run daemon`)"
-                    color: "#fff"
+                    color: AppState.dark ? "#1a0d12" : "#fff"
+                    font.weight: Font.DemiBold
                 }
             }
 
@@ -217,8 +309,16 @@ ApplicationWindow {
             Rectangle {
                 visible: AppState.settings ? !!AppState.settings.showStatusBar : true
                 Layout.fillWidth: true
-                height: 40
-                color: AppState.colors.card
+                height: 36
+                color: AppState.colors.surface
+                // top edge separator
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    color: AppState.colors.border
+                }
 
                 readonly property var primary: AppState.primaryDisplay()
                 readonly property var activeOnPrimary: {
@@ -306,6 +406,7 @@ ApplicationWindow {
                     }
                 }
             }
+        }
         }
     }
 }

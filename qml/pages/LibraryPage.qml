@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import ".."
 import "../components"
@@ -83,8 +84,18 @@ Item {
                     Layout.maximumWidth: 380
                     placeholderText: "Search wallpapers… (Ctrl+K)"
                     text: AppState.librarySearch
+                    Material.containerStyle: Material.Filled
+                    leftPadding: 34
                     onTextChanged: searchDebounce.restart()
                     Keys.onEscapePressed: { text = ""; AppState.librarySearch = ""; focus = false }
+                    Label {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "⌕"
+                        font.pixelSize: 14
+                        color: AppState.colors.mutedFg
+                    }
 
                     Timer {
                         id: searchDebounce
@@ -113,18 +124,28 @@ Item {
                         onActivated: searchField.forceActiveFocus()
                     }
                 }
-                Label {
-                    text: {
-                        var total = AppState.wallpapers.length
-                        if (!total) return ""
-                        var shown = grid.count
-                        return shown === total ? total + " wallpapers" : shown + " / " + total
+                Rectangle {
+                    visible: AppState.wallpapers.length > 0
+                    height: 24
+                    width: countLbl.implicitWidth + 16
+                    radius: 12
+                    color: AppState.colors.secondary
+                    Label {
+                        id: countLbl
+                        anchors.centerIn: parent
+                        text: {
+                            var total = AppState.wallpapers.length
+                            if (!total) return ""
+                            var shown = grid.count
+                            return shown === total ? total + " wallpapers" : shown + " / " + total
+                        }
+                        color: AppState.colors.mutedFg
+                        font.pixelSize: 11
                     }
-                    color: AppState.colors.mutedFg
-                    font.pixelSize: 11
                 }
                 Button {
                     text: "Filters" + (page.activeFilterCount() ? " (" + page.activeFilterCount() + ")" : "")
+                    highlighted: page.activeFilterCount() > 0
                     onClicked: {
                         filterPopup.sections = page.filterSections()
                         filterPopup.open()

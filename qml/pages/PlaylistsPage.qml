@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import ".."
 import "../components"
@@ -30,6 +31,7 @@ Item {
                         Item { Layout.fillWidth: true }
                         Button {
                             text: "+ New Playlist"
+                            highlighted: true
                             onClicked: stack.push(editorComponent, { editName: "" })
                         }
                     }
@@ -38,6 +40,7 @@ Item {
                         visible: AppState.playlists.length > 0
                         Layout.preferredWidth: 280
                         placeholderText: "Search playlists…"
+                        Material.containerStyle: Material.Filled
                         onTextChanged: listRoot.search = text
                     }
 
@@ -158,25 +161,32 @@ Item {
                     spacing: 4
                     Repeater {
                         model: (row.playlist ? row.playlist.items : []).slice(0, 4)
-                        delegate: AnimatedImage {
+                        delegate: Rectangle {
                             width: 44; height: 30
-                            source: {
-                                var items = AppState.wallpapers
-                                for (var i = 0; i < items.length; i++) {
-                                    if (items[i].path === modelData || items[i].id === modelData)
-                                        return AppState.fileUrl(items[i].thumbnail)
+                            radius: 5
+                            clip: true
+                            color: AppState.colors.secondary
+                            AnimatedImage {
+                                anchors.fill: parent
+                                source: {
+                                    var items = AppState.wallpapers
+                                    for (var i = 0; i < items.length; i++) {
+                                        if (items[i].path === modelData || items[i].id === modelData)
+                                            return AppState.fileUrl(items[i].thumbnail)
+                                    }
+                                    return ""
                                 }
-                                return ""
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                                sourceSize: Qt.size(88, 60)
                             }
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            sourceSize: Qt.size(88, 60)
                         }
                     }
                 }
 
                 Button {
                     text: row.applying ? "Applying…" : "Apply"
+                    highlighted: true
                     enabled: !row.applying
                     onClicked: applyMenu.open()
                     Menu {

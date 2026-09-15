@@ -15,6 +15,7 @@ Button {
     signal stop(var screens)
 
     text: busy ? "Applying…" : (activeScreens.length ? "Applied" : "Apply")
+    highlighted: true
     enabled: !busy && !!backgroundId
     onClicked: btn.apply(undefined)
 

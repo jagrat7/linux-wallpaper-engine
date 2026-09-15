@@ -11,8 +11,15 @@ Rectangle {
     property var wallpaper: null
     signal closed()
 
-    color: AppState.colors.card
-    border.color: AppState.colors.border
+    color: AppState.colors.surface
+    // left edge separator instead of a full box border
+    Rectangle {
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: 1
+        color: AppState.colors.border
+    }
 
     readonly property var backgroundId: wallpaper ? (wallpaper.path || wallpaper.id) : ""
     readonly property var activeScreens: backgroundId ? AppState.activeScreensFor(backgroundId) : []
@@ -136,13 +143,19 @@ Rectangle {
                 }
             }
 
-            AnimatedImage {
+            Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 160
-                source: panel.wallpaper ? AppState.fileUrl(panel.wallpaper.thumbnail || panel.wallpaper.previewUrl) : ""
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                sourceSize: Qt.size(680, 320)
+                Layout.preferredHeight: 170
+                radius: 10
+                clip: true
+                color: AppState.colors.secondary
+                AnimatedImage {
+                    anchors.fill: parent
+                    source: panel.wallpaper ? AppState.fileUrl(panel.wallpaper.thumbnail || panel.wallpaper.previewUrl) : ""
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    sourceSize: Qt.size(680, 340)
+                }
             }
 
             // ── Metadata ─────────────────────────────────────────────
@@ -270,6 +283,7 @@ Rectangle {
                 Button {
                     text: "Save"
                     enabled: panel.overridesDirty
+                    highlighted: panel.overridesDirty
                     onClicked: panel.saveOverrides()
                 }
                 Button {

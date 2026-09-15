@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import ".."
 import "../components"
@@ -207,16 +208,21 @@ Item {
                 spacing: 8
                 RowLayout {
                     spacing: 0
+                    ButtonGroup { id: modeGroup }
                     Button {
                         text: "Discover"
                         checkable: true
                         checked: !page.showBrowse()
+                        highlighted: checked
+                        ButtonGroup.group: modeGroup
                         onClicked: { page.mode = "discover"; page.search = ""; searchField.text = ""; page.loadDiscover() }
                     }
                     Button {
                         text: "Browse"
                         checkable: true
                         checked: page.showBrowse()
+                        highlighted: checked
+                        ButtonGroup.group: modeGroup
                         onClicked: { page.mode = "browse"; page.loadBrowse(1) }
                     }
                 }
@@ -225,6 +231,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.maximumWidth: 320
                     placeholderText: "Search workshop…"
+                    Material.containerStyle: Material.Filled
                     onTextChanged: { page.search = text; searchDebounce.restart() }
                     Keys.onEscapePressed: { text = ""; page.search = ""; searchDebounce.stop(); page.load(); focus = false }
                 }
@@ -369,8 +376,14 @@ Item {
             visible: page.selected !== null
             Layout.preferredWidth: 340
             Layout.fillHeight: true
-            color: AppState.colors.card
-            border.color: AppState.colors.border
+            color: AppState.colors.surface
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 1
+                color: AppState.colors.border
+            }
             Flickable {
                 anchors.fill: parent
                 contentHeight: detailCol.implicitHeight + 24
@@ -389,13 +402,19 @@ Item {
                         }
                         Button { text: "✕"; flat: true; onClicked: page.selected = null }
                     }
-                    AnimatedImage {
+                    Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 160
-                        source: page.selected ? AppState.fileUrl(page.selected.previewUrl || page.selected.thumbnail) : ""
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        sourceSize: Qt.size(680, 320)
+                        Layout.preferredHeight: 170
+                        radius: 10
+                        clip: true
+                        color: AppState.colors.secondary
+                        AnimatedImage {
+                            anchors.fill: parent
+                            source: page.selected ? AppState.fileUrl(page.selected.previewUrl || page.selected.thumbnail) : ""
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            sourceSize: Qt.size(680, 340)
+                        }
                     }
                     Label { text: "by " + (page.selected ? (page.selected.author || "Unknown") : ""); color: AppState.colors.mutedFg; font.pixelSize: 11 }
                     Flow {

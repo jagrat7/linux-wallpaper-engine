@@ -39,12 +39,12 @@ Item {
             radius: 10
             color: AppState.colors.card
             border.color: AppState.colors.border
-            implicitHeight: inner.implicitHeight + 16
+            implicitHeight: inner.implicitHeight + 20
             ColumnLayout {
                 id: inner
                 anchors.fill: parent
-                anchors.margins: 8
-                spacing: 2
+                anchors.margins: 10
+                spacing: 4
             }
         }
     }
