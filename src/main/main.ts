@@ -1,4 +1,15 @@
-import { app, protocol, net, nativeImage, BrowserWindow, Tray, Menu } from 'electron'
+import {
+  app,
+  protocol,
+  net,
+  nativeImage,
+  nativeTheme,
+  systemPreferences,
+  BrowserWindow,
+  Tray,
+  Menu,
+  screen,
+} from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -6,27 +17,34 @@ import { appRouter } from './trpc/router.ts'
 import { settingsService as settings } from './services/settings.ts'
 import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
+import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
+import { invalidationService } from './services/invalidation.ts'
+import { systemThemeService } from './services/system-theme/system-theme.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
+let trayStartupRetry: TrayStartupRetry | null = null
 let isQuitting = false
+
+systemThemeService.configureElectronPlatform(nativeTheme, systemPreferences)
 
 const resolveAssetPath = (assetName: string): string => {
   // If packaged normally in forge-maker
-  if (app.isPackaged)
-    return path.join(process.resourcesPath, 'assets', assetName)
+  if (app.isPackaged) return path.join(process.resourcesPath, 'assets', assetName)
 
   // If packaged with Nix, the resource path will point to Electron's default,
   // so it needs to point to the app directory, where the assets are copied
   const appPath = app.getAppPath()
-  if (appPath.includes('app.asar'))
-    return path.join(path.dirname(appPath), 'assets', assetName)
+  if (appPath.includes('app.asar')) return path.join(path.dirname(appPath), 'assets', assetName)
 
   // For local dev, relative paths just work
   return path.join(__dirname, '../../assets', assetName)
 }
 
 const appIcon = nativeImage.createFromPath(resolveAssetPath('transparent-logo.png'))
+// Standard tray icon size (22x22 ensures pixmap data is sent via SNI on Wayland)
+const TRAY_ICON_SIZE = 22
+const trayIcon = appIcon.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE })
 
 const shouldMinimizeOnClose = (): boolean => {
   return settings.getSetting('enableSystemTray') && settings.getSetting('minimizeOnClose')
@@ -73,9 +91,7 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    )
+    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
   }
 
   // Open the DevTools.
@@ -87,7 +103,7 @@ const createWindow = () => {
 // Initialize the system tray with context menu
 const initializeTray = (mainWindow: BrowserWindow): void => {
   if (tray !== null) return
-  tray = new Tray(appIcon)
+  tray = new Tray(trayIcon)
 
   const toggleMainWindow = (): void => {
     if (!mainWindow.isVisible()) {
@@ -100,20 +116,32 @@ const initializeTray = (mainWindow: BrowserWindow): void => {
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Toggle App',
-      click: toggleMainWindow
+      click: toggleMainWindow,
     },
     { type: 'separator' },
     {
       label: 'Quit',
       click: () => {
         app.quit()
-      }
-    }
+      },
+    },
   ])
 
   tray.setToolTip(mainWindow.title)
   tray.setContextMenu(contextMenu)
   tray.on('click', toggleMainWindow)
+}
+
+const ensureTray = (mainWindow: BrowserWindow): void => {
+  if (trayStartupRetry === null) {
+    trayStartupRetry = createTrayStartupRetry({
+      createTray: () => initializeTray(mainWindow),
+      hasTray: () => tray !== null,
+      shouldStop: () => isQuitting,
+    })
+  }
+
+  trayStartupRetry.start()
 }
 
 // This method will be called when Electron has finished
@@ -135,15 +163,13 @@ app.whenReady().then(() => {
 
   const mainWindow = createWindow()
 
-  if (settings.getSetting('enableSystemTray'))
-    initializeTray(mainWindow)
+  if (settings.getSetting('enableSystemTray')) ensureTray(mainWindow)
 
   mainWindow.on('close', (e) => {
     if (shouldMinimizeOnClose() && !isQuitting) {
       e.preventDefault()
       mainWindow.hide()
-      if (tray === null)
-        initializeTray(mainWindow)
+      if (tray === null) ensureTray(mainWindow)
     }
   })
 
@@ -152,11 +178,23 @@ app.whenReady().then(() => {
     windows: [mainWindow],
     createContext: async () => createTrpcContext(),
   })
+
+  // Push a display.list invalidation to the renderer whenever monitors
+  // are added, removed, or change resolution so apply menus stay accurate
+  const notifyDisplayChange = () => invalidationService.emit('display.list')
+  screen.on('display-added', notifyDisplayChange)
+  screen.on('display-removed', notifyDisplayChange)
+  screen.on('display-metrics-changed', notifyDisplayChange)
 })
 
 // Dispose tray before quitting
 app.on('before-quit', () => {
+  systemThemeService.stopWatching()
   isQuitting = true
+  if (trayStartupRetry !== null) {
+    trayStartupRetry.stop()
+    trayStartupRetry = null
+  }
   if (tray) {
     tray.destroy()
     tray = null
@@ -182,4 +220,3 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
-

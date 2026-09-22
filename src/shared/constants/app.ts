@@ -2,7 +2,10 @@ import type { CompatibilityStatus } from './compatibility'
 import type { ScalingOption } from './display'
 import type { SortBy, SortOrder } from './sort'
 import type { ThemeOption } from './theme'
-import type { WallpaperFilterType } from './wallpaper'
+import { DEFAULT_WALLPAPER_GRID_DENSITY, type WallpaperGridDensity } from './grid'
+import { DEFAULT_FAVORITE_DISCOVER_SECTION_IDS, type WorkshopSortBy } from './workshop'
+import type { AgeRating, WallpaperFilterType } from './wallpaper'
+import packageJson from '../../../package.json'
 
 export interface AppSettings {
   // Performance settings (backend supported)
@@ -20,6 +23,7 @@ export interface AppSettings {
   defaultScaling: ScalingOption
   disableMouse: boolean
   disableParallax: boolean
+  disableParticles: boolean
 
   // Paths (backend supported)
   assetsDir: string | null
@@ -36,21 +40,31 @@ export interface AppSettings {
   showCompatibilityDot: boolean
   showStatusBar: boolean
   dynamicBackground: boolean
-  onboardingComplete: boolean
+  wallpaperGridDensity: WallpaperGridDensity
   dismissedScanReminder: boolean
+  dismissedUpdateVersion: string | null
 
   // Debug & Flatpak
   debugMode: boolean
+  windowMode: boolean
+  windowGeometry: string | null
   flatpakBypass: boolean
 
   // Persisted filter & sort preferences
   filterType: WallpaperFilterType[]
+  filterAgeRating: AgeRating[]
   filterTags: string[]
   filterResolution: string[]
+  favoriteDiscoverSectionIds: string[]
+  workshopFilterType: WallpaperFilterType[]
+  workshopFilterAgeRating: AgeRating[]
+  workshopFilterTags: string[]
+  workshopFilterResolution: string[]
 
   filterCompatibility: CompatibilityStatus[]
   sortBy: SortBy
   sortOrder: SortOrder
+  workshopSortBy: WorkshopSortBy
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -69,6 +83,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultScaling: 'fill',
   disableMouse: false,
   disableParallax: false,
+  disableParticles: false,
 
   // Paths
   assetsDir: null,
@@ -85,33 +100,44 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showCompatibilityDot: true,
   showStatusBar: true,
   dynamicBackground: true,
-  onboardingComplete: false,
+  wallpaperGridDensity: DEFAULT_WALLPAPER_GRID_DENSITY,
   dismissedScanReminder: false,
+  dismissedUpdateVersion: null,
 
   // Debug & Flatpak
   debugMode: false,
+  windowMode: false,
+  windowGeometry: null,
   flatpakBypass: false,
 
   // Filters & sort
   filterType: [],
+  filterAgeRating: ['g'],
   filterTags: [],
   filterResolution: [],
+  favoriteDiscoverSectionIds: DEFAULT_FAVORITE_DISCOVER_SECTION_IDS,
+  workshopFilterType: [],
+  workshopFilterAgeRating: ['g'],
+  workshopFilterTags: [],
+  workshopFilterResolution: [],
   filterCompatibility: [],
   sortBy: 'name',
   sortOrder: 'asc',
+  workshopSortBy: 'trend',
 }
 
 // App info
 export const APP_NAME = 'Linux Wallpaper Engine'
-export const APP_VERSION = '1.0.0'
+export const APP_VERSION = packageJson.version
+export const WALLPAPER_ENGINE_APP_ID = 431960
+export const GITHUB_REPO = 'jagrat7/linux-wallpaper-engine'
 
-// Steam paths to search for wallpapers
-export const STEAM_PATHS = [
+export const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+export const STEAM_ROOT_PATHS = [
   '~/.local/share/Steam',
   '~/.steam/steam',
   '~/.var/app/com.valvesoftware.Steam/.local/share/Steam',
   '~/.var/app/com.valvesoftware.Steam/.data/Steam',
   '~/.var/app/com.valvesoftware.Steam/.steam/steam',
 ]
-
-export const CACHE_TTL = 5 * 60 * 1000 // 5 minutes

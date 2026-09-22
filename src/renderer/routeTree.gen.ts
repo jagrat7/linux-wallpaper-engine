@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkshopRouteImport } from './routes/workshop'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as DisplaysRouteImport } from './routes/displays'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlaylistsIndexRouteImport } from './routes/playlists/index'
 import { Route as PlaylistsEditorRouteImport } from './routes/playlists/editor'
 
+const WorkshopRoute = WorkshopRouteImport.update({
+  id: '/workshop',
+  path: '/workshop',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/displays': typeof DisplaysRoute
   '/settings': typeof SettingsRoute
+  '/workshop': typeof WorkshopRoute
   '/playlists/editor': typeof PlaylistsEditorRoute
   '/playlists': typeof PlaylistsIndexRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/displays': typeof DisplaysRoute
   '/settings': typeof SettingsRoute
+  '/workshop': typeof WorkshopRoute
   '/playlists/editor': typeof PlaylistsEditorRoute
   '/playlists': typeof PlaylistsIndexRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/displays': typeof DisplaysRoute
   '/settings': typeof SettingsRoute
+  '/workshop': typeof WorkshopRoute
   '/playlists/editor': typeof PlaylistsEditorRoute
   '/playlists/': typeof PlaylistsIndexRoute
 }
@@ -69,15 +78,23 @@ export interface FileRouteTypes {
     | '/'
     | '/displays'
     | '/settings'
+    | '/workshop'
     | '/playlists/editor'
     | '/playlists'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/displays' | '/settings' | '/playlists/editor' | '/playlists'
+  to:
+    | '/'
+    | '/displays'
+    | '/settings'
+    | '/workshop'
+    | '/playlists/editor'
+    | '/playlists'
   id:
     | '__root__'
     | '/'
     | '/displays'
     | '/settings'
+    | '/workshop'
     | '/playlists/editor'
     | '/playlists/'
   fileRoutesById: FileRoutesById
@@ -86,12 +103,20 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DisplaysRoute: typeof DisplaysRoute
   SettingsRoute: typeof SettingsRoute
+  WorkshopRoute: typeof WorkshopRoute
   PlaylistsEditorRoute: typeof PlaylistsEditorRoute
   PlaylistsIndexRoute: typeof PlaylistsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workshop': {
+      id: '/workshop'
+      path: '/workshop'
+      fullPath: '/workshop'
+      preLoaderRoute: typeof WorkshopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -134,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DisplaysRoute: DisplaysRoute,
   SettingsRoute: SettingsRoute,
+  WorkshopRoute: WorkshopRoute,
   PlaylistsEditorRoute: PlaylistsEditorRoute,
   PlaylistsIndexRoute: PlaylistsIndexRoute,
 }

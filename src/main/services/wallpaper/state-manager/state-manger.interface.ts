@@ -9,12 +9,17 @@ export interface IStateManager {
   getProcess(screen: string): ChildProcess | undefined
   register(screens: string[], proc: ChildProcess, options: ApplyWallpaperOptions): void
   release(screen: string): { remaining: Array<{ screen: string; options: ApplyWallpaperOptions }> }
+  cleanupExitedProcess(proc: ChildProcess): { screens: string[] }
 
   // Active wallpaper state
   getActive(): ReadonlyMap<string, ApplyWallpaperOptions>
   isActive(backgroundId: string): boolean
   save(): void
   reset(): void
+
+  // Applied history (drives the "recent" sort)
+  getAppliedHistory(): Record<string, number>
+  recordApplied(backgroundId: string): void
 
   // Debug
   getDebugLogs(screen: string): DebugInfo

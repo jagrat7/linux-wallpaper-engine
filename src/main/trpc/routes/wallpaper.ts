@@ -1,11 +1,13 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
-import { wallpaperService } from '../../services/wallpaper/wallpaper'
-import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
-import type { DebugInfo } from '../../services/wallpaper/wallpaper.types'
+import { wallpaperService, type DebugInfo } from '../../services/wallpaper/wallpaper'
+import { playlistService } from '../../services/playlists/playlist'
+import {
+  engineOverridesSchema,
+  type ApplyWallpaperOptions,
+} from '../../../shared/constants/wallpaper'
 import { settingsService } from '../../services/settings'
 import { compatibilityService } from '../../services/compatibility'
-
 export const wallpaperRouter = trpc.router({
   // Check if linux-wallpaperengine is installed
   checkBackend: trpc.procedure.query(async () => {
@@ -13,17 +15,11 @@ export const wallpaperRouter = trpc.router({
     return { installed: backendInstalled }
   }),
 
-  // Get all wallpapers
-  getWallpapers: trpc.procedure
-    .input(
-      z.object({
-        search: z.string().optional(),
-      }),
-    )
-    .query(async ({ input }) => {
-      const { wallpapers } = await wallpaperService.query(input)
-      return wallpapers
-    }),
+  // Get all wallpapers and apply history (from a single service query)
+  getWallpapers: trpc.procedure.query(async () => {
+    const { wallpapers, appliedHistory } = await wallpaperService.query()
+    return { wallpapers, appliedHistory }
+  }),
 
   // Invalidate wallpaper cache so the next query triggers a fresh scan
   invalidateCache: trpc.procedure.mutation(async () => {
@@ -32,11 +28,14 @@ export const wallpaperRouter = trpc.router({
   }),
 
   // Get per-wallpaper setting overrides
-  getOverrides: trpc.procedure
-    .input(z.object({ path: z.string() }))
-    .query(async ({ input }) => {
-      return wallpaperService.overrides({ op: 'get', wallpaperPath: input.path })
-    }),
+  getOverrides: trpc.procedure.input(z.object({ path: z.string() })).query(async ({ input }) => {
+    return wallpaperService.overrides({ op: 'get', wallpaperPath: input.path })
+  }),
+
+  // List a wallpaper's customizable properties (read from its project.json)
+  listProperties: trpc.procedure.input(z.object({ path: z.string() })).query(async ({ input }) => {
+    return wallpaperService.listProperties(input.path)
+  }),
 
   // Apply a wallpaper
   setWallpaper: trpc.procedure
@@ -52,6 +51,7 @@ export const wallpaperRouter = trpc.router({
         noAudioProcessing: z.boolean().optional(),
         disableMouse: z.boolean().optional(),
         disableParallax: z.boolean().optional(),
+        disableParticles: z.boolean().optional(),
         noFullscreenPause: z.boolean().optional(),
         windowed: z
           .object({
@@ -77,30 +77,31 @@ export const wallpaperRouter = trpc.router({
         noAudioProcessing: input.noAudioProcessing ?? !settings.audioProcessing,
         disableMouse: input.disableMouse ?? settings.disableMouse,
         disableParallax: input.disableParallax ?? settings.disableParallax,
+        disableParticles: input.disableParticles ?? settings.disableParticles,
         noFullscreenPause: input.noFullscreenPause ?? !settings.pauseOnFullscreen,
-        windowed: input.windowed,
+        windowed: settings.windowMode
+          ? wallpaperService.parseWindowGeometry(settings.windowGeometry)
+          : input.windowed,
       }
 
-      return wallpaperService.apply({ kind: 'wallpaper', options })
+      const result = await wallpaperService.apply({ kind: 'wallpaper', options })
+      if (result.success && result.screens) {
+        playlistService.clearActivePlaylist(result.screens)
+      }
+      return result
     }),
 
-  // Stop wallpaper(s)
+  // Stop wallpaper(s). Pass all screens in one call so a shared process is
+  // released atomically — per-screen calls race with the respawn of the
+  // remaining screens.
   stopWalpaper: trpc.procedure
-    .input(z.object({ screen: z.string().optional() }).optional())
+    .input(z.object({ screen: z.union([z.string(), z.array(z.string())]).optional() }).optional())
     .mutation(async ({ input }) => {
-      return wallpaperService.stop(input?.screen)
-    }),
-
-  // Take a screenshot of a wallpaper
-  screenshot: trpc.procedure
-    .input(
-      z.object({
-        backgroundPath: z.string(),
-        outputPath: z.string(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      return wallpaperService.diagnose({ kind: 'screenshot', backgroundPath: input.backgroundPath, outputPath: input.outputPath })
+      const result = await wallpaperService.stop(input?.screen)
+      if (result.success && result.screens) {
+        playlistService.clearActivePlaylist(result.screens)
+      }
+      return result
     }),
 
   // Get currently active wallpapers
@@ -114,17 +115,17 @@ export const wallpaperRouter = trpc.router({
     .input(
       z.object({
         path: z.string(),
-        overrides: z.object({
-          volume: z.number().min(0).max(100).optional(),
-          audioProcessing: z.boolean().optional(),
-          scaling: z.enum(['default', 'stretch', 'fit', 'fill']).optional(),
-          disableMouse: z.boolean().optional(),
-          disableParallax: z.boolean().optional(),
+        overrides: engineOverridesSchema.extend({
+          customProperties: z.record(z.string(), z.string()).optional(),
         }),
       }),
     )
     .mutation(async ({ input }) => {
-      await wallpaperService.overrides({ op: 'save', wallpaperPath: input.path, overrides: input.overrides })
+      await wallpaperService.overrides({
+        op: 'save',
+        wallpaperPath: input.path,
+        overrides: input.overrides,
+      })
       return { success: true }
     }),
 
@@ -169,8 +170,8 @@ export const wallpaperRouter = trpc.router({
   getScanReport: trpc.procedure.query(async () => {
     const report = compatibilityService.getScanReport()
     const { wallpapers } = await wallpaperService.query()
-    const titleMap = new Map(wallpapers.map(w => [w.path, w.title]))
-    return report.map(entry => ({
+    const titleMap = new Map(wallpapers.map((w) => [w.path, w.title]))
+    return report.map((entry) => ({
       ...entry,
       title: titleMap.get(entry.path) ?? entry.path.split('/').pop() ?? entry.path,
     }))
@@ -183,11 +184,12 @@ export const wallpaperRouter = trpc.router({
   }),
 
   // Get debug logs for a screen
-  getDebugLogs: trpc.procedure
-    .input(z.object({ screen: z.string() }))
-    .query(async ({ input }) => {
-      return wallpaperService.diagnose({ kind: 'getLogs', screen: input.screen }) as Promise<DebugInfo>
-    }),
+  getDebugLogs: trpc.procedure.input(z.object({ screen: z.string() })).query(async ({ input }) => {
+    return wallpaperService.diagnose({
+      kind: 'getLogs',
+      screen: input.screen,
+    }) as Promise<DebugInfo>
+  }),
 
   // Clear debug logs for a screen
   clearDebugLogs: trpc.procedure
@@ -196,5 +198,4 @@ export const wallpaperRouter = trpc.router({
       await wallpaperService.diagnose({ kind: 'clearLogs', screen: input.screen })
       return { success: true }
     }),
-
 })

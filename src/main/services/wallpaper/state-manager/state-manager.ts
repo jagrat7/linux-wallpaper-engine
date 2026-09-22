@@ -50,14 +50,16 @@ class WallpaperStateManager implements IStateManager {
     this.save()
   }
 
-  release(screen: string): { remaining: Array<{ screen: string, options: ApplyWallpaperOptions }> } {
+  release(screen: string): {
+    remaining: Array<{ screen: string; options: ApplyWallpaperOptions }>
+  } {
     const proc = this.runningProcesses.get(screen)
     if (!proc) return { remaining: [] }
 
     const group = this.processScreenGroups.get(proc)
 
     // Collect remaining screens before cleanup
-    const remaining: Array<{ screen: string, options: ApplyWallpaperOptions }> = []
+    const remaining: Array<{ screen: string; options: ApplyWallpaperOptions }> = []
     if (group) {
       for (const s of group) {
         if (s === screen) continue
@@ -67,7 +69,11 @@ class WallpaperStateManager implements IStateManager {
     }
 
     // Kill the process
-    try { proc.kill('SIGKILL') } catch { /* already dead */ }
+    try {
+      proc.kill('SIGKILL')
+    } catch {
+      /* already dead */
+    }
 
     // Clean up all screens that shared this process
     if (group) {
@@ -86,6 +92,73 @@ class WallpaperStateManager implements IStateManager {
     return { remaining }
   }
 
+  releaseMany(screens: string[]): {
+    remaining: Array<{ screen: string; options: ApplyWallpaperOptions }>
+    released: string[]
+  } {
+    const targets = new Set(screens)
+    const remaining: Array<{ screen: string; options: ApplyWallpaperOptions }> = []
+    const released: string[] = []
+    const procs = new Set<ChildProcess>()
+
+    for (const screen of targets) {
+      const proc = this.runningProcesses.get(screen)
+      if (proc) procs.add(proc)
+      if (this.activeWallpapers.has(screen)) released.push(screen)
+    }
+
+    for (const proc of procs) {
+      const group = this.processScreenGroups.get(proc)
+      if (group) {
+        for (const screen of group) {
+          if (targets.has(screen)) continue
+          const opts = this.activeWallpapers.get(screen)
+          if (opts) remaining.push({ screen, options: opts })
+        }
+        for (const screen of group) {
+          if (this.runningProcesses.get(screen) === proc) {
+            this.runningProcesses.delete(screen)
+          }
+        }
+        this.processScreenGroups.delete(proc)
+      }
+      try {
+        proc.kill('SIGKILL')
+      } catch {
+        /* already dead */
+      }
+    }
+
+    for (const screen of targets) {
+      this.activeWallpapers.delete(screen)
+    }
+    this.save()
+
+    return { remaining, released }
+  }
+
+  // Remove a process and all of its screens from the active state without
+  // killing it. Used when a process exits unexpectedly so it no longer shows
+  // as applied. No-op when state has already been released by an explicit stop.
+  cleanupExitedProcess(proc: ChildProcess): { screens: string[] } {
+    const group = this.processScreenGroups.get(proc)
+    if (!group) return { screens: [] }
+
+    const cleanedScreens: string[] = []
+    for (const screen of group) {
+      if (this.runningProcesses.get(screen) === proc) {
+        this.runningProcesses.delete(screen)
+      }
+      if (this.activeWallpapers.has(screen)) {
+        this.activeWallpapers.delete(screen)
+        cleanedScreens.push(screen)
+      }
+    }
+    this.processScreenGroups.delete(proc)
+    this.save()
+    return { screens: cleanedScreens }
+  }
+
   // ── Active wallpaper state ─────────────────────────────────────────────
 
   getActive(): ReadonlyMap<string, ApplyWallpaperOptions> {
@@ -94,7 +167,7 @@ class WallpaperStateManager implements IStateManager {
 
   isActive(backgroundId: string): boolean {
     if (this.runningProcesses.size === 0) return false
-    return [...this.activeWallpapers.values()].some(w => w.backgroundId === backgroundId)
+    return [...this.activeWallpapers.values()].some((w) => w.backgroundId === backgroundId)
   }
 
   save(): void {
@@ -107,12 +180,27 @@ class WallpaperStateManager implements IStateManager {
 
   reset(): void {
     for (const proc of this.processScreenGroups.keys()) {
-      try { proc.kill('SIGKILL') } catch { /* already dead */ }
+      try {
+        proc.kill('SIGKILL')
+      } catch {
+        /* already dead */
+      }
     }
     this.processScreenGroups.clear()
     this.runningProcesses.clear()
     this.activeWallpapers.clear()
     this.save()
+  }
+
+  // ── Applied history ────────────────────────────────────────────────────
+
+  getAppliedHistory(): Record<string, number> {
+    return this.store.get('appliedHistory') ?? {}
+  }
+
+  recordApplied(backgroundId: string): void {
+    const history = this.getAppliedHistory()
+    this.store.set('appliedHistory', { ...history, [backgroundId]: Date.now() })
   }
 
   // ── Debug ──────────────────────────────────────────────────────────────

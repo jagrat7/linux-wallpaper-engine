@@ -1,0 +1,64 @@
+import { ShieldCheck } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { trpc } from '@/lib/trpc'
+import {
+  COMPATIBILITY_OPTIONS,
+  type CompatibilityStatus,
+} from '../../../../shared/constants/compatibility'
+
+export function CompatibilitySection({ wallpaperPath }: { wallpaperPath: string }) {
+  const utils = trpc.useUtils()
+  const { data: overrides } = trpc.wallpaper.getOverrides.useQuery(
+    { path: wallpaperPath },
+    { enabled: !!wallpaperPath },
+  )
+
+  const setCompatibility = trpc.wallpaper.setCompatibility.useMutation({
+    onSuccess: () => {
+      utils.wallpaper.getOverrides.invalidate({ path: wallpaperPath })
+      utils.wallpaper.getCompatibilityMap.invalidate()
+    },
+  })
+
+  const currentStatus: CompatibilityStatus = overrides?.compatibility ?? 'unknown'
+
+  return (
+    <div className="border-border mt-4 border-t pt-4">
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground flex items-center gap-2 text-sm">
+          <ShieldCheck className="size-4" />
+          Compatibility
+        </span>
+        <Select
+          value={currentStatus}
+          onValueChange={(value) => {
+            setCompatibility.mutate({
+              path: wallpaperPath,
+              status: value as CompatibilityStatus,
+            })
+          }}
+        >
+          <SelectTrigger className="h-8 w-32 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {COMPATIBILITY_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className={`size-2 shrink-0 rounded-full ${option.bgColor}`} />
+                  <span className="truncate">{option.label}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  )
+}

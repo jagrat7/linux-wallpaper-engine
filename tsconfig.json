@@ -1,5 +1,13 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.*.config.ts", "vite.*.config.mts", "vitest.config.mts", "forge.config.ts", "forge.env.d.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "vite.*.config.ts",
+    "vite.*.config.mts",
+    "vitest.config.mts",
+    "forge.config.ts",
+    "forge.env.d.ts"
+  ],
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -14,7 +22,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/renderer/*"],
       "~/*": ["./src/renderer/*"]

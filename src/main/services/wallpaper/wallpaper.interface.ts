@@ -11,8 +11,8 @@ import type {
 // ── Main wallpaper service — thin facade with condensed API ────────────────
 
 export interface IWallpaperService {
-  // Catalog: scan, search, check backend
-  query(options?: { search?: string }): Promise<{
+  // Catalog: scan and check backend
+  query(): Promise<{
     wallpapers: Wallpaper[]
     backendInstalled: boolean
     active: ActiveWallpaperEntry[]
@@ -22,11 +22,11 @@ export interface IWallpaperService {
   apply(target: ApplyTarget): Promise<MutationResult>
 
   // Stop one screen or all
-  stop(screen?: string): Promise<{ success: boolean }>
+  stop(screen?: string | string[]): Promise<MutationResult>
 
   // Per-wallpaper override CRUD
   overrides(mutation: OverrideMutation): Promise<WallpaperOverrides | void>
 
-  // Debug logs, screenshots, cache invalidation, cleanup
+  // Debug logs, cache invalidation, cleanup
   diagnose(action: ServiceAction): Promise<DebugInfo | MutationResult | void>
 }

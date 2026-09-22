@@ -20,7 +20,6 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src/renderer'),
       '~': path.resolve(__dirname, './src/renderer'),
-      'react-router-dom': path.resolve(__dirname, './src/renderer/lib/react-router-shim.ts'),
     },
   },
 })

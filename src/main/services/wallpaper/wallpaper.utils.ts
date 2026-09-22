@@ -1,78 +1,116 @@
-import * as fs from "node:fs/promises"
-import * as path from "node:path"
-import type { WallpaperType } from '../../../shared/constants/wallpaper'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
+import { CACHE_TTL } from '../../../shared/constants/app'
+import type { ApplyWallpaperOptions, WallpaperType } from '../../../shared/constants/wallpaper'
 import { hostExecAsync } from '../../utils/host'
 
-type ImageType = "jpeg" | "png" | "bmp"
+type ImageType = 'jpeg' | 'png' | 'bmp'
+export type TimedCache<T> = {
+  value: T
+  timestamp: number
+  key?: string
+}
 
 const IMAGE_HEADERS_IDENTIFIERS = {
   jpeg: 0xffd8,
   png: 0x89504e47,
   bmp: 0x424d,
-};
-const MAX_BYTES = 8192;
+}
+const MAX_BYTES = 8192
+const WINDOW_SIZE_PATTERN = /^(\d+)x(\d+)$/
+
+export async function resolveTimedCache<T>(
+  cache: TimedCache<T> | null,
+  load: () => Promise<T>,
+  key?: string,
+): Promise<TimedCache<T>> {
+  if (cache && (!key || cache.key === key) && Date.now() - cache.timestamp <= CACHE_TTL) {
+    return cache
+  }
+
+  return {
+    value: await load(),
+    timestamp: Date.now(),
+    key,
+  }
+}
+
+export const parseWindowGeometry = (
+  size: string | null | undefined,
+): ApplyWallpaperOptions['windowed'] => {
+  const match = size?.trim().match(WINDOW_SIZE_PATTERN)
+  if (!match) return 'emit-flag'
+
+  const [, width, height] = match
+  const parsed = {
+    x: 0,
+    y: 0,
+    width: Number(width),
+    height: Number(height),
+  }
+
+  if (parsed.width <= 0 || parsed.height <= 0) return 'emit-flag'
+
+  return parsed
+}
 
 export async function parseImageHeader(imagePath: string) {
   try {
-    const file = await fs.open(imagePath, "r");
-    const buffer = Buffer.alloc(8192); // 8kb
-    const { bytesRead } = await file.read(buffer, 0, MAX_BYTES, 0);
-    await file.close();
+    const file = await fs.open(imagePath, 'r')
+    const buffer = Buffer.alloc(8192) // 8kb
+    const { bytesRead } = await file.read(buffer, 0, MAX_BYTES, 0)
+    await file.close()
 
-    const res = { height: 0, width: 0 };
+    const res = { height: 0, width: 0 }
 
-    if (matchHeader(buffer, "png")) {
+    if (matchHeader(buffer, 'png')) {
       // https://en.wikipedia.org/wiki/PNG#Examples
-      const widthOffset = 16;
-      const heightOffset = widthOffset + 4;
-      res.width = buffer.readUInt32BE(widthOffset);
-      res.height = buffer.readUInt32BE(heightOffset);
-    } else if (matchHeader(buffer, "bmp")) {
+      const widthOffset = 16
+      const heightOffset = widthOffset + 4
+      res.width = buffer.readUInt32BE(widthOffset)
+      res.height = buffer.readUInt32BE(heightOffset)
+    } else if (matchHeader(buffer, 'bmp')) {
       // BMP uses little endian
-      const widthOffset = 18;
-      const heightOffset = widthOffset + 4;
-      res.width = buffer.readUInt32LE(widthOffset);
-      res.height = buffer.readUInt32LE(heightOffset);
-    } else if (matchHeader(buffer, "jpeg")) {
+      const widthOffset = 18
+      const heightOffset = widthOffset + 4
+      res.width = buffer.readUInt32LE(widthOffset)
+      res.height = buffer.readUInt32LE(heightOffset)
+    } else if (matchHeader(buffer, 'jpeg')) {
       // https://stackoverflow.com/questions/14414884
-      let offset = 2;
+      let offset = 2
       while (offset < bytesRead - 8) {
         if (buffer[offset] !== 0xff) {
-          offset++;
-          continue;
+          offset++
+          continue
         }
-        const marker = buffer[offset + 1];
+        const marker = buffer[offset + 1]
 
-        if (
-          marker >= 0xc0 &&
-          marker <= 0xcf &&
-          ![0xc4, 0xc8, 0xcc].includes(marker)
-        ) {
-          const heightOffset = offset + 5;
-          const widthOffset = heightOffset + 2;
-          res.height = buffer.readUInt16BE(heightOffset);
-          res.width = buffer.readUInt16BE(widthOffset);
-          break;
+        if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+          const heightOffset = offset + 5
+          const widthOffset = heightOffset + 2
+          res.height = buffer.readUInt16BE(heightOffset)
+          res.width = buffer.readUInt16BE(widthOffset)
+          break
         }
-        offset += 2 + buffer.readUInt16BE(offset + 2); // 2 + length segment, +2 so we skip the marker
+        offset += 2 + buffer.readUInt16BE(offset + 2) // 2 + length segment, +2 so we skip the marker
       }
     }
 
-    return res;
-  } catch (err) {
-    return { height: 0, width: 0 };
+    return res
+  } catch {
+    return { height: 0, width: 0 }
   }
 }
 
 function matchHeader(buffer: Buffer, imageType: ImageType) {
   switch (imageType) {
-    case "jpeg":
+    case 'jpeg':
       return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
 
-    case "png":
+    case 'png':
       return buffer.readUInt32BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
 
-    case "bmp":
+    case 'bmp':
       return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
   }
 }
@@ -112,35 +150,51 @@ export async function resolveThumbnail(backgroundId: string): Promise<string> {
       try {
         await fs.access(candidatePath)
         return candidatePath
-      } catch { /* continue */ }
+      } catch {
+        /* continue */
+      }
     }
   }
   return ''
 }
 
-export async function detectResolution(wallpaperPath: string): Promise<{ width: number, height: number }> {
+export async function detectResolution(
+  wallpaperPath: string,
+): Promise<{ width: number; height: number }> {
   try {
     const files = await fs.readdir(wallpaperPath)
 
     // Look for video files first
-    const videoFile = files.find(f => {
+    const videoFile = files.find((f) => {
       const file = f.toLowerCase()
-      return file.endsWith('.mp4') || file.endsWith('.webm') || file.endsWith('.avi') || file.endsWith('.mkv')
+      return (
+        file.endsWith('.mp4') ||
+        file.endsWith('.webm') ||
+        file.endsWith('.avi') ||
+        file.endsWith('.mkv')
+      )
     })
 
     if (videoFile) {
       const videoPath = path.join(wallpaperPath, videoFile)
-      const { stdout } = await hostExecAsync(`ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`)
+      const { stdout } = await hostExecAsync(
+        `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`,
+      )
       const [w, h] = stdout.trim().split(',')
       if (w && h) {
         return { width: parseInt(w, 10), height: parseInt(h, 10) }
       }
     } else {
       // Look for image files (excluding preview thumbnails)
-      const imageFile = files.find(f => {
+      const imageFile = files.find((f) => {
         const file = f.toLowerCase()
-        return (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.bmp')) &&
+        return (
+          (file.endsWith('.png') ||
+            file.endsWith('.jpg') ||
+            file.endsWith('.jpeg') ||
+            file.endsWith('.bmp')) &&
           !file.includes('preview')
+        )
       })
 
       if (imageFile) {

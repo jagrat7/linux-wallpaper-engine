@@ -3,7 +3,7 @@
 
 [![GitHub Downloads](https://img.shields.io/github/downloads/jagrat7/linux-wallpaper-engine/total?style=for-the-badge&logo=linux&logoColor=white&label=Downloads)](https://github.com/jagrat7/linux-wallpaper-engine/releases) [![GitHub Release](https://img.shields.io/github/v/release/jagrat7/linux-wallpaper-engine?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/jagrat7/linux-wallpaper-engine/releases/latest) [![GitHub Stars](https://img.shields.io/github/stars/jagrat7/linux-wallpaper-engine?style=for-the-badge&logo=starship&logoColor=white)](https://github.com/jagrat7/linux-wallpaper-engine/stargazers)
 
-This is a modern UI wrapper for [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine). This app has most features of [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) plus some additional features(like compatibility tagging for wallpapers) for a better user experience. Also a shoutout to [simple-linux-wallpaperengine-gui](https://github.com/Maxnights/simple-linux-wallpaperengine-gui), which I referenced for CLI commands.
+This app aims to be a fully functional linux implementation of [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/), which offers the best dynamic wallpapers. It uses [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) to apply the wallpapers and [steamworks.js](https://github.com/ceifa/steamworks.js) to interact with the Steam Workshop.
 
 ![Overview](preview.gif)
 
@@ -17,29 +17,36 @@ This is a modern UI wrapper for [linux-wallpaperengine](https://github.com/Almam
 - [Contributing & Feedback](#-contributing--feedback)
 
 ---
-
 ## 📦 Installation
 
 ### 1. Wallpaper Engine (Steam)
 
 You need to own and install [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/) on Steam. Open Wallpaper Engine via Steam so the wallpapers are downloaded to your system.
+> [!NOTE]
+> If you use Arch btw, you can install everything with the command below and you can skip steps 2 & 3. It will install [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) which will take a few minutes to build.
+>
+> ```bash
+> yay -S linux-wallpaper-engine-ux
+> ```
 
 ### 2. Install linux-wallpaperengine
 
 You need to go to the [linux-wallpaperengine repo](https://github.com/Almamu/linux-wallpaperengine) page and follow the build instructions to compile and install it. Please read carefully and make sure it supports your OS and configuration — if it doesn't, this app is useless. Wayland works with compositors that support wlr-layer-shell-unstable, while X11 requires XRandr and `--screen-root <screen_name>` (as shown in `xrandr`) and currently does not work if a compositor or desktop environment (e.g. GNOME, KDE, Nautilus) is drawing the background.
 
+If you installed via build from source, you need to copy(or symlink) the binary that was produced in the build directory. So it is accessible in your PATH:
+
+```bash
+sudo cp /<path>/<to>/<your_build>/linux-wallpaperengine /usr/local/bin/linux-wallpaperengine
+```
+
 Verify the installation:
+
 ```bash
 linux-wallpaperengine --help
 ```
 
-If you installed via build from source, you need to create a symlink (or copy) to make the binary accessible:
-
-```bash
-sudo ln -sf /path/to/your/build/linux-wallpaperengine /usr/local/bin/linux-wallpaperengine
-```
-
 Test if it is working on your system by applying a wallpaper with the cli. For example (you will need to find your own path to the wallpaper file and the screen name):
+
 ```bash
 linux-wallpaperengine --screen-root DP-2 --bg /home/$USER/.local/share/Steam/steamapps/workshop/content/431960/<wallpaper_id>
 ```
@@ -73,10 +80,16 @@ flatpak install --user ./com.github.jagrat7.LinuxWallpaperEngine_stable_x86_64.f
 ```bash
 # Extract the archive (use your preferred tool: unzip, 7z, etc.)
 unzip linux-wallpaper-engine-<version>-linux-x64.zip
-
-# Run the executable
 cd linux-wallpaper-engine-linux-x64
 ./linux-wallpaper-engine
+```
+
+Recommended OS-specific installations:
+
+#### Arch Linux (AUR)
+
+```bash
+yay -S linux-wallpaper-engine-ux
 ```
 
 #### Nix / NixOS (Flakes)
@@ -111,7 +124,6 @@ Then simply consume the package:
     # ...
   ];
 }
-
 # or in a home-manager module...
 { inputs, pkgs, ... }:
 {
@@ -133,9 +145,14 @@ Then simply consume the package:
 ![Wallpaper Gallery](grid.png)
 
 
+- **Steam Workshop Integration (NEW!)** — Browse and subscribe to new wallpapers from the Steam Workshop.
+
+![Workshop Discover](workshop.png)
+
+
 <br />
 
-- **Playlists (NEW!)** — You can create and apply playlists to group wallpapers together and apply them to your monitors.
+- **Playlists** — You can create and apply playlists to group wallpapers together and apply them to your monitors.
 
 ![Playlist Support](playlists.png)
 
@@ -164,11 +181,6 @@ Then simply consume the package:
 <br />
 
 - **Settings** — Comprehensive options to tailor the application to your needs:
-  - **Performance**: Manage resource usage with FPS limits, auto-pause on fullscreen, and startup preferences.
-  - **Compatibility**: Built-in tool to scan and verify which Steam Workshop wallpapers run natively on Linux.
-  - **Audio**: Control master volume, mute rules, and enable audio processing for reactive wallpapers.
-  - **Display**: Adjust default scaling, toggle mouse interactions, and manage parallax effects.
-  - **Appearance**: Switch themes (Light, Dark, Steam-like) and customize UI elements like the status bar.
   
 ![Settings](settings.png)
 
@@ -181,3 +193,11 @@ Then simply consume the package:
 ## 🤝 Contributing & Feedback
 
 Contributions and feedback are welcome! Checkout [Discussions](https://github.com/jagrat7/linux-wallpaper-engine/discussions) to vote on features, share ideas, or ask questions. You can also open an [issue](https://github.com/jagrat7/linux-wallpaper-engine/issues) or submit a pull request. See [CONTRIBUTING.md](../.github/CONTRIBUTING.md) for more info.
+
+<br />
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=jagrat7/linux-wallpaper-engine&type=date&theme=dark&legend=top-left" />
+  <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=jagrat7/linux-wallpaper-engine&type=date&legend=top-left" />
+  <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=jagrat7/linux-wallpaper-engine&type=date&legend=top-left" />
+</picture>

@@ -6,6 +6,18 @@ import { MakerZIP } from '@electron-forge/maker-zip'
 import { VitePlugin } from '@electron-forge/plugin-vite'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
+import { packageNativeDeps } from './distro/native-deps'
+
+const { asarUnpackDir, ignore } = packageNativeDeps({
+  deps: [
+    {
+      pkg: 'steamworks.js',
+      nativeDir: 'dist/linux64',
+      entryFiles: ['index.js', 'package.json'],
+    },
+  ],
+  includedDirs: ['/.vite'],
+})
 
 const config: ForgeConfig = {
   publishers: [
@@ -14,19 +26,22 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: 'jagrat7',
-          name: 'linux-wallpaper-engine'
+          name: 'linux-wallpaper-engine',
         },
         prerelease: false,
         draft: false,
         generateReleaseNotes: true,
-      }
-    }
+      },
+    },
   ],
   packagerConfig: {
-    asar: true,
+    // Native .node binaries dlopen sibling .so files via RUNPATH=$ORIGIN,
+    // so their dir must live on disk instead of inside app.asar.
+    asar: { unpackDir: asarUnpackDir },
     icon: './assets/transparent-logo',
     executableName: 'linux-wallpaper-engine',
-    extraResource: ["./assets"],
+    extraResource: ['./assets'],
+    ignore,
   },
   rebuildConfig: {},
   makers: [
@@ -48,7 +63,7 @@ const config: ForgeConfig = {
         // Need to explicitly pass a set of size values
         // and ignore the typing for this one lol
         icon: {
-          '512x512': './assets/transparent-logo.png'
+          '512x512': './assets/transparent-logo.png',
         } as any,
         categories: ['Utility'],
         runtimeVersion: '24.08',
@@ -118,6 +133,6 @@ const config: ForgeConfig = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
-};
+}
 
-export default config;
+export default config
