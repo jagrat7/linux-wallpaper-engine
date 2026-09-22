@@ -1,5 +1,6 @@
+import { z } from 'zod'
 import type { CompatibilityStatus } from './compatibility'
-import type { ScalingOption } from './display'
+import { SCALING_OPTIONS, type ScalingOption } from './display'
 
 // Single source of truth for wallpaper filter/type options
 export const FILTER_TYPE_OPTIONS = [
@@ -9,11 +10,12 @@ export const FILTER_TYPE_OPTIONS = [
   { label: 'Web', value: 'web' },
   { label: 'Application', value: 'application' },
 ] as const
-export type WallpaperFilterType = typeof FILTER_TYPE_OPTIONS[number]['value']
+export type WallpaperFilterType = (typeof FILTER_TYPE_OPTIONS)[number]['value']
 export type WallpaperType = Exclude<WallpaperFilterType, 'all'>
 export type WindowGeometry = { x: number; y: number; width: number; height: number }
 
-export const BACKEND_NOT_INSTALLED_ERROR_MESSAGE = 'linux-wallpaperengine is not installed or is not available on PATH'
+export const BACKEND_NOT_INSTALLED_ERROR_MESSAGE =
+  'linux-wallpaperengine is not installed or is not available on PATH'
 export const WALLPAPER_APPLY_FAILED_MESSAGE = 'Wallpaper failed to apply. It may not be compatible.'
 
 export const AGE_RATINGS = {
@@ -25,11 +27,11 @@ export type AgeRating = keyof typeof AGE_RATINGS
 export const AGE_RATING_OPTIONS = Object.entries(AGE_RATINGS).map(([value, config]) => ({
   label: config.label,
   value,
-})) as Array<{ label: typeof AGE_RATINGS[AgeRating]['label']; value: AgeRating }>
+})) as Array<{ label: (typeof AGE_RATINGS)[AgeRating]['label']; value: AgeRating }>
 
 // Wallpaper type labels for display (derived from FILTER_TYPE_OPTIONS)
 export const WALLPAPER_TYPE_LABELS = Object.fromEntries(
-  FILTER_TYPE_OPTIONS.filter(o => o.value !== 'all').map(o => [o.value, o.label])
+  FILTER_TYPE_OPTIONS.filter((o) => o.value !== 'all').map((o) => [o.value, o.label]),
 ) as Record<WallpaperType, string>
 
 // Wallpaper data shape returned by scanning
@@ -48,6 +50,8 @@ export interface Wallpaper {
   tags: string[]
   installed: boolean
   path: string
+  // Last applied timestamp from the renderer-side appliedHistory merge; absent if never applied
+  lastAppliedAt?: number
 }
 
 // Options for applying a wallpaper via the backend
@@ -62,6 +66,7 @@ export interface ApplyWallpaperOptions {
   noAudioProcessing?: boolean
   disableMouse?: boolean
   disableParallax?: boolean
+  disableParticles?: boolean
   noFullscreenPause?: boolean
   windowed?: WindowGeometry | 'emit-flag'
 }
@@ -73,7 +78,128 @@ export interface WallpaperOverrides {
   scaling?: ScalingOption
   disableMouse?: boolean
   disableParallax?: boolean
+  disableParticles?: boolean
+  // Passed to the backend as --set-property name=value (see --list-properties)
+  customProperties?: Record<string, string>
   compatibility?: CompatibilityStatus
   autoErrors?: string[]
   lastTested?: number
+}
+
+// Fields in the overrides record owned by the compatibility scanner, not the
+// user. Save/reset must carry them forward and the UI must not count them.
+export const SCAN_MANAGED_KEYS = ['compatibility', 'autoErrors', 'lastTested'] as const
+
+export const isScanManagedKey = (key: string) =>
+  (SCAN_MANAGED_KEYS as readonly string[]).includes(key)
+
+// The scan-managed subset of an overrides record (omitting unset fields)
+export function pickScanManagedFields(
+  overrides: WallpaperOverrides | undefined,
+): WallpaperOverrides {
+  return {
+    ...(overrides?.compatibility !== undefined && { compatibility: overrides.compatibility }),
+    ...(overrides?.autoErrors !== undefined && { autoErrors: overrides.autoErrors }),
+    ...(overrides?.lastTested !== undefined && { lastTested: overrides.lastTested }),
+  }
+}
+
+// Per-wallpaper engine flag overrides: each row falls back to a global app
+// setting (globalKey), then to a static default. `control` is the runtime
+// discriminant for which UI control to render. Adding a new overridable
+// flag is one entry here (plus its WallpaperOverrides field and zod schema).
+export const ENGINE_OVERRIDE_FIELDS = [
+  {
+    control: 'select',
+    key: 'scaling',
+    globalKey: 'defaultScaling',
+    label: 'Scaling',
+    options: SCALING_OPTIONS,
+    fallback: 'fill',
+  },
+  {
+    control: 'slider',
+    key: 'volume',
+    globalKey: 'volume',
+    label: 'Volume',
+    min: 0,
+    max: 100,
+    suffix: '%',
+    fallback: 100,
+  },
+  {
+    control: 'switch',
+    key: 'audioProcessing',
+    globalKey: 'audioProcessing',
+    label: 'Audio reactive effects',
+    fallback: true,
+  },
+  {
+    control: 'switch',
+    key: 'disableMouse',
+    globalKey: 'disableMouse',
+    label: 'Disable mouse interaction',
+    fallback: false,
+  },
+  {
+    control: 'switch',
+    key: 'disableParallax',
+    globalKey: 'disableParallax',
+    label: 'Disable parallax effect',
+    fallback: false,
+  },
+  {
+    control: 'switch',
+    key: 'disableParticles',
+    globalKey: 'disableParticles',
+    label: 'Disable particle effects',
+    fallback: false,
+  },
+] as const
+export type EngineOverrideField = (typeof ENGINE_OVERRIDE_FIELDS)[number]
+
+const SCALING_VALUES = SCALING_OPTIONS.map((o) => o.value) as [ScalingOption, ...ScalingOption[]]
+
+// Shared zod schema for the user-settable engine flag overrides. Reused by the
+// per-wallpaper and per-playlist tRPC inputs and the playlist editor form.
+export const engineOverridesSchema = z.object({
+  volume: z.number().min(0).max(100).optional(),
+  audioProcessing: z.boolean().optional(),
+  scaling: z.enum(SCALING_VALUES).optional(),
+  disableMouse: z.boolean().optional(),
+  disableParallax: z.boolean().optional(),
+  disableParticles: z.boolean().optional(),
+})
+
+// Apply engine overrides onto a global settings object by mapping each override
+// key to its corresponding global setting key (see ENGINE_OVERRIDE_FIELDS).
+// Returns the original object untouched when there are no overrides.
+export function applyOverridesToSettings<T extends object>(
+  settings: T,
+  overrides?: WallpaperOverrides,
+): T {
+  if (!overrides) return settings
+  const merged = { ...settings } as Record<string, unknown>
+  for (const field of ENGINE_OVERRIDE_FIELDS) {
+    const value = overrides[field.key]
+    if (value !== undefined) merged[field.globalKey] = value
+  }
+  return merged as T
+}
+
+// Property types from project.json `general.properties` that get a UI control.
+// Other types (text headings, groups, scenetexture, file) are display-only or unsupported.
+export const PROPERTY_CONTROL_TYPES = ['bool', 'slider', 'combo', 'color', 'textinput'] as const
+
+// A customizable property exposed by a wallpaper's project.json.
+// `value` is the wallpaper's default, serialized to --set-property string form.
+export interface WallpaperProperty {
+  name: string
+  type: (typeof PROPERTY_CONTROL_TYPES)[number]
+  text: string
+  value: string
+  min?: number
+  max?: number
+  step?: number
+  options?: Array<{ label: string; value: string }>
 }

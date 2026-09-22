@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, type ReactNode } from "react"
-import { useAtom, useSetAtom } from "jotai"
-import { useDebounce } from "@uidotdev/usehooks"
-import { trpc } from "@/lib/trpc"
+import { useCallback, useEffect, useMemo, type ReactNode } from 'react'
+import { useAtom, useSetAtom } from 'jotai'
+import { useDebounce } from '@uidotdev/usehooks'
+import { trpc } from '@/lib/trpc'
 import {
   availableResolutionsAtom,
   availableTagsAtom,
@@ -13,10 +13,10 @@ import {
   searchQueryAtom,
   sortByAtom,
   sortOrderAtom,
-} from "@/contexts/atoms/search-atoms"
-import type { CompatibilityStatus } from "../../shared/constants/compatibility"
-import type { AgeRating, WallpaperFilterType } from "../../shared/constants/wallpaper"
-import type { SortBy, SortOrder } from "../../shared/constants/sort"
+} from '@/contexts/atoms/search-atoms'
+import type { CompatibilityStatus } from '../../shared/constants/compatibility'
+import type { AgeRating, WallpaperFilterType } from '../../shared/constants/wallpaper'
+import type { SortBy, SortOrder } from '../../shared/constants/sort'
 
 export type { AgeRating, WallpaperFilterType, SortBy, SortOrder }
 
@@ -52,6 +52,7 @@ interface WallpaperFilterContextType {
   filterCompatibility: CompatibilityStatus[]
   setFilterCompatibility: (statuses: CompatibilityStatus[]) => void
   toggleFilterCompatibility: (status: CompatibilityStatus) => void
+  clearAllFilters: () => void
 }
 
 export function WallpaperSearchProvider({ children }: { children: ReactNode }) {
@@ -75,7 +76,16 @@ export function WallpaperSearchProvider({ children }: { children: ReactNode }) {
       setSortBy(settings.sortBy)
       setSortOrder(settings.sortOrder)
     }
-  }, [settings, setFilterAgeRating, setFilterCompatibility, setFilterResolution, setFilterTags, setFilterType, setSortBy, setSortOrder])
+  }, [
+    settings,
+    setFilterAgeRating,
+    setFilterCompatibility,
+    setFilterResolution,
+    setFilterTags,
+    setFilterType,
+    setSortBy,
+    setSortOrder,
+  ])
 
   return children
 }
@@ -83,10 +93,13 @@ export function WallpaperSearchProvider({ children }: { children: ReactNode }) {
 export function useWallpaperSearchQuery() {
   const [searchQuery, setSearchQuery] = useAtom(searchQueryAtom)
 
-  return useMemo<WallpaperSearchQueryContextType>(() => ({
-    searchQuery,
-    setSearchQuery,
-  }), [searchQuery, setSearchQuery])
+  return useMemo<WallpaperSearchQueryContextType>(
+    () => ({
+      searchQuery,
+      setSearchQuery,
+    }),
+    [searchQuery, setSearchQuery],
+  )
 }
 
 export function useWallpaperSort() {
@@ -94,22 +107,31 @@ export function useWallpaperSort() {
   const [sortOrder, setSortOrderValue] = useAtom(sortOrderAtom)
   const updateSettings = trpc.settings.update.useMutation()
 
-  const setSortBy = useCallback((sort: SortBy) => {
-    setSortByValue(sort)
-    updateSettings.mutate({ sortBy: sort })
-  }, [setSortByValue, updateSettings])
+  const setSortBy = useCallback(
+    (sort: SortBy) => {
+      setSortByValue(sort)
+      updateSettings.mutate({ sortBy: sort })
+    },
+    [setSortByValue, updateSettings],
+  )
 
-  const setSortOrder = useCallback((order: SortOrder) => {
-    setSortOrderValue(order)
-    updateSettings.mutate({ sortOrder: order })
-  }, [setSortOrderValue, updateSettings])
+  const setSortOrder = useCallback(
+    (order: SortOrder) => {
+      setSortOrderValue(order)
+      updateSettings.mutate({ sortOrder: order })
+    },
+    [setSortOrderValue, updateSettings],
+  )
 
-  return useMemo<WallpaperSortContextType>(() => ({
-    sortBy,
-    setSortBy,
-    sortOrder,
-    setSortOrder,
-  }), [sortBy, setSortBy, sortOrder, setSortOrder])
+  return useMemo<WallpaperSortContextType>(
+    () => ({
+      sortBy,
+      setSortBy,
+      sortOrder,
+      setSortOrder,
+    }),
+    [sortBy, setSortBy, sortOrder, setSortOrder],
+  )
 }
 
 export function useWallpaperFilter() {
@@ -122,122 +144,167 @@ export function useWallpaperFilter() {
   const [filterCompatibility, setFilterCompatibilityValue] = useAtom(filterCompatibilityAtom)
   const updateSettings = trpc.settings.update.useMutation()
 
-  const setFilterType = useCallback((types: WallpaperFilterType[]) => {
-    setFilterTypeValue(types)
-    updateSettings.mutate({ filterType: types })
-  }, [setFilterTypeValue, updateSettings])
+  const setFilterType = useCallback(
+    (types: WallpaperFilterType[]) => {
+      setFilterTypeValue(types)
+      updateSettings.mutate({ filterType: types })
+    },
+    [setFilterTypeValue, updateSettings],
+  )
 
-  const toggleFilterType = useCallback((type: WallpaperFilterType) => {
-    setFilterTypeValue(prev => {
-      const next = prev.includes(type)
-        ? prev.filter(item => item !== type)
-        : [...prev, type]
-      updateSettings.mutate({ filterType: next })
-      return next
-    })
-  }, [setFilterTypeValue, updateSettings])
+  const toggleFilterType = useCallback(
+    (type: WallpaperFilterType) => {
+      setFilterTypeValue((prev) => {
+        const next = prev.includes(type) ? prev.filter((item) => item !== type) : [...prev, type]
+        updateSettings.mutate({ filterType: next })
+        return next
+      })
+    },
+    [setFilterTypeValue, updateSettings],
+  )
 
-  const setFilterAgeRating = useCallback((ratings: AgeRating[]) => {
-    setFilterAgeRatingValue(ratings)
-    updateSettings.mutate({ filterAgeRating: ratings })
-  }, [setFilterAgeRatingValue, updateSettings])
+  const setFilterAgeRating = useCallback(
+    (ratings: AgeRating[]) => {
+      setFilterAgeRatingValue(ratings)
+      updateSettings.mutate({ filterAgeRating: ratings })
+    },
+    [setFilterAgeRatingValue, updateSettings],
+  )
 
-  const toggleFilterAgeRating = useCallback((rating: AgeRating) => {
-    setFilterAgeRatingValue(prev => {
-      const next = prev.includes(rating)
-        ? prev.filter(item => item !== rating)
-        : [...prev, rating]
-      updateSettings.mutate({ filterAgeRating: next })
-      return next
-    })
-  }, [setFilterAgeRatingValue, updateSettings])
+  const toggleFilterAgeRating = useCallback(
+    (rating: AgeRating) => {
+      setFilterAgeRatingValue((prev) => {
+        const next = prev.includes(rating)
+          ? prev.filter((item) => item !== rating)
+          : [...prev, rating]
+        updateSettings.mutate({ filterAgeRating: next })
+        return next
+      })
+    },
+    [setFilterAgeRatingValue, updateSettings],
+  )
 
-  const setFilterTags = useCallback((tags: string[]) => {
-    setFilterTagsValue(tags)
-    updateSettings.mutate({ filterTags: tags })
-  }, [setFilterTagsValue, updateSettings])
+  const setFilterTags = useCallback(
+    (tags: string[]) => {
+      setFilterTagsValue(tags)
+      updateSettings.mutate({ filterTags: tags })
+    },
+    [setFilterTagsValue, updateSettings],
+  )
 
-  const toggleTag = useCallback((tag: string) => {
-    setFilterTagsValue(prev => {
-      const next = prev.includes(tag)
-        ? prev.filter(item => item !== tag)
-        : [...prev, tag]
-      updateSettings.mutate({ filterTags: next })
-      return next
-    })
-  }, [setFilterTagsValue, updateSettings])
+  const toggleTag = useCallback(
+    (tag: string) => {
+      setFilterTagsValue((prev) => {
+        const next = prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]
+        updateSettings.mutate({ filterTags: next })
+        return next
+      })
+    },
+    [setFilterTagsValue, updateSettings],
+  )
 
-  const setFilterResolution = useCallback((resolutions: string[]) => {
-    setFilterResolutionValue(resolutions)
-    updateSettings.mutate({ filterResolution: resolutions })
-  }, [setFilterResolutionValue, updateSettings])
+  const setFilterResolution = useCallback(
+    (resolutions: string[]) => {
+      setFilterResolutionValue(resolutions)
+      updateSettings.mutate({ filterResolution: resolutions })
+    },
+    [setFilterResolutionValue, updateSettings],
+  )
 
-  const toggleResolution = useCallback((resolution: string) => {
-    setFilterResolutionValue(prev => {
-      const next = prev.includes(resolution)
-        ? prev.filter(item => item !== resolution)
-        : [...prev, resolution]
-      updateSettings.mutate({ filterResolution: next })
-      return next
-    })
-  }, [setFilterResolutionValue, updateSettings])
+  const toggleResolution = useCallback(
+    (resolution: string) => {
+      setFilterResolutionValue((prev) => {
+        const next = prev.includes(resolution)
+          ? prev.filter((item) => item !== resolution)
+          : [...prev, resolution]
+        updateSettings.mutate({ filterResolution: next })
+        return next
+      })
+    },
+    [setFilterResolutionValue, updateSettings],
+  )
 
-  const setFilterCompatibility = useCallback((statuses: CompatibilityStatus[]) => {
-    setFilterCompatibilityValue(statuses)
-    updateSettings.mutate({ filterCompatibility: statuses })
-  }, [setFilterCompatibilityValue, updateSettings])
+  const setFilterCompatibility = useCallback(
+    (statuses: CompatibilityStatus[]) => {
+      setFilterCompatibilityValue(statuses)
+      updateSettings.mutate({ filterCompatibility: statuses })
+    },
+    [setFilterCompatibilityValue, updateSettings],
+  )
 
-  const toggleFilterCompatibility = useCallback((status: CompatibilityStatus) => {
-    setFilterCompatibilityValue(prev => {
-      const next = prev.includes(status)
-        ? prev.filter(item => item !== status)
-        : [...prev, status]
-      updateSettings.mutate({ filterCompatibility: next })
-      return next
-    })
-  }, [setFilterCompatibilityValue, updateSettings])
+  const toggleFilterCompatibility = useCallback(
+    (status: CompatibilityStatus) => {
+      setFilterCompatibilityValue((prev) => {
+        const next = prev.includes(status)
+          ? prev.filter((item) => item !== status)
+          : [...prev, status]
+        updateSettings.mutate({ filterCompatibility: next })
+        return next
+      })
+    },
+    [setFilterCompatibilityValue, updateSettings],
+  )
 
-  return useMemo<WallpaperFilterContextType>(() => ({
-    filterType,
+  const clearAllFilters = useCallback(() => {
+    setFilterType([])
+    setFilterAgeRating([])
+    setFilterResolution([])
+    setFilterTags([])
+    setFilterCompatibility([])
+  }, [
     setFilterType,
-    toggleFilterType,
-    filterAgeRating,
     setFilterAgeRating,
-    toggleFilterAgeRating,
-    filterTags,
-    setFilterTags,
-    toggleTag,
-    availableTags,
-    setAvailableTags,
-    filterResolution,
-    setFilterResolution,
-    toggleResolution,
-    availableResolutions,
-    setAvailableResolutions,
-    filterCompatibility,
-    setFilterCompatibility,
-    toggleFilterCompatibility,
-  }), [
-    availableResolutions,
-    availableTags,
-    filterAgeRating,
-    filterCompatibility,
-    filterResolution,
-    filterTags,
-    filterType,
-    setFilterAgeRating,
-    setAvailableResolutions,
-    setAvailableTags,
-    setFilterCompatibility,
     setFilterResolution,
     setFilterTags,
-    setFilterType,
-    toggleFilterAgeRating,
-    toggleFilterCompatibility,
-    toggleResolution,
-    toggleTag,
-    toggleFilterType,
+    setFilterCompatibility,
   ])
+
+  return useMemo<WallpaperFilterContextType>(
+    () => ({
+      filterType,
+      setFilterType,
+      toggleFilterType,
+      filterAgeRating,
+      setFilterAgeRating,
+      toggleFilterAgeRating,
+      filterTags,
+      setFilterTags,
+      toggleTag,
+      availableTags,
+      setAvailableTags,
+      filterResolution,
+      setFilterResolution,
+      toggleResolution,
+      availableResolutions,
+      setAvailableResolutions,
+      filterCompatibility,
+      setFilterCompatibility,
+      toggleFilterCompatibility,
+      clearAllFilters,
+    }),
+    [
+      availableResolutions,
+      availableTags,
+      filterAgeRating,
+      filterCompatibility,
+      filterResolution,
+      filterTags,
+      filterType,
+      setFilterAgeRating,
+      setAvailableResolutions,
+      setAvailableTags,
+      setFilterCompatibility,
+      setFilterResolution,
+      setFilterTags,
+      setFilterType,
+      toggleFilterAgeRating,
+      toggleFilterCompatibility,
+      toggleResolution,
+      toggleTag,
+      toggleFilterType,
+      clearAllFilters,
+    ],
+  )
 }
 
 export function useWallpaperSearch() {

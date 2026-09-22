@@ -3,13 +3,14 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { trpc } from '../trpc'
 import { workshopService, type WorkshopConnectionEvent } from '../../services/workshop/workshop'
-import { isWorkshopConnectionError } from '../../services/workshop/workshop.errors'
 import { WORKSHOP_SORT_OPTIONS, type WorkshopSortBy } from '../../../shared/constants/workshop'
 
-const workshopSortSchema = z.enum(WORKSHOP_SORT_OPTIONS.map(o => o.value) as [WorkshopSortBy, ...WorkshopSortBy[]])
+const workshopSortSchema = z.enum(
+  WORKSHOP_SORT_OPTIONS.map((o) => o.value) as [WorkshopSortBy, ...WorkshopSortBy[]],
+)
 
 const toTrpcWorkshopError = (error: unknown): never => {
-  if (isWorkshopConnectionError(error)) {
+  if (workshopService.isConnectionError(error)) {
     throw new TRPCError({
       code: 'PRECONDITION_FAILED',
       message: error.message,
@@ -47,11 +48,13 @@ export const workshopRouter = trpc.router({
 
   discover: workshopProcedure
     .input(
-      z.object({
-        sortBy: workshopSortSchema.optional(),
-        focusedSectionId: z.string().optional(),
-        page: z.number().int().positive().optional(),
-      }).optional(),
+      z
+        .object({
+          sortBy: workshopSortSchema.optional(),
+          focusedSectionId: z.string().optional(),
+          page: z.number().int().positive().optional(),
+        })
+        .optional(),
     )
     .query(({ input }) => workshopService.discover(input)),
 

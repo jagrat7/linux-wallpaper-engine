@@ -1,7 +1,7 @@
-import { useMemo, type ReactNode } from "react"
-import { useAtom } from "jotai"
-import { trpc } from "@/lib/trpc"
-import { selectedWallpaperBackgroundUrlAtom } from "@/contexts/atoms/wallpaper-background-atoms"
+import { useMemo, type ReactNode } from 'react'
+import { useAtom } from 'jotai'
+import { trpc } from '@/lib/trpc'
+import { selectedWallpaperBackgroundUrlAtom } from '@/contexts/atoms/wallpaper-background-atoms'
 
 interface WallpaperBackgroundState {
   backgroundUrl: string | null
@@ -26,8 +26,11 @@ export function useWallpaperBackground(): WallpaperBackgroundState {
 
   const backgroundUrl = useMemo(() => selectedUrl ?? activeUrl, [selectedUrl, activeUrl])
 
-  return useMemo(() => ({
-    backgroundUrl,
-    setSelectedUrl,
-  }), [backgroundUrl, setSelectedUrl])
+  return useMemo(
+    () => ({
+      backgroundUrl,
+      setSelectedUrl,
+    }),
+    [backgroundUrl, setSelectedUrl],
+  )
 }

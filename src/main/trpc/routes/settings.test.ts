@@ -4,8 +4,11 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/constants/ap
 // --- Mocks ---------------------------------------------------------------
 
 const {
-  mockSettingsService, mockWallpaperService,
-  mockIsFlatpak, mockSetFlatpakBypass, mockSetAutostart,
+  mockSettingsService,
+  mockWallpaperService,
+  mockIsFlatpak,
+  mockSetFlatpakBypass,
+  mockSetAutostart,
 } = vi.hoisted(() => ({
   mockSettingsService: {
     loadSettings: vi.fn(),
@@ -29,12 +32,12 @@ vi.mock('../../services/wallpaper/wallpaper', () => ({
   wallpaperService: mockWallpaperService,
 }))
 
-vi.mock('../../services/flatpak', () => ({
+vi.mock('../../utils/host', () => ({
   isFlatpak: (...args: unknown[]) => mockIsFlatpak(...args),
   setFlatpakBypass: (...args: unknown[]) => mockSetFlatpakBypass(...args),
 }))
 
-vi.mock('../../services/autostart', () => ({
+vi.mock('../../utils/autostart', () => ({
   setAutostart: (...args: unknown[]) => mockSetAutostart(...args),
 }))
 
@@ -84,8 +87,17 @@ describe('settingsRouter', () => {
 
     describe('backend key reapply', () => {
       const BACKEND_KEYS = [
-        'fps', 'pauseOnFullscreen', 'volume', 'silent', 'noAutomute',
-        'audioProcessing', 'defaultScaling', 'disableMouse', 'disableParallax', 'assetsDir',
+        'fps',
+        'pauseOnFullscreen',
+        'volume',
+        'silent',
+        'noAutomute',
+        'audioProcessing',
+        'defaultScaling',
+        'disableMouse',
+        'disableParallax',
+        'disableParticles',
+        'assetsDir',
       ] as const
 
       it.each(BACKEND_KEYS)('should reapply wallpapers when %s changes', async (key) => {
@@ -109,13 +121,21 @@ describe('settingsRouter', () => {
         expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'reapply' })
       })
 
-      const NON_BACKEND_KEYS = ['theme', 'launchOnLogin', 'enableSystemTray', 'minimizeOnClose'] as const
+      const NON_BACKEND_KEYS = [
+        'theme',
+        'wallpaperGridDensity',
+        'launchOnLogin',
+        'enableSystemTray',
+        'minimizeOnClose',
+      ] as const
 
       it.each(NON_BACKEND_KEYS)('should NOT reapply wallpapers when %s changes', async (key) => {
         mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
 
         const input: Record<string, unknown> = {}
-        if (typeof DEFAULT_SETTINGS[key] === 'boolean') {
+        if (key === 'wallpaperGridDensity') {
+          input[key] = 'compact'
+        } else if (typeof DEFAULT_SETTINGS[key] === 'boolean') {
           input[key] = !DEFAULT_SETTINGS[key]
         } else {
           input[key] = 'dark'
@@ -164,7 +184,11 @@ describe('settingsRouter', () => {
 
   describe('reset', () => {
     it('should reset settings and reapply wallpapers', async () => {
-      const current = makeSettings({ dismissedScanReminder: true, fps: 144 })
+      const current = makeSettings({
+        dismissedScanReminder: true,
+        dismissedUpdateVersion: '1.0.0',
+        fps: 144,
+      })
       const resetResult = makeSettings()
       mockSettingsService.loadSettings.mockResolvedValue(current)
       mockSettingsService.resetSettings.mockResolvedValue(resetResult)
@@ -176,6 +200,7 @@ describe('settingsRouter', () => {
       expect(mockSettingsService.resetSettings).toHaveBeenCalled()
       expect(mockSettingsService.saveSettings).toHaveBeenCalledWith({
         dismissedScanReminder: true,
+        dismissedUpdateVersion: '1.0.0',
       })
       expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'reapply' })
     })

@@ -40,21 +40,18 @@ export const packageNativeDeps = ({
   // Extra top-level dirs to include (e.g. '/.vite' for the bundled output).
   includedDirs?: string[]
 }): PackagerHooks => {
-  const nativeDirs = deps.map(d => `${NODE_MODULES}/${d.pkg}/${d.nativeDir}`)
-  const entryFiles = deps.flatMap(d =>
-    (d.entryFiles ?? []).map(file => `${NODE_MODULES}/${d.pkg}/${file}`),
+  const nativeDirs = deps.map((d) => `${NODE_MODULES}/${d.pkg}/${d.nativeDir}`)
+  const entryFiles = deps.flatMap((d) =>
+    (d.entryFiles ?? []).map((file) => `${NODE_MODULES}/${d.pkg}/${file}`),
   )
 
   const includedRoots = [...includedDirs, ...nativeDirs]
-  const includedPaths = new Set<string>([
-    ...includedRoots.flatMap(ancestorDirs),
-    ...entryFiles,
-  ])
+  const includedPaths = new Set<string>([...includedRoots.flatMap(ancestorDirs), ...entryFiles])
 
   const ignore = (filePath: string): boolean => {
     if (!filePath) return false
     if (includedPaths.has(filePath)) return false
-    return !includedRoots.some(root => filePath.startsWith(`${root}/`))
+    return !includedRoots.some((root) => filePath.startsWith(`${root}/`))
   }
 
   // electron-packager passes `unpackDir` to asar as a single glob.

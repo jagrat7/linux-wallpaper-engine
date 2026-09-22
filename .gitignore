@@ -45,9 +45,6 @@ typings/
 # Optional npm cache directory
 .npm
 
-# Optional eslint cache
-.eslintcache
-
 # Optional REPL history
 .node_repl_history
 
@@ -117,10 +114,13 @@ docs/testing.md
 /.cocoindex_code/
 
 /.agents/
-/.windsurf/
+/.devin/
 
+jean.json
 
 /public
 
 .codex
 .zed
+
+/pr-video

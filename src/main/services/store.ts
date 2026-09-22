@@ -10,7 +10,10 @@ export interface ActivePlaylistInfo {
 
 export interface ActiveWallpapersSchema {
   activeWallpapers: Record<string, ApplyWallpaperOptions>
+  activePlaylists: Record<string, ActivePlaylistInfo>
   activePlaylist: ActivePlaylistInfo | null
+  // Wallpaper path -> last applied timestamp, drives the "recent" sort
+  appliedHistory: Record<string, number>
 }
 
 export interface WallpaperOverridesSchema {
@@ -34,7 +37,9 @@ class StoreService {
       name: 'active-wallpapers',
       defaults: {
         activeWallpapers: {},
+        activePlaylists: {},
         activePlaylist: null,
+        appliedHistory: {},
       },
     })
 

@@ -5,4 +5,4 @@ export const THEME_OPTIONS = [
   { label: 'System', value: 'system' },
   { label: 'Hard Light', value: 'hard-light' },
 ] as const
-export type ThemeOption = typeof THEME_OPTIONS[number]['value']
+export type ThemeOption = (typeof THEME_OPTIONS)[number]['value']

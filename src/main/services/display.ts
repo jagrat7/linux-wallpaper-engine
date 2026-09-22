@@ -278,9 +278,11 @@ export const displayService = {
   },
 
   getFallbackRefreshRate(): number {
-    return settingsService.getSetting('maxRefreshRate')
-      ?? settingsService.getSetting('fps')
-      ?? DEFAULT_REFRESH_RATE
+    return (
+      settingsService.getSetting('maxRefreshRate') ??
+      settingsService.getSetting('fps') ??
+      DEFAULT_REFRESH_RATE
+    )
   },
 
   async getDisplaySession(): Promise<'x11' | 'wayland' | 'unknown'> {
@@ -298,7 +300,7 @@ export const displayService = {
 
   async getMaxRefreshRate(): Promise<number> {
     const displays = await displayService.detectDisplays()
-    const maxRate = Math.max(...displays.map(d => d.refreshRate))
+    const maxRate = Math.max(...displays.map((d) => d.refreshRate))
     return maxRate
   },
 }

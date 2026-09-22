@@ -17,6 +17,10 @@ export interface IStateManager {
   save(): void
   reset(): void
 
+  // Applied history (drives the "recent" sort)
+  getAppliedHistory(): Record<string, number>
+  recordApplied(backgroundId: string): void
+
   // Debug
   getDebugLogs(screen: string): DebugInfo
   setDebugLogs(screen: string, command: string, logs: string[]): void

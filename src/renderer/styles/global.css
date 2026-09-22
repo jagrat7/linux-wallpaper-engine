@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 @plugin "tailwind-scrollbar";
 
 @custom-variant dark (&:is(.dark *));
@@ -9,7 +9,6 @@
   --radius: 0.625rem;
   --sidebar: var(--background);
 }
-
 
 /* Default light theme */
 .light {
@@ -24,13 +23,13 @@
   --secondary: oklch(0.95 0.008 110);
   --secondary-foreground: oklch(0.285 0.03 120);
   --muted: oklch(0.95 0.008 110);
-  --muted-foreground: oklch(0.50 0.0225 120);
+  --muted-foreground: oklch(0.5 0.0225 120);
   --accent: oklch(0.95 0.008 110);
   --accent-foreground: oklch(0.285 0.03 120);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
   --border: oklch(84.865% 0.00952 113.414);
-  --input: oklch(0.90 0.01 110);
+  --input: oklch(0.9 0.01 110);
   --ring: oklch(0.65 0.02 110);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -39,11 +38,11 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
   --sidebar-foreground: oklch(0.285 0.03 120);
-  --sidebar-primary: oklch(0.285 0.03 120);
-  --sidebar-primary-foreground: oklch(0.99 0.005 110);
+  --sidebar-primary: var(--sidebar-accent);
+  --sidebar-primary-foreground: var(--sidebar-accent-foreground);
   --sidebar-accent: oklch(0.92 0.012 110);
   --sidebar-accent-foreground: oklch(0.285 0.03 120);
-  --sidebar-border: oklch(0.90 0.01 110);
+  --sidebar-border: oklch(0.9 0.01 110);
   --sidebar-ring: oklch(0.65 0.02 110);
   --success: oklch(0.7 0.2 145);
   --success-foreground: oklch(1 0 0);
@@ -78,8 +77,8 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--sidebar-accent);
+  --sidebar-primary-foreground: var(--sidebar-accent-foreground);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
@@ -94,9 +93,9 @@
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
+  --card: oklch(0.185 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
+  --popover: oklch(0.185 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.985 0 0);
   --primary-foreground: oklch(0.205 0 0);
@@ -108,21 +107,21 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--sidebar-accent);
+  --sidebar-primary-foreground: var(--sidebar-accent-foreground);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --sidebar-border: oklch(1 0 0 / 14%);
+  --sidebar-ring: oklch(0.556 0 0);
   --success: oklch(0.7 0.2 145);
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.75 0.18 75);
@@ -135,7 +134,7 @@
   --foreground: oklch(0.87 0.03 236);
   --card: oklch(0.36 0.06 242);
   --card-foreground: oklch(0.87 0.03 236);
-  --popover: oklch(0.20 0.03 247);
+  --popover: oklch(0.2 0.03 247);
   --popover-foreground: oklch(0.87 0.03 236);
   --primary: oklch(0.77 0.12 235);
   --primary-foreground: oklch(0.24 0.04 247);
@@ -152,8 +151,8 @@
   --ring: oklch(0.77 0.12 235);
   --radius: 0.25rem;
   --sidebar-foreground: oklch(0.87 0.03 236);
-  --sidebar-primary: oklch(0.77 0.12 235);
-  --sidebar-primary-foreground: oklch(0.24 0.04 247);
+  --sidebar-primary: var(--sidebar-accent);
+  --sidebar-primary-foreground: var(--sidebar-accent-foreground);
   --sidebar-accent: oklch(0.36 0.06 242);
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(0.38 0.06 242);
@@ -163,6 +162,11 @@
   --warning: oklch(0.75 0.15 80);
   --warning-foreground: oklch(1 0 0);
   --search-bg: oklch(0.47 0.08 240);
+}
+
+/* System theme tokens are supplied by XDG Portal and optional palette providers */
+.system {
+  color-scheme: light dark;
 }
 
 @theme inline {
