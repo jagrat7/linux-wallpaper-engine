@@ -1,8 +1,8 @@
-import { useAtomValue } from "jotai"
-import { wallpaperBackgroundPaintedAtom } from "@/contexts/atoms/wallpaper-background-atoms"
+import { useAtomValue } from 'jotai'
+import { wallpaperBackgroundPaintedAtom } from '@/contexts/atoms/wallpaper-background-atoms'
 
 /** Frosted-blur utility declared in styles/global.css. */
-export const GLASS_CLASS = "glass"
+export const GLASS_CLASS = 'glass'
 
 /**
  * The frosted `glass` surface only reads as glass when there is a wallpaper
@@ -15,5 +15,5 @@ export const GLASS_CLASS = "glass"
  * static frame has not been decoded yet.
  */
 export function useGlass(): string {
-  return useAtomValue(wallpaperBackgroundPaintedAtom) ? GLASS_CLASS : ""
+  return useAtomValue(wallpaperBackgroundPaintedAtom) ? GLASS_CLASS : ''
 }

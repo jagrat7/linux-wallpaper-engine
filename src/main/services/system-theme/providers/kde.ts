@@ -25,8 +25,7 @@ const readKdePalette = (): SystemThemePalette | null => {
       return
     }
     const entry = line.match(/^([^=]+)=(.*)$/)
-    if (entry !== null && section !== '')
-      sections.get(section)![entry[1]] = entry[2]
+    if (entry !== null && section !== '') sections.get(section)![entry[1]] = entry[2]
   })
 
   const color = (group: string, key: string) => parseKdeColor(sections.get(group)?.[key])

@@ -44,25 +44,27 @@ yellow = "#026fde"
 green = "#4a2fd0"
 `)
 
-    expect(theme).toEqual(expect.objectContaining({
-      background: '#fafafa',
-      foreground: '#212121',
-      card: '#f5f5f5',
-      primary: '#3264eb',
-      primaryForeground: '#fafafa',
-      accent: '#d0d0d0',
-      mutedForeground: '#9e9e9e',
-      sidebar: '#fafafa',
-      sidebarForeground: '#212121',
-      sidebarAccent: '#d0d0d0',
-      sidebarAccentForeground: '#000000',
-      sidebarBorder: '#9e9e9e',
-      sidebarPrimary: 'color-mix(in oklch, #3264eb 22%, #fafafa)',
-      sidebarPrimaryForeground: '#212121',
-      destructive: '#c900c4',
-      success: '#4a2fd0',
-      warning: '#026fde',
-    }))
+    expect(theme).toEqual(
+      expect.objectContaining({
+        background: '#fafafa',
+        foreground: '#212121',
+        card: '#f5f5f5',
+        primary: '#3264eb',
+        primaryForeground: '#fafafa',
+        accent: '#d0d0d0',
+        mutedForeground: '#9e9e9e',
+        sidebar: '#fafafa',
+        sidebarForeground: '#212121',
+        sidebarAccent: '#d0d0d0',
+        sidebarAccentForeground: '#000000',
+        sidebarBorder: '#9e9e9e',
+        sidebarPrimary: 'color-mix(in oklch, #3264eb 22%, #fafafa)',
+        sidebarPrimaryForeground: '#212121',
+        destructive: '#c900c4',
+        success: '#4a2fd0',
+        warning: '#026fde',
+      }),
+    )
   })
 
   it('keeps compatibility with the legacy Omarchy ANSI palette', () => {
@@ -80,14 +82,16 @@ color7 = "#bac2de"
 color8 = "#585b70"
 `)
 
-    expect(theme).toEqual(expect.objectContaining({
-      card: '#313244',
-      accent: '#45475a',
-      mutedForeground: '#bac2de',
-      destructive: '#f38ba8',
-      success: '#a6e3a1',
-      warning: '#f9e2af',
-    }))
+    expect(theme).toEqual(
+      expect.objectContaining({
+        card: '#313244',
+        accent: '#45475a',
+        mutedForeground: '#bac2de',
+        destructive: '#f38ba8',
+        success: '#a6e3a1',
+        warning: '#f9e2af',
+      }),
+    )
   })
 
   it('rejects an incomplete palette', () => {

@@ -14,7 +14,7 @@ const fileWatchMocks = vi.hoisted(() => ({
 }))
 
 vi.mock('node:fs', async (importOriginal) => ({
-  ...await importOriginal<typeof import('node:fs')>(),
+  ...(await importOriginal<typeof import('node:fs')>()),
   existsSync: fileWatchMocks.existsSync,
   watch: fileWatchMocks.watch,
 }))
@@ -50,11 +50,13 @@ afterEach(() => {
 
 describe('normalizeSystemThemePalette', () => {
   it('removes empty palette values while preserving usable colors', () => {
-    expect(normalizeSystemThemePalette({
-      background: '#101010',
-      foreground: '',
-      accent: undefined,
-    })).toEqual({ background: '#101010' })
+    expect(
+      normalizeSystemThemePalette({
+        background: '#101010',
+        foreground: '',
+        accent: undefined,
+      }),
+    ).toEqual({ background: '#101010' })
   })
 
   it('preserves a usable partial palette', () => {
@@ -94,11 +96,10 @@ describe('portal.parseAccent', () => {
 describe('watchThemeFiles', () => {
   it('groups files by directory and ignores unrelated file events', () => {
     const onChange = vi.fn()
-    const watchers = watchThemeFiles([
-      '/config/theme/colors.toml',
-      '/config/theme/hyprland.lua',
-      '/config/desktop/kdeglobals',
-    ], onChange)
+    const watchers = watchThemeFiles(
+      ['/config/theme/colors.toml', '/config/theme/hyprland.lua', '/config/desktop/kdeglobals'],
+      onChange,
+    )
 
     expect(watchers).toHaveLength(2)
     expect(fileWatchMocks.watch).toHaveBeenCalledTimes(2)
@@ -115,7 +116,8 @@ describe('themeRefresh', () => {
   it('serializes overlapping refreshes and runs one trailing detection', async () => {
     const first = deferred<SystemTheme>()
     const second = deferred<SystemTheme>()
-    const detect = vi.fn()
+    const detect = vi
+      .fn()
       .mockImplementationOnce(() => first.promise)
       .mockImplementationOnce(() => second.promise)
     const coordinator = themeRefresh.createCoordinator({
@@ -175,7 +177,8 @@ describe('themeRefresh', () => {
 
   it('invalidates only after a successful theme change', async () => {
     const onChange = vi.fn()
-    const detect = vi.fn()
+    const detect = vi
+      .fn()
       .mockResolvedValueOnce(darkTheme)
       .mockResolvedValueOnce(darkTheme)
       .mockResolvedValueOnce(lightTheme)
@@ -198,9 +201,7 @@ describe('themeRefresh', () => {
     const error = new Error('theme file is temporarily incomplete')
     const onChange = vi.fn()
     const onError = vi.fn()
-    const detect = vi.fn()
-      .mockResolvedValueOnce(darkTheme)
-      .mockRejectedValueOnce(error)
+    const detect = vi.fn().mockResolvedValueOnce(darkTheme).mockRejectedValueOnce(error)
     const coordinator = themeRefresh.createCoordinator({
       detect,
       debounceMs: 100,

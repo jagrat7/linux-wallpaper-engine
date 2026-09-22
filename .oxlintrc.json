@@ -1,0 +1,53 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react"],
+  "jsPlugins": [{ "name": "local", "specifier": "./dev/oxlint/index.mjs" }],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "ignorePatterns": [
+    "node_modules/**",
+    "out/**",
+    "coverage/**",
+    "demo-video/**",
+    "public/**",
+    "pr-video/**",
+    ".vite/**",
+    ".tanstack/**",
+    ".direnv/**",
+    ".cache/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".devin/**",
+    "**/*.gen.ts",
+    "**/*.d.ts"
+  ],
+  "rules": {
+    "unicorn/filename-case": ["error", { "case": "kebabCase" }],
+    "local/no-server-deep-imports": ["error", { "serverDirectory": "src/main/services" }],
+    "react/react-in-jsx-scope": "off",
+    "react/set-state-in-effect": "warn",
+    "react/incompatible-library": "warn",
+    "react/refs": "warn",
+    "react/no-children-prop": "warn",
+    "react-hooks/exhaustive-deps": "warn"
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/main/services/compatibility.ts",
+        "src/main/services/display.ts",
+        "src/main/services/invalidation.ts",
+        "src/main/services/settings.ts",
+        "src/main/services/store.ts",
+        "src/main/services/playlists/playlist.ts",
+        "src/main/services/system-theme/system-theme.ts",
+        "src/main/services/wallpaper/wallpaper.ts",
+        "src/main/services/workshop/workshop.ts"
+      ],
+      "rules": { "local/only-service-export": "error" }
+    }
+  ]
+}

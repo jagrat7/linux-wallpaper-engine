@@ -8,6 +8,10 @@ export interface SystemThemePlatform {
 // ── System theme service ──────────────────────────────────────────────────
 
 export interface ISystemThemeService {
+  configureElectronPlatform(
+    nativeTheme: typeof import('electron').nativeTheme,
+    systemPreferences: typeof import('electron').systemPreferences,
+  ): void
   configurePlatform(platform: SystemThemePlatform): void
 
   // Theme query

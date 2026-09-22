@@ -9,9 +9,7 @@ import {
 
 describe('hyprland theme paths', () => {
   it('watches pywal then vanilla Hyprland config files', () => {
-    expect(getPywalThemePaths('/home/user')).toEqual([
-      '/home/user/.cache/wal/colors.sh',
-    ])
+    expect(getPywalThemePaths('/home/user')).toEqual(['/home/user/.cache/wal/colors.sh'])
     expect(getVanillaHyprlandPaths('/home/user')).toEqual([
       '/home/user/.config/hypr/hyprland.conf',
       '/home/user/.config/hypr/colors.conf',
@@ -41,16 +39,18 @@ color8='#585b70'
 color15='#cdd6f4'
 `)
 
-    expect(theme).toEqual(expect.objectContaining({
-      background: '#1e1e2e',
-      foreground: '#cdd6f4',
-      card: '#313244',
-      primary: '#89b4fa',
-      mutedForeground: '#bac2de',
-      destructive: '#f38ba8',
-      success: '#a6e3a1',
-      warning: '#f9e2af',
-    }))
+    expect(theme).toEqual(
+      expect.objectContaining({
+        background: '#1e1e2e',
+        foreground: '#cdd6f4',
+        card: '#313244',
+        primary: '#89b4fa',
+        mutedForeground: '#bac2de',
+        destructive: '#f38ba8',
+        success: '#a6e3a1',
+        warning: '#f9e2af',
+      }),
+    )
   })
 })
 
@@ -67,16 +67,18 @@ local colors = {
 }
 `)
 
-    expect(theme).toEqual(expect.objectContaining({
-      background: '#302270',
-      foreground: '#86f3f5',
-      card: '#3a2b80',
-      primary: '#898efa',
-      accent: '#4c39a0',
-      border: '#9368bf',
-      sidebarPrimary: 'color-mix(in oklch, #898efa 22%, #302270)',
-      sidebarAccent: '#4c39a0',
-    }))
+    expect(theme).toEqual(
+      expect.objectContaining({
+        background: '#302270',
+        foreground: '#86f3f5',
+        card: '#3a2b80',
+        primary: '#898efa',
+        accent: '#4c39a0',
+        border: '#9368bf',
+        sidebarPrimary: 'color-mix(in oklch, #898efa 22%, #302270)',
+        sidebarAccent: '#4c39a0',
+      }),
+    )
   })
 
   it('falls back to Lua border colors and gradients', () => {
@@ -92,14 +94,16 @@ hl.config({
 })
 `)
 
-    expect(theme).toEqual(expect.objectContaining({
-      primary: '#8a8588',
-      primaryForeground: '#000000',
-      accent: '#584e51',
-      border: '#584e51',
-      sidebarPrimary: 'color-mix(in oklch, #8a8588 22%, var(--sidebar))',
-      sidebarAccent: '#584e51',
-    }))
+    expect(theme).toEqual(
+      expect.objectContaining({
+        primary: '#8a8588',
+        primaryForeground: '#000000',
+        accent: '#584e51',
+        border: '#584e51',
+        sidebarPrimary: 'color-mix(in oklch, #8a8588 22%, var(--sidebar))',
+        sidebarAccent: '#584e51',
+      }),
+    )
   })
 
   it('parses vanilla hyprland.conf border colors', () => {
@@ -110,14 +114,16 @@ general {
 }
 `)
 
-    expect(theme).toEqual(expect.objectContaining({
-      primary: '#33ccff',
-      primaryForeground: '#000000',
-      accent: '#595959',
-      border: '#595959',
-      sidebarPrimary: 'color-mix(in oklch, #33ccff 22%, var(--sidebar))',
-      sidebarAccent: '#595959',
-    }))
+    expect(theme).toEqual(
+      expect.objectContaining({
+        primary: '#33ccff',
+        primaryForeground: '#000000',
+        accent: '#595959',
+        border: '#595959',
+        sidebarPrimary: 'color-mix(in oklch, #33ccff 22%, var(--sidebar))',
+        sidebarAccent: '#595959',
+      }),
+    )
   })
 
   it('rejects Lua without usable colors', () => {

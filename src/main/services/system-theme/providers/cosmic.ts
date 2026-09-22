@@ -3,24 +3,15 @@ import path from 'node:path'
 import type { DesktopThemeProvider, SystemThemePalette } from '../system-theme.types'
 import { readText, subtleSidebarColor } from '../system-theme.utils'
 
-const RON_COLOR_PATTERN = /red:\s*([\d.]+),\s*green:\s*([\d.]+),\s*blue:\s*([\d.]+),\s*alpha:\s*([\d.]+)/
+const RON_COLOR_PATTERN =
+  /red:\s*([\d.]+),\s*green:\s*([\d.]+),\s*blue:\s*([\d.]+),\s*alpha:\s*([\d.]+)/
 const COSMIC_CONFIG_PATH = path.join(homedir(), '.config', 'cosmic')
-const COSMIC_MODE_PATH = path.join(
-  COSMIC_CONFIG_PATH,
-  'com.system76.CosmicTheme.Mode/v1/is_dark',
+const COSMIC_MODE_PATH = path.join(COSMIC_CONFIG_PATH, 'com.system76.CosmicTheme.Mode/v1/is_dark')
+const COSMIC_THEME_PATHS = ['Dark', 'Light'].flatMap((mode) =>
+  ['background', 'primary', 'secondary', 'accent', 'destructive', 'success', 'warning'].map(
+    (name) => path.join(COSMIC_CONFIG_PATH, `com.system76.CosmicTheme.${mode}/v1/${name}`),
+  ),
 )
-const COSMIC_THEME_PATHS = ['Dark', 'Light'].flatMap((mode) => [
-  'background',
-  'primary',
-  'secondary',
-  'accent',
-  'destructive',
-  'success',
-  'warning',
-].map((name) => path.join(
-  COSMIC_CONFIG_PATH,
-  `com.system76.CosmicTheme.${mode}/v1/${name}`,
-)))
 
 const parseRonColor = (source: string | null, marker?: string): string | undefined => {
   if (source === null) return undefined

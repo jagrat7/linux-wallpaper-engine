@@ -1,4 +1,15 @@
-import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, Tray, Menu, screen } from 'electron'
+import {
+  app,
+  protocol,
+  net,
+  nativeImage,
+  nativeTheme,
+  systemPreferences,
+  BrowserWindow,
+  Tray,
+  Menu,
+  screen,
+} from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -9,25 +20,22 @@ import { setAutostart } from './utils/autostart.ts'
 import { createTrayStartupRetry, type TrayStartupRetry } from './utils/tray-startup.ts'
 import { invalidationService } from './services/invalidation.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
-import { electronTheme } from './services/system-theme/system-theme.utils.ts'
 
 // Global ref to tray to avoid GC
 let tray: Tray | null = null
 let trayStartupRetry: TrayStartupRetry | null = null
 let isQuitting = false
 
-systemThemeService.configurePlatform(electronTheme.createPlatform(nativeTheme, systemPreferences))
+systemThemeService.configureElectronPlatform(nativeTheme, systemPreferences)
 
 const resolveAssetPath = (assetName: string): string => {
   // If packaged normally in forge-maker
-  if (app.isPackaged)
-    return path.join(process.resourcesPath, 'assets', assetName)
+  if (app.isPackaged) return path.join(process.resourcesPath, 'assets', assetName)
 
   // If packaged with Nix, the resource path will point to Electron's default,
   // so it needs to point to the app directory, where the assets are copied
   const appPath = app.getAppPath()
-  if (appPath.includes('app.asar'))
-    return path.join(path.dirname(appPath), 'assets', assetName)
+  if (appPath.includes('app.asar')) return path.join(path.dirname(appPath), 'assets', assetName)
 
   // For local dev, relative paths just work
   return path.join(__dirname, '../../assets', assetName)
@@ -83,9 +91,7 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    )
+    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
   }
 
   // Open the DevTools.
@@ -110,15 +116,15 @@ const initializeTray = (mainWindow: BrowserWindow): void => {
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Toggle App',
-      click: toggleMainWindow
+      click: toggleMainWindow,
     },
     { type: 'separator' },
     {
       label: 'Quit',
       click: () => {
         app.quit()
-      }
-    }
+      },
+    },
   ])
 
   tray.setToolTip(mainWindow.title)
@@ -157,15 +163,13 @@ app.whenReady().then(() => {
 
   const mainWindow = createWindow()
 
-  if (settings.getSetting('enableSystemTray'))
-    ensureTray(mainWindow)
+  if (settings.getSetting('enableSystemTray')) ensureTray(mainWindow)
 
   mainWindow.on('close', (e) => {
     if (shouldMinimizeOnClose() && !isQuitting) {
       e.preventDefault()
       mainWindow.hide()
-      if (tray === null)
-        ensureTray(mainWindow)
+      if (tray === null) ensureTray(mainWindow)
     }
   })
 

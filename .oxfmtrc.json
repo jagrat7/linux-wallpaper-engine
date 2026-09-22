@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "sortTailwindcss": {
+    "functions": ["clsx", "cn", "cva"]
+  },
+  "sortPackageJson": true,
+  "ignorePatterns": [
+    "node_modules/**",
+    "out/**",
+    "coverage/**",
+    "demo-video/**",
+    "public/**",
+    "pr-video/**",
+    ".vite/**",
+    ".tanstack/**",
+    ".direnv/**",
+    ".cache/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".devin/**",
+    ".github/ISSUE_TEMPLATE/**",
+    "docs/**",
+    ".impeccable.md",
+    "AGENTS.md",
+    "**/*.gen.ts",
+    "**/*.d.ts",
+    "bun.lock",
+    "flake.lock"
+  ]
+}

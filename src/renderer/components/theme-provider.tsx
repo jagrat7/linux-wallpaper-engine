@@ -4,11 +4,11 @@ import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants/theme'
 import { trpc } from '../lib/trpc'
 
 const STORAGE_KEY = 'wallpaper-engine-theme'
-const THEME_CLASSES = THEME_OPTIONS.map(option => option.value)
-const cssVariable = (key: string) => `--${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`
-const preferredSystemScheme = () => window.matchMedia('(prefers-color-scheme: dark)').matches
-  ? 'dark'
-  : 'light'
+const THEME_CLASSES = THEME_OPTIONS.map((option) => option.value)
+const cssVariable = (key: string) =>
+  `--${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`
+const preferredSystemScheme = () =>
+  window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 
 type ThemeProviderProps = {
   children: React.ReactNode
@@ -23,7 +23,7 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undef
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [mode, setMode] = useState<ThemeOption>(
-    () => (localStorage.getItem(STORAGE_KEY) as ThemeOption | null) ?? DEFAULT_SETTINGS.theme
+    () => (localStorage.getItem(STORAGE_KEY) as ThemeOption | null) ?? DEFAULT_SETTINGS.theme,
   )
   const { data: systemTheme } = trpc.settings.systemTheme.useQuery(undefined, {
     enabled: mode === 'system',
@@ -44,14 +44,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         root.style.setProperty(property, value)
         paletteProperties.push(property)
       })
-    }
-    else {
+    } else {
       root.classList.add(mode)
     }
 
     return () => {
       root.classList.remove(...THEME_CLASSES)
-      paletteProperties.forEach(property => root.style.removeProperty(property))
+      paletteProperties.forEach((property) => root.style.removeProperty(property))
     }
   }, [mode, systemTheme])
 
@@ -63,18 +62,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     },
   }
 
-  return (
-    <ThemeProviderContext.Provider value={value}>
-      {children}
-    </ThemeProviderContext.Provider>
-  )
+  return <ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>
 }
 
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext)
 
-  if (context === undefined)
-    throw new Error('useTheme must be used within a ThemeProvider')
+  if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider')
 
   return context
 }

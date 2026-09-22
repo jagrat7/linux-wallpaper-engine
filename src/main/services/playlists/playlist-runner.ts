@@ -1,9 +1,12 @@
 import type { ChildProcess } from 'node:child_process'
-import { playlistService } from './playlist'
+import type { playlistService } from './playlist'
 import { settingsService } from '../settings'
 import { hostCommandExists, hostExecAsync, hostSpawn } from '../../utils/host'
-import { resolveWallpaperEngineAssetsDir } from '../wallpaper/wallpaper.utils'
-import { BACKEND_NOT_INSTALLED_ERROR_MESSAGE, applyOverridesToSettings, type ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
+import {
+  BACKEND_NOT_INSTALLED_ERROR_MESSAGE,
+  applyOverridesToSettings,
+  type ApplyWallpaperOptions,
+} from '../../../shared/constants/wallpaper'
 
 // Injected by the caller to avoid a circular import with the wallpaper service
 // (which uses this module to restart playlists when screens are released).
@@ -14,13 +17,19 @@ export type RegisterProcessFn = (
   options: ApplyWallpaperOptions,
 ) => void | Promise<unknown>
 
+type PlaylistProcessService = Pick<
+  typeof playlistService,
+  'getPlaylist' | 'stampLastApplied' | 'resolveWallpaperEngineAssetsDir' | 'setActivePlaylist'
+>
+
 export async function startPlaylistProcess(
+  service: PlaylistProcessService,
   playlistName: string,
   screens: string[],
   stampLastApplied: boolean,
   register: RegisterProcessFn,
 ): Promise<{ success: boolean; error?: string }> {
-  const playlist = await playlistService.getPlaylist(playlistName)
+  const playlist = await service.getPlaylist(playlistName)
   if (!playlist) {
     return { success: false, error: 'Playlist not found' }
   }
@@ -29,18 +38,20 @@ export async function startPlaylistProcess(
     return { success: false, error: 'Playlist has no wallpapers' }
   }
 
-  if (!await hostCommandExists('linux-wallpaperengine')) {
+  if (!(await hostCommandExists('linux-wallpaperengine'))) {
     return { success: false, error: BACKEND_NOT_INSTALLED_ERROR_MESSAGE }
   }
 
   if (stampLastApplied) {
-    await playlistService.stampLastApplied(playlistName)
+    await service.stampLastApplied(playlistName)
   }
 
   const settings = await settingsService.loadSettings()
   const screenKeys = settings.windowMode ? ['default'] : screens
-  const settingsArgs = settingsService.settingsToArgs(applyOverridesToSettings(settings, playlist.settings.overrides))
-  const assetsDir = settings.assetsDir ?? await resolveWallpaperEngineAssetsDir()
+  const settingsArgs = settingsService.settingsToArgs(
+    applyOverridesToSettings(settings, playlist.settings.overrides),
+  )
+  const assetsDir = settings.assetsDir ?? (await service.resolveWallpaperEngineAssetsDir())
   const args: string[] = []
   if (!settings.windowMode) {
     for (const screen of screenKeys) {
@@ -59,17 +70,17 @@ export async function startPlaylistProcess(
       for (const screen of screenKeys) {
         try {
           await hostExecAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${screen}"`)
-        } catch { /* no process found is ok */ }
+        } catch {
+          /* no process found is ok */
+        }
       }
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
 
     const debugMode = settingsService.getSetting('debugMode')
     const proc = hostSpawn('linux-wallpaperengine', args, {
       detached: true,
-      stdio: debugMode
-        ? ['ignore', 'pipe', 'pipe']
-        : ['ignore', 'ignore', 'pipe'],
+      stdio: debugMode ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'ignore', 'pipe'],
     })
 
     await register(screenKeys, proc, args, {
@@ -77,7 +88,7 @@ export async function startPlaylistProcess(
       screen: settings.windowMode ? undefined : screens.length === 1 ? screens[0] : undefined,
     })
 
-    playlistService.setActivePlaylist(playlistName, screenKeys)
+    service.setActivePlaylist(playlistName, screenKeys)
 
     return { success: true }
   } catch (error) {

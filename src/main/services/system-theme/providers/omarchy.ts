@@ -34,9 +34,9 @@ const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
 const OMARCHY_WATCH_PATHS = getOmarchyWatchPaths(homedir())
 
 const readOmarchyPalette = (): SystemThemePalette | null =>
-  readFirstPalette(OMARCHY_THEME_PATHS, parseOmarchyTheme)
-  ?? readFirstPalette(OMARCHY_HYPRLAND_PATHS, parseHyprlandTheme)
-  ?? hyprlandThemeProvider.readPalette()
+  readFirstPalette(OMARCHY_THEME_PATHS, parseOmarchyTheme) ??
+  readFirstPalette(OMARCHY_HYPRLAND_PATHS, parseHyprlandTheme) ??
+  hyprlandThemeProvider.readPalette()
 
 export const omarchyThemeProvider = {
   matches: (desktop: string) => desktop.includes('omarchy') || desktop.includes('hyprland'),
