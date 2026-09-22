@@ -21,8 +21,7 @@ import { wallpaperStateManager } from './state-manager'
 
 // --- Helpers -------------------------------------------------------------
 
-const makeProc = (): ChildProcess =>
-  ({ kill: vi.fn() }) as unknown as ChildProcess
+const makeProc = (): ChildProcess => ({ kill: vi.fn() }) as unknown as ChildProcess
 
 const makeOptions = (backgroundId = '/wp/1'): ApplyWallpaperOptions => ({ backgroundId })
 

@@ -1,13 +1,19 @@
 import type { FSWatcher } from 'node:fs'
 import { invalidationService } from '../invalidation'
 import type { ISystemThemeService, SystemThemePlatform } from './system-theme.interface'
-import { detectSystemTheme, themeRefresh, watchThemeFiles } from './system-theme.utils'
+export type { SystemThemePlatform } from './system-theme.interface'
+import {
+  detectSystemTheme,
+  electronTheme,
+  themeRefresh,
+  watchThemeFiles,
+} from './system-theme.utils'
 import { desktopThemeProviders } from './providers'
 
 const WATCH_DEBOUNCE_MS = 100
-const provider = desktopThemeProviders.find(candidate => candidate.matches(
-  process.env.XDG_CURRENT_DESKTOP?.toLowerCase() ?? '',
-))
+const provider = desktopThemeProviders.find((candidate) =>
+  candidate.matches(process.env.XDG_CURRENT_DESKTOP?.toLowerCase() ?? ''),
+)
 let platform: SystemThemePlatform | null = null
 let watching = false
 let fileWatchers: FSWatcher[] = []
@@ -16,16 +22,22 @@ const refreshCoordinator = themeRefresh.createCoordinator({
   detect: () => detectSystemTheme(provider, platform?.readScheme() ?? null),
   debounceMs: WATCH_DEBOUNCE_MS,
   onChange: () => invalidationService.emit('settings.systemTheme'),
-  onError: error => console.warn('Failed to refresh system theme:', error),
+  onError: (error) => console.warn('Failed to refresh system theme:', error),
 })
 
 export const systemThemeService = {
+  configureElectronPlatform(
+    nativeTheme: typeof import('electron').nativeTheme,
+    systemPreferences: typeof import('electron').systemPreferences,
+  ) {
+    systemThemeService.configurePlatform(
+      electronTheme.createPlatform(nativeTheme, systemPreferences),
+    )
+  },
   configurePlatform(nextPlatform) {
     stopPlatformWatching?.()
     platform = nextPlatform
-    stopPlatformWatching = watching
-      ? platform.subscribe(refreshCoordinator.requestRefresh)
-      : null
+    stopPlatformWatching = watching ? platform.subscribe(refreshCoordinator.requestRefresh) : null
   },
   getTheme() {
     if (!watching) systemThemeService.startWatching()
@@ -38,7 +50,7 @@ export const systemThemeService = {
     fileWatchers = watchThemeFiles(
       provider?.watchPaths ?? [],
       refreshCoordinator.requestDebouncedRefresh,
-      error => console.warn('Failed to watch system theme:', error),
+      (error) => console.warn('Failed to watch system theme:', error),
     )
   },
   stopWatching() {
@@ -46,7 +58,7 @@ export const systemThemeService = {
     watching = false
     stopPlatformWatching?.()
     stopPlatformWatching = null
-    fileWatchers.forEach(watcher => watcher.close())
+    fileWatchers.forEach((watcher) => watcher.close())
     fileWatchers = []
     refreshCoordinator.cancelDebouncedRefresh()
   },

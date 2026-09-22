@@ -1,11 +1,14 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
 import { playlistService } from '../../services/playlists/playlist'
-import { startPlaylistProcess } from '../../services/playlists/playlist-runner'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
 import { settingsService } from '../../services/settings'
 import { displayService } from '../../services/display'
-import { PLAYLIST_TIME_UNIT_VALUES, PLAYLIST_ORDER_VALUES, PLAYLIST_MODE_VALUES } from '../../../shared/constants/playlist'
+import {
+  PLAYLIST_TIME_UNIT_VALUES,
+  PLAYLIST_ORDER_VALUES,
+  PLAYLIST_MODE_VALUES,
+} from '../../../shared/constants/playlist'
 import { engineOverridesSchema } from '../../../shared/constants/wallpaper'
 
 const playlistSettingsSchema = z.object({
@@ -19,8 +22,13 @@ const playlistSettingsSchema = z.object({
 })
 
 function startPlaylist(playlistName: string, screens: string[], stampLastApplied: boolean) {
-  return startPlaylistProcess(playlistName, screens, stampLastApplied, (screenKeys, proc, args, options) =>
-    wallpaperService.apply({ kind: 'register', screens: screenKeys, proc, args, options }))
+  return playlistService.startProcess(
+    playlistName,
+    screens,
+    stampLastApplied,
+    (screenKeys, proc, args, options) =>
+      wallpaperService.apply({ kind: 'register', screens: screenKeys, proc, args, options }),
+  )
 }
 
 export const playlistRouter = trpc.router({
@@ -30,69 +38,75 @@ export const playlistRouter = trpc.router({
   }),
 
   // Get single playlist by name
-  get: trpc.procedure
-    .input(z.object({ name: z.string() }))
-    .query(async ({ input }) => {
-      return playlistService.getPlaylist(input.name)
-    }),
+  get: trpc.procedure.input(z.object({ name: z.string() })).query(async ({ input }) => {
+    return playlistService.getPlaylist(input.name)
+  }),
 
   // Create new playlist
   create: trpc.procedure
-    .input(z.object({
-      name: z.string().min(1),
-      items: z.array(z.string()),
-      settings: playlistSettingsSchema,
-    }))
+    .input(
+      z.object({
+        name: z.string().min(1),
+        items: z.array(z.string()),
+        settings: playlistSettingsSchema,
+      }),
+    )
     .mutation(async ({ input }) => {
       return playlistService.createPlaylist(input)
     }),
 
   // Update existing playlist
   update: trpc.procedure
-    .input(z.object({
-      name: z.string(),
-      playlist: z.object({
-        name: z.string().min(1),
-        items: z.array(z.string()),
-        settings: playlistSettingsSchema,
+    .input(
+      z.object({
+        name: z.string(),
+        playlist: z.object({
+          name: z.string().min(1),
+          items: z.array(z.string()),
+          settings: playlistSettingsSchema,
+        }),
       }),
-    }))
+    )
     .mutation(async ({ input }) => {
       return playlistService.updatePlaylist(input.name, input.playlist)
     }),
 
   // Delete playlist
-  delete: trpc.procedure
-    .input(z.object({ name: z.string() }))
-    .mutation(async ({ input }) => {
-      return playlistService.deletePlaylist(input.name)
-    }),
+  delete: trpc.procedure.input(z.object({ name: z.string() })).mutation(async ({ input }) => {
+    return playlistService.deletePlaylist(input.name)
+  }),
 
   // Stop the currently active playlist
   stop: trpc.procedure
-    .input(z.object({
-      screen: z.string().optional(),
-      playlistName: z.string().optional(),
-    }).optional())
+    .input(
+      z
+        .object({
+          screen: z.string().optional(),
+          playlistName: z.string().optional(),
+        })
+        .optional(),
+    )
     .mutation(async ({ input }) => {
       const active = playlistService.getActivePlaylists()
       const targetScreens = active
-        .filter(entry => (!input?.screen || entry.screen === input.screen) && (!input?.playlistName || entry.name === input.playlistName))
-        .map(entry => entry.screen)
+        .filter(
+          (entry) =>
+            (!input?.screen || entry.screen === input.screen) &&
+            (!input?.playlistName || entry.name === input.playlistName),
+        )
+        .map((entry) => entry.screen)
       if (targetScreens.length === 0) return { success: true }
 
       const targetScreenSet = new Set(targetScreens)
       const affectedPlaylistNames = new Set(
-        active
-          .filter(entry => targetScreenSet.has(entry.screen))
-          .map(entry => entry.name)
+        active.filter((entry) => targetScreenSet.has(entry.screen)).map((entry) => entry.name),
       )
 
       for (const playlistName of affectedPlaylistNames) {
         const playlistScreens = active
-          .filter(entry => entry.name === playlistName)
-          .map(entry => entry.screen)
-        const remainingScreens = playlistScreens.filter(screen => !targetScreenSet.has(screen))
+          .filter((entry) => entry.name === playlistName)
+          .map((entry) => entry.screen)
+        const remainingScreens = playlistScreens.filter((screen) => !targetScreenSet.has(screen))
 
         await wallpaperService.stop(playlistScreens)
         playlistService.clearActivePlaylist(playlistScreens)
@@ -108,17 +122,19 @@ export const playlistRouter = trpc.router({
 
   // Start playlist on screen
   start: trpc.procedure
-    .input(z.object({
-      playlistName: z.string(),
-      screen: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        playlistName: z.string(),
+        screen: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const settings = await settingsService.loadSettings()
       const targetScreens = input.screen
         ? [input.screen]
         : settings.windowMode
           ? ['default']
-          : (await displayService.detectDisplays()).map(d => d.name)
+          : (await displayService.detectDisplays()).map((d) => d.name)
 
       await wallpaperService.stop(targetScreens)
       playlistService.clearActivePlaylist(targetScreens)

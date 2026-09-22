@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import Color from "color"
-import { Slider } from "radix-ui"
+import Color from 'color'
+import { Slider } from 'radix-ui'
 import {
   type ComponentProps,
   createContext,
@@ -13,8 +13,8 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react"
-import { cn } from "~/lib/utils"
+} from 'react'
+import { cn } from '~/lib/utils'
 
 type ColorPickerContextValue = {
   hue: number
@@ -25,15 +25,13 @@ type ColorPickerContextValue = {
   setLightness: (lightness: number) => void
 }
 
-const ColorPickerContext = createContext<ColorPickerContextValue | undefined>(
-  undefined
-)
+const ColorPickerContext = createContext<ColorPickerContextValue | undefined>(undefined)
 
 export const useColorPicker = () => {
   const context = useContext(ColorPickerContext)
 
   if (!context) {
-    throw new Error("useColorPicker must be used within a ColorPickerProvider")
+    throw new Error('useColorPicker must be used within a ColorPickerProvider')
   }
 
   return context
@@ -45,7 +43,7 @@ export type ColorPickerProps = HTMLAttributes<HTMLDivElement> & {
 }
 
 export const ColorPicker = ({
-  defaultValue = "#000000",
+  defaultValue = '#000000',
   onChange,
   className,
   ...props
@@ -85,127 +83,112 @@ export const ColorPicker = ({
         setLightness,
       }}
     >
-      <div
-        className={cn("flex size-full flex-col gap-4", className)}
-        {...props}
-      />
+      <div className={cn('flex size-full flex-col gap-4', className)} {...props} />
     </ColorPickerContext.Provider>
   )
 }
 
 export type ColorPickerSelectionProps = HTMLAttributes<HTMLDivElement>
 
-export const ColorPickerSelection = memo(
-  ({ className, ...props }: ColorPickerSelectionProps) => {
-    const containerRef = useRef<HTMLDivElement>(null)
-    const [isDragging, setIsDragging] = useState(false)
-    const { hue, saturation, lightness, setSaturation, setLightness } =
-      useColorPicker()
-    // Seed the marker from the mounted color (inverse of the drag mapping
-    // below) so it doesn't start at the top-left corner.
-    const [positionX, setPositionX] = useState(() => saturation / 100)
-    const [positionY, setPositionY] = useState(() => {
-      const x = saturation / 100
-      const topLightness = x < 0.01 ? 100 : 50 + 50 * (1 - x)
-      return Math.max(0, Math.min(1, 1 - lightness / topLightness))
-    })
+export const ColorPickerSelection = memo(({ className, ...props }: ColorPickerSelectionProps) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const { hue, saturation, lightness, setSaturation, setLightness } = useColorPicker()
+  // Seed the marker from the mounted color (inverse of the drag mapping
+  // below) so it doesn't start at the top-left corner.
+  const [positionX, setPositionX] = useState(() => saturation / 100)
+  const [positionY, setPositionY] = useState(() => {
+    const x = saturation / 100
+    const topLightness = x < 0.01 ? 100 : 50 + 50 * (1 - x)
+    return Math.max(0, Math.min(1, 1 - lightness / topLightness))
+  })
 
-    const backgroundGradient = useMemo(() => {
-      return `linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0)),
+  const backgroundGradient = useMemo(() => {
+    return `linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0)),
             linear-gradient(90deg, rgba(255,255,255,1), rgba(255,255,255,0)),
             hsl(${hue}, 100%, 50%)`
-    }, [hue])
+  }, [hue])
 
-    const updatePosition = useCallback(
-      (event: PointerEvent) => {
-        if (!containerRef.current) {
-          return
-        }
-        const rect = containerRef.current.getBoundingClientRect()
-        const x = Math.max(
-          0,
-          Math.min(1, (event.clientX - rect.left) / rect.width)
-        )
-        const y = Math.max(
-          0,
-          Math.min(1, (event.clientY - rect.top) / rect.height)
-        )
-        setPositionX(x)
-        setPositionY(y)
-        setSaturation(x * 100)
-        const topLightness = x < 0.01 ? 100 : 50 + 50 * (1 - x)
-        const lightness = topLightness * (1 - y)
+  const updatePosition = useCallback(
+    (event: PointerEvent) => {
+      if (!containerRef.current) {
+        return
+      }
+      const rect = containerRef.current.getBoundingClientRect()
+      const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width))
+      const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
+      setPositionX(x)
+      setPositionY(y)
+      setSaturation(x * 100)
+      const topLightness = x < 0.01 ? 100 : 50 + 50 * (1 - x)
+      const lightness = topLightness * (1 - y)
 
-        setLightness(lightness)
-      },
-      [setSaturation, setLightness]
-    )
+      setLightness(lightness)
+    },
+    [setSaturation, setLightness],
+  )
 
-    const handlePointerMove = useCallback(
-      (event: PointerEvent) => {
-        if (isDragging) {
-          updatePosition(event)
-        }
-      },
-      [isDragging, updatePosition]
-    )
-
-    useEffect(() => {
-      const handlePointerUp = () => setIsDragging(false)
-
+  const handlePointerMove = useCallback(
+    (event: PointerEvent) => {
       if (isDragging) {
-        window.addEventListener("pointermove", handlePointerMove)
-        window.addEventListener("pointerup", handlePointerUp)
+        updatePosition(event)
       }
+    },
+    [isDragging, updatePosition],
+  )
 
-      return () => {
-        window.removeEventListener("pointermove", handlePointerMove)
-        window.removeEventListener("pointerup", handlePointerUp)
-      }
-    }, [isDragging, handlePointerMove])
+  useEffect(() => {
+    const handlePointerUp = () => setIsDragging(false)
 
-    return (
+    if (isDragging) {
+      window.addEventListener('pointermove', handlePointerMove)
+      window.addEventListener('pointerup', handlePointerUp)
+    }
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [isDragging, handlePointerMove])
+
+  return (
+    <div
+      className={cn('relative size-full cursor-crosshair rounded', className)}
+      onPointerDown={(e) => {
+        e.preventDefault()
+        setIsDragging(true)
+        // Apply the click position directly: handlePointerMove still sees
+        // the stale isDragging=false from this render and would ignore it
+        updatePosition(e.nativeEvent)
+      }}
+      ref={containerRef}
+      style={{
+        background: backgroundGradient,
+      }}
+      {...props}
+    >
       <div
-        className={cn("relative size-full cursor-crosshair rounded", className)}
-        onPointerDown={(e) => {
-          e.preventDefault()
-          setIsDragging(true)
-          // Apply the click position directly: handlePointerMove still sees
-          // the stale isDragging=false from this render and would ignore it
-          updatePosition(e.nativeEvent)
-        }}
-        ref={containerRef}
+        className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
         style={{
-          background: backgroundGradient,
+          left: `${positionX * 100}%`,
+          top: `${positionY * 100}%`,
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.5)',
         }}
-        {...props}
-      >
-        <div
-          className="-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute h-4 w-4 rounded-full border-2 border-white"
-          style={{
-            left: `${positionX * 100}%`,
-            top: `${positionY * 100}%`,
-            boxShadow: "0 0 0 1px rgba(0,0,0,0.5)",
-          }}
-        />
-      </div>
-    )
-  }
-)
+      />
+    </div>
+  )
+})
 
-ColorPickerSelection.displayName = "ColorPickerSelection"
+ColorPickerSelection.displayName = 'ColorPickerSelection'
 
 export type ColorPickerHueProps = ComponentProps<typeof Slider.Root>
 
-export const ColorPickerHue = ({
-  className,
-  ...props
-}: ColorPickerHueProps) => {
+export const ColorPickerHue = ({ className, ...props }: ColorPickerHueProps) => {
   const { hue, setHue } = useColorPicker()
 
   return (
     <Slider.Root
-      className={cn("relative flex h-4 w-full touch-none", className)}
+      className={cn('relative flex h-4 w-full touch-none', className)}
       max={360}
       onValueChange={([hue]) => setHue(hue)}
       step={1}
@@ -215,7 +198,7 @@ export const ColorPickerHue = ({
       <Slider.Track className="relative my-0.5 h-3 w-full grow rounded-full bg-[linear-gradient(90deg,#FF0000,#FFFF00,#00FF00,#00FFFF,#0000FF,#FF00FF,#FF0000)]">
         <Slider.Range className="absolute h-full" />
       </Slider.Track>
-      <Slider.Thumb className="block h-4 w-4 rounded-full border border-primary/50 bg-background shadow transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
+      <Slider.Thumb className="border-primary/50 bg-background focus-visible:ring-ring block h-4 w-4 rounded-full border shadow transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50" />
     </Slider.Root>
   )
 }

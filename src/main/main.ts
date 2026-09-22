@@ -1,4 +1,13 @@
-import { app, protocol, net, nativeImage, nativeTheme, systemPreferences, BrowserWindow, screen } from 'electron'
+import {
+  app,
+  protocol,
+  net,
+  nativeImage,
+  nativeTheme,
+  systemPreferences,
+  BrowserWindow,
+  screen,
+} from 'electron'
 import path from 'node:path'
 import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
@@ -10,13 +19,12 @@ import { resolveAssetPath } from './utils/assets.ts'
 import { createAppTray, type AppTray } from './utils/tray.ts'
 import { invalidationService } from './services/invalidation.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
-import { electronTheme } from './services/system-theme/system-theme.utils.ts'
 
 // Global ref to tray to avoid GC
 let appTray: AppTray | null = null
 let isQuitting = false
 
-systemThemeService.configurePlatform(electronTheme.createPlatform(nativeTheme, systemPreferences))
+systemThemeService.configureElectronPlatform(nativeTheme, systemPreferences)
 
 const appIcon = nativeImage.createFromPath(resolveAssetPath('transparent-logo.png'))
 
@@ -65,9 +73,7 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    )
+    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
   }
 
   // Open the DevTools.
@@ -97,8 +103,7 @@ app.whenReady().then(() => {
 
   appTray = createAppTray({ mainWindow, appIcon, isQuitting: () => isQuitting })
 
-  if (settings.getSetting('enableSystemTray'))
-    appTray.ensure()
+  if (settings.getSetting('enableSystemTray')) appTray.ensure()
 
   mainWindow.on('close', (e) => {
     if (shouldMinimizeOnClose() && !isQuitting) {

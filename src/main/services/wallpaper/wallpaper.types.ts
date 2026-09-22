@@ -1,7 +1,4 @@
-import type {
-  ApplyWallpaperOptions,
-  WallpaperOverrides,
-} from '../../../shared/constants/wallpaper'
+import type { ApplyWallpaperOptions, WallpaperOverrides } from '../../../shared/constants/wallpaper'
 
 // ── Result types ───────────────────────────────────────────────────────────
 
@@ -44,5 +41,12 @@ export type ServiceAction =
 
 export type ApplyTarget =
   | { kind: 'wallpaper'; options: ApplyWallpaperOptions }
-  | { kind: 'register'; screen?: string; screens?: string[]; proc: import('node:child_process').ChildProcess; args: string[]; options: ApplyWallpaperOptions }
+  | {
+      kind: 'register'
+      screen?: string
+      screens?: string[]
+      proc: import('node:child_process').ChildProcess
+      args: string[]
+      options: ApplyWallpaperOptions
+    }
   | { kind: 'reapply' }

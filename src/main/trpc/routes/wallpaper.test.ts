@@ -4,10 +4,16 @@ import type { Wallpaper, WallpaperOverrides } from '../../../shared/constants/wa
 
 // --- Mocks ---------------------------------------------------------------
 
-const { mockWallpaperService, mockPlaylistService, mockSettingsService, mockCompatibilityInstance } = vi.hoisted(() => ({
+const {
+  mockWallpaperService,
+  mockPlaylistService,
+  mockSettingsService,
+  mockCompatibilityInstance,
+} = vi.hoisted(() => ({
   mockWallpaperService: {
     query: vi.fn(),
     apply: vi.fn(),
+    buildApplyOptions: vi.fn(),
     stop: vi.fn(),
     pause: vi.fn(),
     resume: vi.fn(),
@@ -85,13 +91,21 @@ beforeEach(() => {
 describe('wallpaperRouter', () => {
   describe('checkBackend', () => {
     it('should return installed true when backend is installed', async () => {
-      mockWallpaperService.query.mockResolvedValue({ wallpapers: [], backendInstalled: true, active: [] })
+      mockWallpaperService.query.mockResolvedValue({
+        wallpapers: [],
+        backendInstalled: true,
+        active: [],
+      })
       const result = await caller.checkBackend()
       expect(result).toEqual({ installed: true })
     })
 
     it('should return installed false when backend is missing', async () => {
-      mockWallpaperService.query.mockResolvedValue({ wallpapers: [], backendInstalled: false, active: [] })
+      mockWallpaperService.query.mockResolvedValue({
+        wallpapers: [],
+        backendInstalled: false,
+        active: [],
+      })
       const result = await caller.checkBackend()
       expect(result).toEqual({ installed: false })
     })
@@ -100,7 +114,12 @@ describe('wallpaperRouter', () => {
   describe('getWallpapers', () => {
     it('should call the service without search input', async () => {
       const wallpapers = [makeWallpaper()]
-      mockWallpaperService.query.mockResolvedValue({ wallpapers, backendInstalled: true, active: [], appliedHistory: {} })
+      mockWallpaperService.query.mockResolvedValue({
+        wallpapers,
+        backendInstalled: true,
+        active: [],
+        appliedHistory: {},
+      })
 
       const result = await caller.getWallpapers()
 
@@ -109,7 +128,12 @@ describe('wallpaperRouter', () => {
     })
 
     it('should return an empty list when there are no wallpapers', async () => {
-      mockWallpaperService.query.mockResolvedValue({ wallpapers: [], backendInstalled: true, active: [], appliedHistory: {} })
+      mockWallpaperService.query.mockResolvedValue({
+        wallpapers: [],
+        backendInstalled: true,
+        active: [],
+        appliedHistory: {},
+      })
       const result = await caller.getWallpapers()
       expect(result).toEqual({ wallpapers: [], appliedHistory: {} })
     })
@@ -131,100 +155,42 @@ describe('wallpaperRouter', () => {
 
       const result = await caller.getOverrides({ path: '/path/to/wp' })
 
-      expect(mockWallpaperService.overrides).toHaveBeenCalledWith({ op: 'get', wallpaperPath: '/path/to/wp' })
+      expect(mockWallpaperService.overrides).toHaveBeenCalledWith({
+        op: 'get',
+        wallpaperPath: '/path/to/wp',
+      })
       expect(result).toEqual(overrides)
     })
   })
 
   describe('setWallpaper', () => {
-    it('should merge input with saved settings using nullish coalescing', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      await caller.setWallpaper({ backgroundId: '12345' })
-
-      expect(mockWallpaperService.apply).toHaveBeenCalledWith({
-        kind: 'wallpaper',
-        options: {
-          backgroundId: '12345',
-          screen: undefined,
-          scaling: DEFAULT_SETTINGS.defaultScaling,
-          fps: DEFAULT_SETTINGS.fps,
-          volume: DEFAULT_SETTINGS.volume,
-          silent: DEFAULT_SETTINGS.silent,
-          noAutomute: DEFAULT_SETTINGS.noAutomute,
-          noAudioProcessing: !DEFAULT_SETTINGS.audioProcessing,
-          disableMouse: DEFAULT_SETTINGS.disableMouse,
-          disableParallax: DEFAULT_SETTINGS.disableParallax,
-          disableParticles: DEFAULT_SETTINGS.disableParticles,
-          noFullscreenPause: !DEFAULT_SETTINGS.pauseOnFullscreen,
-          windowed: undefined,
-        },
-      })
-    })
-
-    it('should let explicit input override saved settings', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      await caller.setWallpaper({
-        backgroundId: '99',
-        fps: 144,
-        volume: 30,
-        silent: true,
-        scaling: 'stretch',
-        screen: 'eDP-1',
-      })
-
-      const call = mockWallpaperService.apply.mock.calls[0][0]
-      expect(call.options.fps).toBe(144)
-      expect(call.options.volume).toBe(30)
-      expect(call.options.silent).toBe(true)
-      expect(call.options.scaling).toBe('stretch')
-      expect(call.options.screen).toBe('eDP-1')
-    })
-
-    it('should invert audioProcessing and pauseOnFullscreen from settings', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({
-        ...DEFAULT_SETTINGS,
-        audioProcessing: false,
-        pauseOnFullscreen: false,
-      })
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      await caller.setWallpaper({ backgroundId: '1' })
-
-      const call = mockWallpaperService.apply.mock.calls[0][0]
-      expect(call.options.noAudioProcessing).toBe(true)
-      expect(call.options.noFullscreenPause).toBe(true)
-    })
-
-    it('should pass windowed option through when provided', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      const windowed = { x: 0, y: 0, width: 800, height: 600 }
-      await caller.setWallpaper({ backgroundId: '1', windowed })
-
-      const call = mockWallpaperService.apply.mock.calls[0][0]
-      expect(call.options.windowed).toEqual(windowed)
-    })
-
-    it('should return the service response', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
-      mockWallpaperService.apply.mockResolvedValue({ success: false, error: 'spawn failed' })
-
-      const result = await caller.setWallpaper({ backgroundId: '1' })
-      expect(result).toEqual({ success: false, error: 'spawn failed' })
-    })
-
-    it('should clear active playlist entries only for affected screens', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
+    it('passes saved settings and input through the wallpaper service', async () => {
+      const settings = { ...DEFAULT_SETTINGS }
+      const options = { backgroundId: '12345', fps: 144 }
+      mockSettingsService.loadSettings.mockResolvedValue(settings)
+      mockWallpaperService.buildApplyOptions.mockReturnValue(options)
       mockWallpaperService.apply.mockResolvedValue({ success: true, screens: ['HDMI-1'] })
 
-      await caller.setWallpaper({ backgroundId: '1', screen: 'HDMI-1' })
+      await caller.setWallpaper({ backgroundId: '12345', fps: 144 })
 
+      expect(mockWallpaperService.buildApplyOptions).toHaveBeenCalledWith(settings, {
+        backgroundId: '12345',
+        fps: 144,
+      })
+      expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'wallpaper', options })
       expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1'])
+    })
+
+    it('returns a failed apply without clearing playlist state', async () => {
+      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
+      mockWallpaperService.buildApplyOptions.mockReturnValue({ backgroundId: '1' })
+      mockWallpaperService.apply.mockResolvedValue({ success: false, error: 'spawn failed' })
+
+      await expect(caller.setWallpaper({ backgroundId: '1' })).resolves.toEqual({
+        success: false,
+        error: 'spawn failed',
+      })
+      expect(mockPlaylistService.clearActivePlaylist).not.toHaveBeenCalled()
     })
   })
 
@@ -286,14 +252,22 @@ describe('wallpaperRouter', () => {
 
   describe('random', () => {
     it('should apply a random wallpaper to all screens when no screen given', async () => {
-      mockWallpaperService.applyRandom.mockResolvedValue({ success: true, screens: ['eDP-1'], wallpaperTitle: 'Forest' })
+      mockWallpaperService.applyRandom.mockResolvedValue({
+        success: true,
+        screens: ['eDP-1'],
+        wallpaperTitle: 'Forest',
+      })
       const result = await caller.random()
       expect(mockWallpaperService.applyRandom).toHaveBeenCalledWith(undefined)
       expect(result).toEqual({ success: true, screens: ['eDP-1'], wallpaperTitle: 'Forest' })
     })
 
     it('should pass the screen through', async () => {
-      mockWallpaperService.applyRandom.mockResolvedValue({ success: true, screens: ['HDMI-1'], wallpaperTitle: 'Ocean' })
+      mockWallpaperService.applyRandom.mockResolvedValue({
+        success: true,
+        screens: ['HDMI-1'],
+        wallpaperTitle: 'Ocean',
+      })
       const result = await caller.random({ screen: 'HDMI-1' })
       expect(mockWallpaperService.applyRandom).toHaveBeenCalledWith('HDMI-1')
       expect(result).toEqual({ success: true, screens: ['HDMI-1'], wallpaperTitle: 'Ocean' })
@@ -303,7 +277,11 @@ describe('wallpaperRouter', () => {
   describe('getActiveWallpaper', () => {
     it('should return active wallpapers with titles', async () => {
       const active = [{ screen: 'eDP-1', wallpaper: '123', title: 'Cool', thumbnail: '/t.jpg' }]
-      mockWallpaperService.query.mockResolvedValue({ wallpapers: [], backendInstalled: true, active })
+      mockWallpaperService.query.mockResolvedValue({
+        wallpapers: [],
+        backendInstalled: true,
+        active,
+      })
 
       const result = await caller.getActiveWallpaper()
       expect(result).toEqual(active)
@@ -317,7 +295,11 @@ describe('wallpaperRouter', () => {
       const overrides: WallpaperOverrides = { volume: 75, scaling: 'fit' }
       const result = await caller.saveOverrides({ path: '/wp/1', overrides })
 
-      expect(mockWallpaperService.overrides).toHaveBeenCalledWith({ op: 'save', wallpaperPath: '/wp/1', overrides })
+      expect(mockWallpaperService.overrides).toHaveBeenCalledWith({
+        op: 'save',
+        wallpaperPath: '/wp/1',
+        overrides,
+      })
       expect(result).toEqual({ success: true })
     })
   })
@@ -326,7 +308,10 @@ describe('wallpaperRouter', () => {
     it('should reset overrides and return success', async () => {
       mockWallpaperService.overrides.mockResolvedValue(undefined)
       const result = await caller.resetOverrides({ path: '/wp/1' })
-      expect(mockWallpaperService.overrides).toHaveBeenCalledWith({ op: 'reset', wallpaperPath: '/wp/1' })
+      expect(mockWallpaperService.overrides).toHaveBeenCalledWith({
+        op: 'reset',
+        wallpaperPath: '/wp/1',
+      })
       expect(result).toEqual({ success: true })
     })
   })
@@ -352,7 +337,11 @@ describe('wallpaperRouter', () => {
   describe('scanAll', () => {
     it('should fetch wallpapers then delegate to compatibility scan', async () => {
       const wallpapers = [makeWallpaper(), makeWallpaper({ id: '456' })]
-      mockWallpaperService.query.mockResolvedValue({ wallpapers, backendInstalled: true, active: [] })
+      mockWallpaperService.query.mockResolvedValue({
+        wallpapers,
+        backendInstalled: true,
+        active: [],
+      })
       mockCompatibilityInstance.scanAll.mockResolvedValue({ total: 2, scanned: 2 })
 
       const result = await caller.scanAll()
@@ -384,7 +373,11 @@ describe('wallpaperRouter', () => {
         makeWallpaper({ path: '/wp/2', title: 'Ocean' }),
       ]
       mockCompatibilityInstance.getScanReport.mockReturnValue(report)
-      mockWallpaperService.query.mockResolvedValue({ wallpapers, backendInstalled: true, active: [] })
+      mockWallpaperService.query.mockResolvedValue({
+        wallpapers,
+        backendInstalled: true,
+        active: [],
+      })
 
       const result = await caller.getScanReport()
 
@@ -393,9 +386,15 @@ describe('wallpaperRouter', () => {
     })
 
     it('should fallback to folder name when title not found', async () => {
-      const report = [{ path: '/some/missing/wallpaper', status: 'unknown', errors: [], lastTested: 0 }]
+      const report = [
+        { path: '/some/missing/wallpaper', status: 'unknown', errors: [], lastTested: 0 },
+      ]
       mockCompatibilityInstance.getScanReport.mockReturnValue(report)
-      mockWallpaperService.query.mockResolvedValue({ wallpapers: [], backendInstalled: true, active: [] })
+      mockWallpaperService.query.mockResolvedValue({
+        wallpapers: [],
+        backendInstalled: true,
+        active: [],
+      })
 
       const result = await caller.getScanReport()
 
@@ -417,7 +416,10 @@ describe('wallpaperRouter', () => {
       mockWallpaperService.diagnose.mockResolvedValue(logs)
 
       const result = await caller.getDebugLogs({ screen: 'eDP-1' })
-      expect(mockWallpaperService.diagnose).toHaveBeenCalledWith({ kind: 'getLogs', screen: 'eDP-1' })
+      expect(mockWallpaperService.diagnose).toHaveBeenCalledWith({
+        kind: 'getLogs',
+        screen: 'eDP-1',
+      })
       expect(result).toEqual(logs)
     })
   })
@@ -426,7 +428,10 @@ describe('wallpaperRouter', () => {
     it('should clear logs and return success', async () => {
       mockWallpaperService.diagnose.mockResolvedValue(undefined)
       const result = await caller.clearDebugLogs({ screen: 'eDP-1' })
-      expect(mockWallpaperService.diagnose).toHaveBeenCalledWith({ kind: 'clearLogs', screen: 'eDP-1' })
+      expect(mockWallpaperService.diagnose).toHaveBeenCalledWith({
+        kind: 'clearLogs',
+        screen: 'eDP-1',
+      })
       expect(result).toEqual({ success: true })
     })
   })

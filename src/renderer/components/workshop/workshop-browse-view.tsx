@@ -1,20 +1,20 @@
-import { useMemo, useState } from "react"
-import { Store } from "lucide-react"
-import { WallpaperGridLayout } from "@/components/wallpaper/wallpaper-grid-layout"
-import { WorkshopConnectionPrompt } from "@/components/workshop/workshop-connection-prompt"
-import { WorkshopPagination } from "@/components/workshop/workshop-pagination"
-import { trpc } from "@/lib/trpc"
-import { toWallpaper } from "@/lib/utils"
-import { encodeWorkshopCursor } from "../../../shared/utils/workshop-cursor"
-import type { Wallpaper } from "../../../shared/constants/wallpaper"
-import type { WorkshopSortBy } from "../../../shared/constants/workshop"
+import { useMemo, useState } from 'react'
+import { Store } from 'lucide-react'
+import { WallpaperGridLayout } from '@/components/wallpaper/wallpaper-grid-layout'
+import { WorkshopConnectionPrompt } from '@/components/workshop/workshop-connection-prompt'
+import { WorkshopPagination } from '@/components/workshop/workshop-pagination'
+import { trpc } from '@/lib/trpc'
+import { toWallpaper } from '@/lib/utils'
+import { encodeWorkshopCursor } from '../../../shared/utils/workshop-cursor'
+import type { Wallpaper } from '../../../shared/constants/wallpaper'
+import type { WorkshopSortBy } from '../../../shared/constants/workshop'
 
 interface WorkshopBrowseViewProps {
   searchQuery: string
   sortBy: WorkshopSortBy
   selectedId: string | undefined
   onCardClick: (w: Wallpaper) => void
-  gridClassName: string
+  columns: number
 }
 
 export function WorkshopBrowseView({
@@ -22,7 +22,7 @@ export function WorkshopBrowseView({
   sortBy,
   selectedId,
   onCardClick,
-  gridClassName,
+  columns,
 }: WorkshopBrowseViewProps) {
   const [page, setPage] = useState(1)
   const utils = trpc.useUtils()
@@ -38,10 +38,7 @@ export function WorkshopBrowseView({
     },
   })
 
-  const wallpapers = useMemo(
-    () => data?.items.map(toWallpaper) ?? [],
-    [data],
-  )
+  const wallpapers = useMemo(() => data?.items.map(toWallpaper) ?? [], [data])
 
   if (error) return <WorkshopConnectionPrompt message={error.message} />
 
@@ -53,7 +50,7 @@ export function WorkshopBrowseView({
         showCompatibilityDot={false}
         selectedId={selectedId}
         onCardClick={onCardClick}
-        gridClassName={gridClassName}
+        columns={columns}
         emptyIcon={Store}
         emptyMessage="No workshop items found"
         emptySubMessage="Try a different search term"

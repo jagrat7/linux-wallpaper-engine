@@ -29,29 +29,21 @@ const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
 const OMARCHY_WATCH_PATHS = getOmarchyWatchPaths(homedir())
 
 export const parseOmarchyTheme = (source: string): SystemThemePalette | null => {
-  const colors = Object.fromEntries(Array.from(source.matchAll(
-    /^\s*([\w]+)\s*=\s*["']([^"']+)["']/gm,
-  )).filter(([, , value]) => HEX_COLOR_PATTERN.test(value)).map(([, key, value]) => [
-    key,
-    value,
-  ])) as Record<string, string>
+  const colors = Object.fromEntries(
+    Array.from(source.matchAll(/^\s*([\w]+)\s*=\s*["']([^"']+)["']/gm))
+      .filter(([, , value]) => HEX_COLOR_PATTERN.test(value))
+      .map(([, key, value]) => [key, value]),
+  ) as Record<string, string>
 
   if (colors.background === undefined || colors.foreground === undefined) return null
   const accent = colors.accent ?? colors.blue ?? colors.color4
   const selection = colors.selection ?? colors.selection_background ?? accent
-  const selectionForeground = colors.selection_foreground
-    ?? colors.bright_foreground
-    ?? colors.color15
-    ?? colors.foreground
-  const surface = colors.lighter_background
-    ?? colors.color0
-    ?? colors.dark_background
-    ?? colors.background
-  const mutedForeground = colors.muted
-    ?? colors.dark_foreground
-    ?? colors.color7
-    ?? colors.color8
-    ?? colors.foreground
+  const selectionForeground =
+    colors.selection_foreground ?? colors.bright_foreground ?? colors.color15 ?? colors.foreground
+  const surface =
+    colors.lighter_background ?? colors.color0 ?? colors.dark_background ?? colors.background
+  const mutedForeground =
+    colors.muted ?? colors.dark_foreground ?? colors.color7 ?? colors.color8 ?? colors.foreground
   return {
     background: colors.background,
     foreground: colors.foreground,
@@ -84,9 +76,10 @@ export const parseOmarchyTheme = (source: string): SystemThemePalette | null => 
 
 const parseHyprColor = (value: string | undefined): string | undefined => {
   if (value === undefined) return undefined
-  const match = value.match(/#([\da-f]{6})(?:[\da-f]{2})?/i)
-    ?? value.match(/rgba?\(\s*([\da-f]{6})(?:[\da-f]{2})?\s*\)/i)
-    ?? value.match(/^\s*["']?([\da-f]{6})(?:[\da-f]{2})?["']?\s*$/i)
+  const match =
+    value.match(/#([\da-f]{6})(?:[\da-f]{2})?/i) ??
+    value.match(/rgba?\(\s*([\da-f]{6})(?:[\da-f]{2})?\s*\)/i) ??
+    value.match(/^\s*["']?([\da-f]{6})(?:[\da-f]{2})?["']?\s*$/i)
   return match === null ? undefined : `#${match[1]}`
 }
 
@@ -105,7 +98,12 @@ const findLuaVariableColor = (source: string, names: string[]): string | undefin
 
 const findLuaAssignedColor = (source: string, keys: string[]): string | undefined => {
   for (const key of keys) {
-    const assignment = source.match(new RegExp(`(?:\\[\"${key.replace('.', '\\.') }\"\\]|\\b${key.replace('.', '\\.')})\\s*=\\s*([^,\\n}]+)`, 'i'))
+    const assignment = source.match(
+      new RegExp(
+        `(?:\\["${key.replace('.', '\\.')}"\\]|\\b${key.replace('.', '\\.')})\\s*=\\s*([^,\\n}]+)`,
+        'i',
+      ),
+    )
     if (assignment === null) continue
     const direct = parseHyprColor(assignment[1])
     if (direct !== undefined) return direct
@@ -121,28 +119,41 @@ const findLuaAssignedColor = (source: string, keys: string[]): string | undefine
 }
 
 export const parseOmarchyHyprlandTheme = (source: string): SystemThemePalette | null => {
-  const namedColors = Object.fromEntries(Array.from(source.matchAll(
-    /^\s*(background|bg|surface|surface_alt|foreground|fg|accent|active|border|muted)\s*=\s*["']([^"']+)["']/gim,
-  )).map(([, key, value]) => [key.toLowerCase(), parseHyprColor(value)]).filter((entry): entry is [string, string] => entry[1] !== undefined))
+  const namedColors = Object.fromEntries(
+    Array.from(
+      source.matchAll(
+        /^\s*(background|bg|surface|surface_alt|foreground|fg|accent|active|border|muted)\s*=\s*["']([^"']+)["']/gim,
+      ),
+    )
+      .map(([, key, value]) => [key.toLowerCase(), parseHyprColor(value)])
+      .filter((entry): entry is [string, string] => entry[1] !== undefined),
+  )
 
   const background = namedColors.background ?? namedColors.bg
   const foreground = namedColors.foreground ?? namedColors.fg
-  const activeBorder = namedColors.accent
-    ?? namedColors.active
-    ?? findLuaVariableColor(source, ['active_border_color', 'activeBorderColor'])
-    ?? findLuaAssignedColor(source, ['col.active_border', 'active_border', 'border_active'])
-  const inactiveBorder = namedColors.border
-    ?? namedColors.muted
-    ?? findLuaVariableColor(source, ['inactive_border_color', 'inactiveBorderColor'])
-    ?? findLuaAssignedColor(source, ['col.inactive_border', 'inactive_border', 'border_inactive'])
+  const activeBorder =
+    namedColors.accent ??
+    namedColors.active ??
+    findLuaVariableColor(source, ['active_border_color', 'activeBorderColor']) ??
+    findLuaAssignedColor(source, ['col.active_border', 'active_border', 'border_active'])
+  const inactiveBorder =
+    namedColors.border ??
+    namedColors.muted ??
+    findLuaVariableColor(source, ['inactive_border_color', 'inactiveBorderColor']) ??
+    findLuaAssignedColor(source, ['col.inactive_border', 'inactive_border', 'border_inactive'])
   const surface = namedColors.surface ?? background
   const selection = namedColors.surface_alt ?? inactiveBorder ?? surface
 
-  if (background === undefined && foreground === undefined
-    && activeBorder === undefined && inactiveBorder === undefined) return null
+  if (
+    background === undefined &&
+    foreground === undefined &&
+    activeBorder === undefined &&
+    inactiveBorder === undefined
+  )
+    return null
 
-  const activeForeground = background
-    ?? (inferScheme(activeBorder) === 'light' ? '#000000' : '#ffffff')
+  const activeForeground =
+    background ?? (inferScheme(activeBorder) === 'light' ? '#000000' : '#ffffff')
   return {
     background,
     foreground,

@@ -1,9 +1,20 @@
-import { AGE_RATINGS, FILTER_TYPE_OPTIONS, type AgeRating, type WallpaperType } from '../../../shared/constants/wallpaper'
+import {
+  AGE_RATINGS,
+  FILTER_TYPE_OPTIONS,
+  type AgeRating,
+  type WallpaperType,
+} from '../../../shared/constants/wallpaper'
 import type { AppSettings } from '../../../shared/constants/app'
 import { FIRST_PAGE } from '../../../shared/constants/workshop'
 import type { DiscoverSectionConfig, WorkshopItem } from './workshop.types'
 
-type WorkshopFilterSettings = Pick<AppSettings, 'workshopFilterType' | 'workshopFilterAgeRating' | 'workshopFilterTags' | 'workshopFilterResolution'>
+type WorkshopFilterSettings = Pick<
+  AppSettings,
+  | 'workshopFilterType'
+  | 'workshopFilterAgeRating'
+  | 'workshopFilterTags'
+  | 'workshopFilterResolution'
+>
 
 export function parseWorkshopId(workshopId: string): bigint | null {
   const normalizedId = workshopId.trim()
@@ -28,15 +39,18 @@ export function toSafeNumber(value: bigint): number {
 }
 
 const WORKSHOP_TYPE_TAGS = Object.fromEntries(
-  FILTER_TYPE_OPTIONS
-    .filter((option): option is typeof FILTER_TYPE_OPTIONS[number] & { value: WallpaperType } => option.value !== 'all')
-    .map(option => [option.value, option.label])
+  FILTER_TYPE_OPTIONS.filter(
+    (option): option is (typeof FILTER_TYPE_OPTIONS)[number] & { value: WallpaperType } =>
+      option.value !== 'all',
+  ).map((option) => [option.value, option.label]),
 ) as Record<WallpaperType, string>
 
 export function parseWorkshopAgeRating(tags: string[]): AgeRating | undefined {
-  const normalizedTags = new Set(tags.map(tag => tag.trim().toLowerCase()))
+  const normalizedTags = new Set(tags.map((tag) => tag.trim().toLowerCase()))
 
-  for (const [ageRating, config] of Object.entries(AGE_RATINGS) as Array<[AgeRating, typeof AGE_RATINGS[AgeRating]]>) {
+  for (const [ageRating, config] of Object.entries(AGE_RATINGS) as Array<
+    [AgeRating, (typeof AGE_RATINGS)[AgeRating]]
+  >) {
     if (normalizedTags.has(config.workshopTag.toLowerCase())) {
       return ageRating
     }
@@ -46,9 +60,11 @@ export function parseWorkshopAgeRating(tags: string[]): AgeRating | undefined {
 }
 
 export function parseWorkshopType(tags: string[]): WallpaperType {
-  const normalizedTags = new Set(tags.map(tag => tag.trim().toLowerCase()))
+  const normalizedTags = new Set(tags.map((tag) => tag.trim().toLowerCase()))
 
-  for (const [type, workshopTag] of Object.entries(WORKSHOP_TYPE_TAGS) as Array<[WallpaperType, string]>) {
+  for (const [type, workshopTag] of Object.entries(WORKSHOP_TYPE_TAGS) as Array<
+    [WallpaperType, string]
+  >) {
     if (normalizedTags.has(workshopTag.toLowerCase())) {
       return type
     }
@@ -87,18 +103,20 @@ export function toWorkshopResolutionTag(value: string): string | null {
 //    so each sub-query is a pure AND (matchAnyTag=false), and the union of sub-queries gives OR-within-category.
 export function buildFilterCombinations(
   settings: WorkshopFilterSettings,
-  baseTags: string[] = []
+  baseTags: string[] = [],
 ): string[][] {
-  const customTags = settings.workshopFilterTags.map(tag => tag.trim()).filter(Boolean)
+  const customTags = settings.workshopFilterTags.map((tag) => tag.trim()).filter(Boolean)
   const resolutionTags = settings.workshopFilterResolution
-    .map(value => toWorkshopResolutionTag(value))
+    .map((value) => toWorkshopResolutionTag(value))
     .filter((value): value is string => value != null)
   const alwaysRequired = Array.from(new Set([...baseTags, ...customTags, ...resolutionTags]))
 
   const typeTags = settings.workshopFilterType
     .filter((value): value is WallpaperType => value !== 'all')
-    .map(type => WORKSHOP_TYPE_TAGS[type])
-  const ageRatingTags = settings.workshopFilterAgeRating.map(rating => AGE_RATINGS[rating].workshopTag)
+    .map((type) => WORKSHOP_TYPE_TAGS[type])
+  const ageRatingTags = settings.workshopFilterAgeRating.map(
+    (rating) => AGE_RATINGS[rating].workshopTag,
+  )
 
   // Placeholder axis keeps a singleton combination when a category has no selection.
   const axes: Array<Array<string | null>> = [
@@ -108,16 +126,18 @@ export function buildFilterCombinations(
 
   let combinations: Array<Array<string | null>> = [[]]
   for (const axis of axes) {
-    combinations = combinations.flatMap(prefix => axis.map(value => [...prefix, value]))
+    combinations = combinations.flatMap((prefix) => axis.map((value) => [...prefix, value]))
   }
 
-  return combinations.map(combo => {
+  return combinations.map((combo) => {
     const comboTags = combo.filter((tag): tag is string => typeof tag === 'string')
     return Array.from(new Set([...alwaysRequired, ...comboTags]))
   })
 }
 
-export function shuffleDiscoverSectionConfigs(sectionConfigs: DiscoverSectionConfig[]): DiscoverSectionConfig[] {
+export function shuffleDiscoverSectionConfigs(
+  sectionConfigs: DiscoverSectionConfig[],
+): DiscoverSectionConfig[] {
   const shuffledConfigs = [...sectionConfigs]
 
   for (let index = shuffledConfigs.length - 1; index > 0; index -= 1) {
@@ -137,12 +157,17 @@ type WorkshopMergeableItem = {
 
 export function mergeWorkshopItemsBySource<T extends WorkshopMergeableItem>(
   itemGroups: Array<Array<T | null | undefined>>,
-  limit?: number
+  limit?: number,
 ): T[] {
   const mergedItems: T[] = []
   const seenIds = new Set<string>()
-  const normalizedGroups = itemGroups.map(group => group.filter((item): item is T => item != null))
-  const maxGroupLength = normalizedGroups.reduce((currentMax, group) => Math.max(currentMax, group.length), 0)
+  const normalizedGroups = itemGroups.map((group) =>
+    group.filter((item): item is T => item != null),
+  )
+  const maxGroupLength = normalizedGroups.reduce(
+    (currentMax, group) => Math.max(currentMax, group.length),
+    0,
+  )
 
   for (let itemIndex = 0; itemIndex < maxGroupLength; itemIndex += 1) {
     for (const group of normalizedGroups) {
@@ -187,7 +212,7 @@ function isInvalidWorkshopPageError(error: unknown): boolean {
 
 export async function settleWorkshopPageResults<TItem>(
   requests: Array<Promise<WorkshopPaginatedResultLike<TItem>>>,
-  page: number
+  page: number,
 ): Promise<WorkshopPaginatedResultLike<TItem>[]> {
   const settledResults = await Promise.allSettled(requests)
   const results: WorkshopPaginatedResultLike<TItem>[] = []
@@ -232,7 +257,9 @@ type WorkshopSourceItem = {
 }
 
 // Pure mapper — filtering is done server-side via requiredTags so every item reaching here is already in-scope.
-export function mapWorkshopItems(items: Array<WorkshopSourceItem | null | undefined>): WorkshopItem[] {
+export function mapWorkshopItems(
+  items: Array<WorkshopSourceItem | null | undefined>,
+): WorkshopItem[] {
   return items
     .filter((item): item is WorkshopSourceItem => item != null)
     .map((item): WorkshopItem => ({

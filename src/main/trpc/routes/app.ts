@@ -19,7 +19,7 @@ export const appRouter = trpc.router({
 
       if (!res.ok) return { hasUpdate: false, latestVersion: null, releaseUrl: null }
 
-      const release = await res.json() as GithubRelease
+      const release = (await res.json()) as GithubRelease
       const latestVersion = stripVersionPrefix(release.tag_name)
       const hasUpdate = isNewerVersion(latestVersion, currentVersion)
 

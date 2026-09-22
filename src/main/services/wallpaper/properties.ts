@@ -30,8 +30,10 @@ export function parseProjectProperties(project: unknown): WallpaperProperty[] {
 
     const options = Array.isArray(d.options)
       ? (d.options as Array<Record<string, unknown>>)
-          .filter(o => o && typeof o === 'object' && o.label !== undefined && o.value !== undefined)
-          .map(o => ({ label: String(o.label), value: serializePropertyValue(o.value) }))
+          .filter(
+            (o) => o && typeof o === 'object' && o.label !== undefined && o.value !== undefined,
+          )
+          .map((o) => ({ label: String(o.label), value: serializePropertyValue(o.value) }))
       : undefined
 
     result.push({
@@ -43,7 +45,12 @@ export function parseProjectProperties(project: unknown): WallpaperProperty[] {
       max: typeof d.max === 'number' ? d.max : undefined,
       step: typeof d.step === 'number' ? d.step : undefined,
       options,
-      sortKey: typeof d.order === 'number' ? d.order : typeof d.index === 'number' ? d.index : Number.MAX_SAFE_INTEGER,
+      sortKey:
+        typeof d.order === 'number'
+          ? d.order
+          : typeof d.index === 'number'
+            ? d.index
+            : Number.MAX_SAFE_INTEGER,
     })
   }
 

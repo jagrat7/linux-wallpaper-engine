@@ -15,7 +15,7 @@ vi.mock('../invalidation', () => ({
 vi.mock('./providers', () => ({ desktopThemeProviders: [] }))
 
 vi.mock('./system-theme.utils', async (importOriginal) => ({
-  ...await importOriginal<typeof import('./system-theme.utils')>(),
+  ...(await importOriginal<typeof import('./system-theme.utils')>()),
   detectSystemTheme: mocks.detectSystemTheme,
   watchThemeFiles: mocks.watchThemeFiles,
 }))
@@ -33,7 +33,9 @@ afterEach(() => {
 describe('system theme events', () => {
   it('refreshes from platform events and disposes every subscription', async () => {
     let scheme: 'light' | 'dark' = 'dark'
-    let notifyChange = () => { throw new Error('Platform was not subscribed') }
+    let notifyChange = () => {
+      throw new Error('Platform was not subscribed')
+    }
     const unsubscribe = vi.fn()
     const platform = {
       readScheme: () => scheme,

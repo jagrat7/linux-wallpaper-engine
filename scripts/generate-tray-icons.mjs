@@ -40,8 +40,7 @@ const SIZES = [
   { size: 32, suffix: '@2x' },
 ]
 
-const escapeAttr = (value) =>
-  String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+const escapeAttr = (value) => String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
 
 const buildSvg = (iconNode, stroke) => {
   const elements = iconNode

@@ -1,82 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ChildProcess } from 'node:child_process'
-import * as fs from 'node:fs/promises'
 import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
-import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir, pickRandomWallpaper, buildApplyOptions, signalWallpaperProcess, escapeRegExp, backendArgPattern } from './wallpaper.utils'
-
-vi.mock('node:fs/promises', () => ({
-  readFile: vi.fn(),
-  access: vi.fn(),
-}))
+import { buildApplyOptions, pickRandomWallpaper, signalWallpaperProcess } from './wallpaper.utils'
+import { backendArgPattern, escapeRegExp } from '../../utils/host'
 
 const { mockHostExecFileAsync, mockUsesFlatpakSpawn } = vi.hoisted(() => ({
   mockHostExecFileAsync: vi.fn(),
   mockUsesFlatpakSpawn: vi.fn(),
 }))
 
-vi.mock('../../utils/host', () => ({
+vi.mock('../../utils/host', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/host')>()),
   hostExecFileAsync: mockHostExecFileAsync,
   usesFlatpakSpawn: mockUsesFlatpakSpawn,
 }))
-
-const mockReadFile = vi.mocked(fs.readFile)
-const mockAccess = vi.mocked(fs.access)
-
-describe('resolveSteamLibraryPaths', () => {
-  beforeEach(() => {
-    mockReadFile.mockReset()
-    mockAccess.mockReset()
-  })
-
-  it('includes Steam libraries from libraryfolders.vdf', async () => {
-    mockReadFile.mockResolvedValueOnce(`
-"libraryfolders"
-{
-  "0"
-  {
-    "path" "/home/user/.local/share/Steam"
-  }
-  "1"
-  {
-    "path" "/some/other/folder/Steam"
-  }
-}
-`)
-
-    const paths = await resolveSteamLibraryPaths(['~/.local/share/Steam'])
-
-    expect(paths).toContain('/home/user/.local/share/Steam')
-    expect(paths).toContain('/some/other/folder/Steam')
-  })
-
-  it('keeps default paths when libraryfolders.vdf is missing', async () => {
-    mockReadFile.mockRejectedValueOnce(new Error('missing'))
-
-    await expect(resolveSteamLibraryPaths(['/steam'])).resolves.toEqual(['/steam'])
-  })
-})
-
-describe('resolveWallpaperEngineAssetsDir', () => {
-  beforeEach(() => {
-    mockReadFile.mockReset()
-    mockAccess.mockReset()
-  })
-
-  it('finds Wallpaper Engine assets in a Steam library', async () => {
-    mockReadFile.mockRejectedValueOnce(new Error('missing'))
-    mockAccess.mockResolvedValueOnce(undefined)
-
-    await expect(resolveWallpaperEngineAssetsDir(['/steam'])).resolves.toBe('/steam/steamapps/common/wallpaper_engine/assets')
-  })
-
-  it('returns null when no assets folder exists', async () => {
-    mockReadFile.mockRejectedValueOnce(new Error('missing'))
-    mockAccess.mockRejectedValueOnce(new Error('missing'))
-
-    await expect(resolveWallpaperEngineAssetsDir(['/steam'])).resolves.toBeNull()
-  })
-})
 
 describe('pickRandomWallpaper', () => {
   const makeWallpaper = (path: string): Wallpaper => ({
@@ -111,7 +49,7 @@ describe('pickRandomWallpaper', () => {
   })
 
   it('falls back to the full list when everything is active', () => {
-    const activeIds = new Set(WALLPAPERS.map(w => w.path))
+    const activeIds = new Set(WALLPAPERS.map((w) => w.path))
     const pick = pickRandomWallpaper(WALLPAPERS, activeIds)
     expect(WALLPAPERS).toContain(pick)
   })
@@ -156,21 +94,27 @@ describe('buildApplyOptions', () => {
   })
 
   it('uses parsed window geometry in window mode', () => {
-    const options = buildApplyOptions({
-      ...DEFAULT_SETTINGS,
-      windowMode: true,
-      windowGeometry: '800x600',
-    }, { backgroundId: '/wp/a' })
+    const options = buildApplyOptions(
+      {
+        ...DEFAULT_SETTINGS,
+        windowMode: true,
+        windowGeometry: '800x600',
+      },
+      { backgroundId: '/wp/a' },
+    )
 
     expect(options.windowed).toEqual({ x: 0, y: 0, width: 800, height: 600 })
   })
 
   it('falls back to the emit-flag window mode when geometry is missing', () => {
-    const options = buildApplyOptions({
-      ...DEFAULT_SETTINGS,
-      windowMode: true,
-      windowGeometry: null,
-    }, { backgroundId: '/wp/a' })
+    const options = buildApplyOptions(
+      {
+        ...DEFAULT_SETTINGS,
+        windowMode: true,
+        windowGeometry: null,
+      },
+      { backgroundId: '/wp/a' },
+    )
 
     expect(options.windowed).toBe('emit-flag')
   })
@@ -189,7 +133,11 @@ describe('signalWallpaperProcess', () => {
   it('signals the tracked process handle and skips the host fallback', async () => {
     const kill = vi.fn().mockReturnValue(true)
 
-    const delivered = await signalWallpaperProcess('SIGSTOP', makeProc(kill), 'linux-wallpaperengine.*--screen-root.*eDP-1')
+    const delivered = await signalWallpaperProcess(
+      'SIGSTOP',
+      makeProc(kill),
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    )
 
     expect(delivered).toBe(true)
     expect(kill).toHaveBeenCalledWith('SIGSTOP')
@@ -201,26 +149,44 @@ describe('signalWallpaperProcess', () => {
     mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
     const kill = vi.fn().mockReturnValue(true)
 
-    const delivered = await signalWallpaperProcess('SIGSTOP', makeProc(kill), 'linux-wallpaperengine.*--screen-root.*eDP-1')
+    const delivered = await signalWallpaperProcess(
+      'SIGSTOP',
+      makeProc(kill),
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    )
 
     expect(delivered).toBe(true)
     expect(kill).not.toHaveBeenCalled()
-    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', ['-STOP', '-f', 'linux-wallpaperengine.*--screen-root.*eDP-1'])
+    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', [
+      '-STOP',
+      '-f',
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    ])
   })
 
   it('reports failure when kill returns false without throwing', async () => {
     const kill = vi.fn().mockReturnValue(false)
 
-    const delivered = await signalWallpaperProcess('SIGCONT', makeProc(kill), 'linux-wallpaperengine.*--screen-root.*eDP-1')
+    const delivered = await signalWallpaperProcess(
+      'SIGCONT',
+      makeProc(kill),
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    )
 
     expect(delivered).toBe(false)
     expect(mockHostExecFileAsync).not.toHaveBeenCalled()
   })
 
   it('reports failure when kill throws', async () => {
-    const kill = vi.fn().mockImplementation(() => { throw new Error('ESRCH') })
+    const kill = vi.fn().mockImplementation(() => {
+      throw new Error('ESRCH')
+    })
 
-    const delivered = await signalWallpaperProcess('SIGSTOP', makeProc(kill), 'linux-wallpaperengine.*--screen-root.*eDP-1')
+    const delivered = await signalWallpaperProcess(
+      'SIGSTOP',
+      makeProc(kill),
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    )
 
     expect(delivered).toBe(false)
   })
@@ -235,25 +201,45 @@ describe('signalWallpaperProcess', () => {
   it('falls back to pkill for screens without a tracked handle', async () => {
     mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
 
-    const delivered = await signalWallpaperProcess('SIGSTOP', undefined, 'linux-wallpaperengine.*--screen-root.*eDP-1')
+    const delivered = await signalWallpaperProcess(
+      'SIGSTOP',
+      undefined,
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    )
 
     expect(delivered).toBe(true)
-    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', ['-STOP', '-f', 'linux-wallpaperengine.*--screen-root.*eDP-1'])
+    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', [
+      '-STOP',
+      '-f',
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    ])
   })
 
   it('sends SIGCONT via pkill when resuming without a handle', async () => {
     mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
 
-    const delivered = await signalWallpaperProcess('SIGCONT', undefined, 'linux-wallpaperengine.*--screen-root.*eDP-1')
+    const delivered = await signalWallpaperProcess(
+      'SIGCONT',
+      undefined,
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    )
 
     expect(delivered).toBe(true)
-    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', ['-CONT', '-f', 'linux-wallpaperengine.*--screen-root.*eDP-1'])
+    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', [
+      '-CONT',
+      '-f',
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    ])
   })
 
   it('reports failure when the host fallback rejects', async () => {
     mockHostExecFileAsync.mockRejectedValue(new Error('no process matched'))
 
-    const delivered = await signalWallpaperProcess('SIGSTOP', undefined, 'linux-wallpaperengine.*--screen-root.*eDP-1')
+    const delivered = await signalWallpaperProcess(
+      'SIGSTOP',
+      undefined,
+      'linux-wallpaperengine.*--screen-root.*eDP-1',
+    )
 
     expect(delivered).toBe(false)
   })

@@ -1,6 +1,14 @@
 import { EventEmitter } from 'node:events'
 
-export type InvalidationKey = 'wallpaper.getWallpapers' | 'wallpaper.getCompatibilityMap' | 'wallpaper.applied' | 'wallpaper.stopped' | 'wallpaper.paused' | 'wallpaper.resumed' | 'display.list' | 'settings.systemTheme'
+export type InvalidationKey =
+  | 'wallpaper.getWallpapers'
+  | 'wallpaper.getCompatibilityMap'
+  | 'wallpaper.applied'
+  | 'wallpaper.stopped'
+  | 'wallpaper.paused'
+  | 'wallpaper.resumed'
+  | 'display.list'
+  | 'settings.systemTheme'
 
 const emitter = new EventEmitter()
 
@@ -10,6 +18,8 @@ export const invalidationService = {
   },
   subscribe(cb: (key: InvalidationKey) => void) {
     emitter.on('invalidate', cb)
-    return () => { emitter.off('invalidate', cb) }
+    return () => {
+      emitter.off('invalidate', cb)
+    }
   },
 }

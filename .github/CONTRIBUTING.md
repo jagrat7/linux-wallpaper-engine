@@ -10,7 +10,6 @@ Thanks for your interest in contributing! For bug reports and feature requests, 
 - [Submitting Changes](#submitting-changes)
 - [Becoming a Collaborator](#becoming-a-collaborator)
 
-
 ## Getting Started
 
 ### Prerequisites
@@ -73,7 +72,6 @@ nom build
 
 > NOTE: For non-NixOS systems, there's currently a limitation when it comes to graphics drivers for Electron.
 
-
 ## Project Structure
 
 The app follows a 3-layer Electron architecture:
@@ -116,6 +114,7 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
 ### "Backend" (`src/main/`)
 
 - **Services** — `src/main/services/`, follow the singleton pattern. Keep complex logic here, not in the API layer. Big services should be split into smaller, focused services and utilities
+- **Service imports** — A nested service's public file matches its folder name (singular for a plural folder), such as `../../services/wallpaper/wallpaper` or `../../services/playlists/playlist`. Call the service API from outside its folder. Oxlint rejects imports into other files in a service folder from outside it.
 - **tRPC routes** — `src/main/trpc/routes/`, this layer is for assembling service calls and returning data. Low-complexity logic (e.g. `window.ts`) can live here directly, but anything more complex should go in a service. You should always validate tRPC input with Zod
 
 ### "Frontend" (`src/renderer/`)
@@ -137,9 +136,7 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
 - No hardcoded colors like `text-red-500` — use Tailwind theme variables from `global.css`
 - Use kebab-case for file and folder names
 - Group related components in their own folder
-- Run `bun run check` before submitting or have the eslint extension
-
-
+- Run `bun run check` before submitting. Use `bun run fmt` to format changes and `bun run fmt:check` to check formatting.
 
 ## Submitting Changes
 

@@ -26,6 +26,25 @@ const PORTAL_PATH = '/org/freedesktop/portal/desktop'
 const PORTAL_INTERFACE = 'org.freedesktop.portal.Settings'
 const PORTAL_NAMESPACE = 'org.freedesktop.appearance'
 
+export const electronTheme = {
+  createPlatform(
+    nativeTheme: ElectronNativeTheme,
+    systemPreferences: ElectronSystemPreferences,
+  ): SystemThemePlatform {
+    return {
+      readScheme: () => (nativeTheme.shouldUseDarkColors ? 'dark' : 'light'),
+      subscribe(onChange) {
+        nativeTheme.on('updated', onChange)
+        systemPreferences.on('accent-color-changed', onChange)
+        return () => {
+          nativeTheme.off('updated', onChange)
+          systemPreferences.off('accent-color-changed', onChange)
+        }
+      },
+    }
+  },
+}
+
 export const portal = {
   async readSetting(setting: string): Promise<string | null> {
     const commands = [
@@ -53,41 +72,23 @@ export const portal = {
 
   parseAccent(source: string | null): string | null {
     if (source === null) return null
-    const tuple = source.match(/\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/)
-      ?? source.match(/\(ddd\)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/)
+    const tuple =
+      source.match(/\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/) ??
+      source.match(/\(ddd\)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/)
     if (tuple !== null) {
       const channels = tuple.slice(1, 4).map(Number)
-      return channels.every(channel => Number.isFinite(channel) && channel >= 0 && channel <= 1)
+      return channels.every((channel) => Number.isFinite(channel) && channel >= 0 && channel <= 1)
         ? `color(srgb ${channels.join(' ')})`
         : null
     }
 
     const values = Array.from(source.matchAll(/double\s+([\d.]+)/g))
       .slice(0, 3)
-      .map(match => Number(match[1]))
-    return values.length === 3
-      && values.every(channel => Number.isFinite(channel) && channel >= 0 && channel <= 1)
+      .map((match) => Number(match[1]))
+    return values.length === 3 &&
+      values.every((channel) => Number.isFinite(channel) && channel >= 0 && channel <= 1)
       ? `color(srgb ${values.join(' ')})`
       : null
-  },
-}
-
-export const electronTheme = {
-  createPlatform(
-    nativeTheme: ElectronNativeTheme,
-    systemPreferences: ElectronSystemPreferences,
-  ): SystemThemePlatform {
-    return {
-      readScheme: () => nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
-      subscribe(onChange) {
-        nativeTheme.on('updated', onChange)
-        systemPreferences.on('accent-color-changed', onChange)
-        return () => {
-          nativeTheme.off('updated', onChange)
-          systemPreferences.off('accent-color-changed', onChange)
-        }
-      },
-    }
   },
 }
 
@@ -115,8 +116,7 @@ export const themeRefresh = {
         try {
           const theme = await detect()
           const serialized = JSON.stringify(theme)
-          if (lastSerializedTheme !== null && serialized !== lastSerializedTheme)
-            onChange(theme)
+          if (lastSerializedTheme !== null && serialized !== lastSerializedTheme) onChange(theme)
           lastSuccessfulTheme = theme
           lastSerializedTheme = serialized
           result = theme
@@ -208,30 +208,34 @@ export const watchThemeFiles = (
 export const subtleSidebarColor = (
   accent: string | undefined,
   background?: string,
-): string | undefined => accent === undefined
-  ? undefined
-  : `color-mix(in oklch, ${accent} 22%, ${background ?? 'var(--sidebar)'})`
+): string | undefined =>
+  accent === undefined
+    ? undefined
+    : `color-mix(in oklch, ${accent} 22%, ${background ?? 'var(--sidebar)'})`
 
 export const inferScheme = (background: string | undefined): ThemeScheme | null => {
   if (background === undefined) return null
   const hex = background.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})/i)
   const functional = background.match(/(?:rgb|color\(srgb)\(?\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/)
-  const channels = hex !== null
-    ? hex.slice(1).map((value) => Number.parseInt(value, 16) / 255)
-    : functional?.slice(1).map(Number)
+  const channels =
+    hex !== null
+      ? hex.slice(1).map((value) => Number.parseInt(value, 16) / 255)
+      : functional?.slice(1).map(Number)
   if (channels === undefined || channels.length < 3) return null
-  const [red, green, blue] = channels.map((value) => value > 1 ? value / 255 : value)
-  return (0.2126 * red + 0.7152 * green + 0.0722 * blue) < 0.5 ? 'dark' : 'light'
+  const [red, green, blue] = channels.map((value) => (value > 1 ? value / 255 : value))
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue < 0.5 ? 'dark' : 'light'
 }
 
 export const normalizeSystemThemePalette = (
   palette: SystemThemePalette | null,
 ): SystemThemePalette | null => {
   if (palette === null) return null
-  const normalized = Object.fromEntries(Object.entries(palette).filter(
-    (entry): entry is [string, string] =>
-      typeof entry[1] === 'string' && entry[1].trim().length > 0,
-  )) as SystemThemePalette
+  const normalized = Object.fromEntries(
+    Object.entries(palette).filter(
+      (entry): entry is [string, string] =>
+        typeof entry[1] === 'string' && entry[1].trim().length > 0,
+    ),
+  ) as SystemThemePalette
   return Object.keys(normalized).length === 0 ? null : normalized
 }
 
@@ -246,16 +250,22 @@ export const detectSystemTheme = async (
   const accent = portal.parseAccent(accentSource)
   const portalScheme = portal.parseScheme(schemeSource)
   const palette = normalizeSystemThemePalette(provider?.readPalette() ?? null)
-  const portalPalette: SystemThemePalette | null = accent === null ? null : {
-    primary: accent,
-    accent,
-    ring: accent,
-    sidebarPrimary: subtleSidebarColor(accent),
-    sidebarRing: accent,
-  }
-  const mergedPalette = palette === null
-    ? portalPalette
-    : portalPalette === null ? palette : { ...portalPalette, ...palette }
+  const portalPalette: SystemThemePalette | null =
+    accent === null
+      ? null
+      : {
+          primary: accent,
+          accent,
+          ring: accent,
+          sidebarPrimary: subtleSidebarColor(accent),
+          sidebarRing: accent,
+        }
+  const mergedPalette =
+    palette === null
+      ? portalPalette
+      : portalPalette === null
+        ? palette
+        : { ...portalPalette, ...palette }
 
   return {
     scheme: portalScheme ?? platformScheme ?? inferScheme(palette?.background) ?? 'dark',

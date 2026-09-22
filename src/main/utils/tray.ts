@@ -1,4 +1,13 @@
-import { app, BrowserWindow, Menu, nativeImage, nativeTheme, Notification, Tray, type NativeImage } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  nativeImage,
+  nativeTheme,
+  Notification,
+  Tray,
+  type NativeImage,
+} from 'electron'
 import { invalidationService } from '../services/invalidation'
 import { playlistService } from '../services/playlists/playlist'
 import { wallpaperService } from '../services/wallpaper/wallpaper'
@@ -26,7 +35,9 @@ const TRAY_ICON_SIZE = 22
 
 // Menu icons follow the system theme so they stay legible on the bar's menu background
 const trayMenuIcon = (name: string) =>
-  nativeImage.createFromPath(resolveAssetPath(`tray/${nativeTheme.shouldUseDarkColors ? 'dark' : 'light'}/${name}.png`))
+  nativeImage.createFromPath(
+    resolveAssetPath(`tray/${nativeTheme.shouldUseDarkColors ? 'dark' : 'light'}/${name}.png`),
+  )
 
 // Tray actions have no other feedback surface — report failures as a desktop
 // notification so they aren't silent no-ops
@@ -66,13 +77,13 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
     const pausedScreens = wallpaperService.getPausedScreens()
     const hasActive = activeScreens.length > 0
     const hasPaused = pausedScreens.length > 0
-    const hasUnpaused = activeScreens.some(screen => !pausedScreens.includes(screen))
+    const hasUnpaused = activeScreens.some((screen) => !pausedScreens.includes(screen))
 
     return Menu.buildFromTemplate([
       {
         label: 'Toggle App',
         icon: trayMenuIcon('toggle-app'),
-        click: () => toggleMainWindow()
+        click: () => toggleMainWindow(),
       },
       { type: 'separator' },
       {
@@ -82,7 +93,7 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
         click: async () => {
           const result = await wallpaperService.pause()
           if (!result.success) notifyFailure(result.error, 'Failed to pause wallpapers')
-        }
+        },
       },
       {
         label: 'Resume Wallpaper',
@@ -91,7 +102,7 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
         click: async () => {
           const result = await wallpaperService.resume()
           if (!result.success) notifyFailure(result.error, 'Failed to resume wallpapers')
-        }
+        },
       },
       {
         label: 'Random Wallpaper',
@@ -99,13 +110,15 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
         click: async () => {
           const result = await wallpaperService.applyRandom()
           if (!result.success) notifyFailure(result.error, 'Failed to apply a random wallpaper')
-        }
+        },
       },
       {
         label: 'Stop Wallpaper',
         icon: trayMenuIcon('stop'),
         enabled: hasActive,
-        click: () => { void stopAllWallpapers() }
+        click: () => {
+          void stopAllWallpapers()
+        },
       },
       { type: 'separator' },
       {
@@ -113,8 +126,8 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
         icon: trayMenuIcon('quit'),
         click: () => {
           app.quit()
-        }
-      }
+        },
+      },
     ])
   }
 
