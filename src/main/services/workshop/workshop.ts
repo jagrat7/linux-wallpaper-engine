@@ -4,6 +4,7 @@ import { EventEmitter } from 'node:events'
 import { promisify } from 'node:util'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { settingsService } from '../settings'
+import { invalidationService } from '../invalidation'
 import type { IWorkshopService } from './workshop.interface'
 import type {
   WorkshopDiscoverOptions,
@@ -35,6 +36,7 @@ import {
   WORKSHOP_SORT_TO_QUERY_TYPE,
   WORKSHOP_TREND_DAYS,
   WORKSHOP_MAX_RESULTS,
+  ITEM_STATE_INSTALLED,
 } from '../../../shared/constants/workshop'
 
 type SteamworksModule = typeof import('steamworks.js')
@@ -53,6 +55,7 @@ class WorkshopService implements IWorkshopService {
   private connectionEmitter = new EventEmitter()
   private autoConnectTimer: ReturnType<typeof setInterval> | null = null
   private subscriberCount = 0
+  private hasSyncedOnInit = false
 
   static getInstance(): WorkshopService {
     if (!WorkshopService.instance) {
@@ -335,6 +338,36 @@ class WorkshopService implements IWorkshopService {
     }
   }
 
+  async syncSubscribedItems(): Promise<void> {
+    let client: SteamClient
+    try {
+      client = await this.getClient()
+    } catch {
+      return
+    }
+
+    try {
+      const subscribedIds = client.workshop.getSubscribedItems()
+      let downloadCount = 0
+
+      for (const itemId of subscribedIds) {
+        const itemState = client.workshop.state(itemId)
+        const isInstalled = (itemState & ITEM_STATE_INSTALLED) !== 0
+
+        if (!isInstalled) {
+          client.workshop.download(itemId, false)
+          downloadCount += 1
+        }
+      }
+
+      if (downloadCount > 0) {
+        invalidationService.emit('wallpaper.getWallpapers')
+      }
+    } catch {
+      // Steam API calls may fail if the client disconnects mid-sync
+    }
+  }
+
   private async resolveWorkshopContext(
     workshopId: string,
   ): Promise<{ client: SteamClient; itemId: bigint } | null> {
@@ -366,6 +399,12 @@ class WorkshopService implements IWorkshopService {
         const client = steamworksModule.init(WALLPAPER_ENGINE_APP_ID)
         this.client = client
         this.connectionEmitter.emit('connection', 'connected')
+
+        if (!this.hasSyncedOnInit) {
+          this.hasSyncedOnInit = true
+          this.syncSubscribedItems()
+        }
+
         return client
       })
       .catch(() => {
