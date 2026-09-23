@@ -11,6 +11,7 @@ import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import {
   BACKEND_NOT_INSTALLED_ERROR_MESSAGE,
   pickScanManagedFields,
+  type AgeRating,
   type ApplyWallpaperOptions,
   type Wallpaper,
   type WallpaperOverrides,
@@ -29,6 +30,7 @@ import {
 } from './wallpaper.utils'
 import { listProperties } from './properties'
 import { wallpaperStateManager } from './state-manager/state-manager'
+import { workshopService } from '../workshop/workshop'
 import type { IWallpaperService } from './wallpaper.interface'
 import type {
   MutationResult,
@@ -45,6 +47,7 @@ class WallpaperService implements IWallpaperService {
   private wallpaperCache: Wallpaper[] | null = null
   private wallpaperCacheEntry: TimedCache<Wallpaper[]> | null = null
   private overridesStore = storeService.wallpaperOverrides
+  private workshopMetadataStore = storeService.workshopMetadata
   private fsWatchers: fsSync.FSWatcher[] = []
   private reapplyTimer: ReturnType<typeof setTimeout> | null = null
   private state = wallpaperStateManager
@@ -324,8 +327,40 @@ class WallpaperService implements IWallpaperService {
 
     wallpapers.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()))
     this.startWatchers([...workshopDirs])
+    await this.enrichAgeRatings(wallpapers)
 
     return wallpapers
+  }
+
+  // Fetch + persist Steam age ratings for wallpapers missing a stored rating,
+  // then apply ratings to the given catalog list. Best-effort: fails silently
+  // when Steam is unavailable and retries on the next scan.
+  private async enrichAgeRatings(wallpapers: Wallpaper[]): Promise<void> {
+    let cached: Record<string, AgeRating> = {}
+
+    try {
+      cached = this.workshopMetadataStore.get('ageRatings')
+      const missingIds = Array.from(
+        new Set(
+          wallpapers.map((w) => w.workshopId ?? w.id).filter((id) => cached[id] === undefined),
+        ),
+      )
+
+      if (missingIds.length > 0) {
+        const fetched = await workshopService.getAgeRatings(missingIds)
+        this.workshopMetadataStore.set('ageRatings', { ...cached, ...fetched })
+        Object.assign(cached, fetched)
+      }
+    } catch (error) {
+      console.warn('[enrichAgeRatings] Steam unavailable — age ratings not refreshed', error)
+    }
+
+    for (const w of wallpapers) {
+      const id = w.workshopId ?? w.id
+      if (cached[id] !== undefined) {
+        w.ageRating = cached[id]
+      }
+    }
   }
 
   // ── Private: active wallpaper enrichment ───────────────────────────────

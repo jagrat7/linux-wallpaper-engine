@@ -3,6 +3,7 @@ export type { DiscoverSectionConfig, WorkshopItem } from './workshop.types'
 import { EventEmitter } from 'node:events'
 import { promisify } from 'node:util'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
+import type { AgeRating } from '../../../shared/constants/wallpaper'
 import { settingsService } from '../settings'
 import type { IWorkshopService } from './workshop.interface'
 import type {
@@ -16,6 +17,7 @@ import type {
 import { createWorkshopConnectionError, isWorkshopConnectionError } from './workshop.errors'
 import {
   buildFilterCombinations,
+  mapWorkshopAgeRatings,
   mapWorkshopItems,
   mergeWorkshopItemsBySource,
   parseWorkshopId,
@@ -44,6 +46,9 @@ export type WorkshopConnectionEvent = 'connected' | 'disconnected'
 
 const execFileAsync = promisify(execFile)
 const AUTO_CONNECT_INTERVAL_MS = 3000
+
+// Steam UGC details requests currently accept up to 1,000 ids per call (https://partner.steamgames.com/doc/api/ISteamUGC#CreateQueryUGCDetailsRequest)
+const WORKSHOP_DETAILS_BATCH_SIZE = 1000
 
 class WorkshopService implements IWorkshopService {
   private static instance: WorkshopService | null = null
@@ -333,6 +338,25 @@ class WorkshopService implements IWorkshopService {
           }
         : null,
     }
+  }
+
+  async getAgeRatings(workshopIds: string[]): Promise<Record<string, AgeRating>> {
+    const uniqueIds = Array.from(
+      new Set(
+        workshopIds.map((id) => parseWorkshopId(id)).filter((id): id is bigint => id != null),
+      ),
+    )
+    const ratings: Record<string, AgeRating> = {}
+    if (uniqueIds.length === 0) return ratings
+    const client = await this.getClient()
+
+    for (let i = 0; i < uniqueIds.length; i += WORKSHOP_DETAILS_BATCH_SIZE) {
+      const chunk = uniqueIds.slice(i, i + WORKSHOP_DETAILS_BATCH_SIZE)
+      const { items } = await client.workshop.getItems(chunk)
+      Object.assign(ratings, mapWorkshopAgeRatings(items))
+    }
+
+    return ratings
   }
 
   private async resolveWorkshopContext(
