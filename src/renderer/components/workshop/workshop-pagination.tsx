@@ -8,7 +8,7 @@ import {
   PaginationCurrent,
   PaginationEllipsis,
   getPaginationRange,
-} from "@/components/ui/pagination"
+} from '@/components/ui/pagination'
 
 interface WorkshopPaginationProps {
   page: number
@@ -27,7 +27,14 @@ export function WorkshopPagination({
   isFetching,
   onPageChange,
 }: WorkshopPaginationProps) {
-  const { nearbyPages, totalPages, showFirstPage, showLastPage, showStartEllipsis, showEndEllipsis } = getPaginationRange(page, totalResults, resultsPerPage)
+  const {
+    nearbyPages,
+    totalPages,
+    showFirstPage,
+    showLastPage,
+    showStartEllipsis,
+    showEndEllipsis,
+  } = getPaginationRange(page, totalResults, resultsPerPage)
   const isPrevDisabled = page <= 1 || isFetching
   const isNextDisabled = !hasNextPage || isFetching
 
@@ -43,7 +50,13 @@ export function WorkshopPagination({
         </PaginationItem>
         {showFirstPage && (
           <PaginationItem>
-            <PaginationLink aria-label="Go to page 1" onClick={() => onPageChange(1)} className="cursor-pointer">1</PaginationLink>
+            <PaginationLink
+              aria-label="Go to page 1"
+              onClick={() => onPageChange(1)}
+              className="cursor-pointer"
+            >
+              1
+            </PaginationLink>
           </PaginationItem>
         )}
         {showStartEllipsis && (
@@ -51,19 +64,35 @@ export function WorkshopPagination({
             <PaginationEllipsis />
           </PaginationItem>
         )}
-        {nearbyPages.filter(p => p < page).map(p => (
-          <PaginationItem key={p}>
-            <PaginationLink aria-label={`Go to page ${p}`} onClick={() => onPageChange(p)} className="cursor-pointer">{p}</PaginationLink>
-          </PaginationItem>
-        ))}
+        {nearbyPages
+          .filter((p) => p < page)
+          .map((p) => (
+            <PaginationItem key={p}>
+              <PaginationLink
+                aria-label={`Go to page ${p}`}
+                onClick={() => onPageChange(p)}
+                className="cursor-pointer"
+              >
+                {p}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
         <PaginationItem>
           <PaginationCurrent aria-label={`Page ${page}, current page`}>{page}</PaginationCurrent>
         </PaginationItem>
-        {nearbyPages.filter(p => p > page).map(p => (
-          <PaginationItem key={p}>
-            <PaginationLink aria-label={`Go to page ${p}`} onClick={() => onPageChange(p)} className="cursor-pointer">{p}</PaginationLink>
-          </PaginationItem>
-        ))}
+        {nearbyPages
+          .filter((p) => p > page)
+          .map((p) => (
+            <PaginationItem key={p}>
+              <PaginationLink
+                aria-label={`Go to page ${p}`}
+                onClick={() => onPageChange(p)}
+                className="cursor-pointer"
+              >
+                {p}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
         {showEndEllipsis && (
           <PaginationItem>
             <PaginationEllipsis />
@@ -71,7 +100,13 @@ export function WorkshopPagination({
         )}
         {showLastPage && (
           <PaginationItem>
-            <PaginationLink aria-label={`Go to page ${totalPages}`} onClick={() => onPageChange(totalPages)} className="cursor-pointer">{totalPages}</PaginationLink>
+            <PaginationLink
+              aria-label={`Go to page ${totalPages}`}
+              onClick={() => onPageChange(totalPages)}
+              className="cursor-pointer"
+            >
+              {totalPages}
+            </PaginationLink>
           </PaginationItem>
         )}
         <PaginationItem>

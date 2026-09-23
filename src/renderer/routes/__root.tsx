@@ -7,8 +7,8 @@ import { HotkeysProvider } from '@tanstack/react-hotkeys'
 
 export const Route = createRootRoute({
   component: () => (
-    <HotkeysProvider defaultOptions={{ hotkey: { conflictBehavior: "replace" } }}>
-      <ThemeProvider defaultMode="dark" storageKey="wallpaper-engine-theme">
+    <HotkeysProvider defaultOptions={{ hotkey: { conflictBehavior: 'replace' } }}>
+      <ThemeProvider>
         <WallpaperSearchProvider>
           <WorkshopSearchProvider>
             <AppShell>

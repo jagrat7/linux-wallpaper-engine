@@ -1,203 +1,228 @@
-import { ArrowLeft, Save, Check, CheckCheck, XCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { IconButton } from "@/components/ui/icon-button"
-import { SearchInput } from "@/components/wallpaper/search"
-import { FiltersDropdown } from "../wallpaper/filters-dropdown"
-import { SortDropdown } from "../wallpaper/sort-dropdown"
-import { VirtualizedWallpaperGrid, type VirtualizedWallpaperGridHandle } from "../wallpaper/virtualized-wallpaper-grid"
-import { PlaylistSettingsBar } from "./playlist-settings-bar"
-import { SelectedChips } from "./selected-chips"
-import type { Playlist } from "../../../shared/constants/playlist"
-import type { Wallpaper } from "../../../shared/constants/wallpaper"
-import { useWallpapers, filterAndSortWallpapers } from "@/hooks/use-wallpapers"
-import { useWallpaperSearch } from "@/contexts/wallpaper-search-context"
-import { usePlaylistEditor } from "@/hooks/use-playlist-editor"
-import { useMemo, useCallback, useState, useRef } from "react"
-import { ErrorMessage } from "@/components/error-message"
-import { useHotkey } from "@tanstack/react-hotkeys"
-import { KeyboardShortcut } from "@/components/keyboard-shortcut"
-import { getAriaKeyShortcut, KEYBOARD_SHORTCUTS } from "@/lib/keyboard-shortcuts"
+import { ArrowLeft, Save, Check, CheckCheck, XCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
+import { SearchInput } from '@/components/wallpaper/search'
+import { FiltersDropdown } from '../wallpaper/filters-dropdown'
+import { SortDropdown } from '../wallpaper/sort-dropdown'
+import {
+  VirtualizedWallpaperGrid,
+  type VirtualizedWallpaperGridHandle,
+} from '../wallpaper/virtualized-wallpaper-grid'
+import { PlaylistSettingsBar } from './playlist-settings-bar'
+import { SelectedChips } from './selected-chips'
+import type { Playlist } from '../../../shared/constants/playlist'
+import type { Wallpaper } from '../../../shared/constants/wallpaper'
+import { useWallpapers, filterAndSortWallpapers } from '@/hooks/use-wallpapers'
+import { useWallpaperSearch } from '@/contexts/wallpaper-search-context'
+import { usePlaylistEditor } from '@/hooks/use-playlist-editor'
+import { useMemo, useCallback, useState, useRef } from 'react'
+import { ErrorMessage } from '@/components/error-message'
+import { useHotkey } from '@tanstack/react-hotkeys'
+import { KeyboardShortcut } from '@/components/keyboard-shortcut'
+import { getAriaKeyShortcut, KEYBOARD_SHORTCUTS } from '@/lib/keyboard-shortcuts'
 
 interface PlaylistEditorGridProps {
-    editPlaylist?: Playlist | null
+  editPlaylist?: Playlist | null
 }
 
 export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
-    const {
+  const {
+    searchQuery,
+    filterType,
+    filterAgeRating,
+    filterTags,
+    filterResolution,
+    sortBy,
+    sortOrder,
+    filterCompatibility,
+  } = useWallpaperSearch()
+  const [navigateError, setNavigateError] = useState<string | null>(null)
+  const gridRef = useRef<VirtualizedWallpaperGridHandle>(null)
+  const {
+    wallpapers: transformedWallpapers,
+    isLoading,
+    compatibilityMap,
+    appSettings,
+  } = useWallpapers()
+
+  const editor = usePlaylistEditor(editPlaylist)
+
+  useHotkey(KEYBOARD_SHORTCUTS.savePlaylist.hotkey, () => editor.form.handleSubmit(), {
+    enabled: !editor.isSaving,
+    ignoreInputs: false,
+    preventDefault: true,
+    stopPropagation: true,
+    conflictBehavior: 'replace',
+    meta: {
+      name: KEYBOARD_SHORTCUTS.savePlaylist.label,
+      description: KEYBOARD_SHORTCUTS.savePlaylist.description,
+    },
+  })
+
+  // Apply search-context filters and sorting
+  const filteredWallpapers = useMemo(
+    () =>
+      filterAndSortWallpapers(transformedWallpapers, {
         searchQuery,
         filterType,
         filterAgeRating,
         filterTags,
         filterResolution,
+        filterCompatibility,
         sortBy,
         sortOrder,
-        filterCompatibility,
-    } = useWallpaperSearch()
-    const [navigateError, setNavigateError] = useState<string | null>(null)
-    const gridRef = useRef<VirtualizedWallpaperGridHandle>(null)
-    const {
-        wallpapers: transformedWallpapers,
-        isLoading,
         compatibilityMap,
-        appSettings,
-    } = useWallpapers()
+      }),
+    [
+      transformedWallpapers,
+      searchQuery,
+      filterType,
+      filterAgeRating,
+      filterTags,
+      filterResolution,
+      sortBy,
+      sortOrder,
+      filterCompatibility,
+      compatibilityMap,
+    ],
+  )
 
-    const editor = usePlaylistEditor(editPlaylist)
+  // Derive selected wallpaper objects for the chips list
+  const selectedWallpaperData = useMemo(
+    () => transformedWallpapers.filter((w) => editor.selectedSet.has(w.path)),
+    [transformedWallpapers, editor.selectedSet],
+  )
 
-    useHotkey(KEYBOARD_SHORTCUTS.savePlaylist.hotkey, () => editor.form.handleSubmit(), {
-        enabled: !editor.isSaving,
-        ignoreInputs: false,
-        preventDefault: true,
-        stopPropagation: true,
-        conflictBehavior: "replace",
-        meta: {
-            name: KEYBOARD_SHORTCUTS.savePlaylist.label,
-            description: KEYBOARD_SHORTCUTS.savePlaylist.description,
-        },
-    })
-
-    // Apply search-context filters and sorting
-    const filteredWallpapers = useMemo(() =>
-        filterAndSortWallpapers(transformedWallpapers, {
-            searchQuery,
-            filterType,
-            filterAgeRating,
-            filterTags,
-            filterResolution,
-            filterCompatibility,
-            sortBy,
-            sortOrder,
-            compatibilityMap,
-        }),
-        [transformedWallpapers, searchQuery, filterType, filterAgeRating, filterTags, filterResolution, sortBy, sortOrder, filterCompatibility, compatibilityMap])
-
-    // Derive selected wallpaper objects for the chips list
-    const selectedWallpaperData = useMemo(
-        () => transformedWallpapers.filter(w => editor.selectedSet.has(w.path)),
-        [transformedWallpapers, editor.selectedSet],
-    )
-
-    const handleNavigateToWallpaper = useCallback((path: string) => {
-        if (!filteredWallpapers.some(w => w.path === path)) {
-            setNavigateError("This wallpaper is hidden by your current filters. Adjust filters to find it.")
-            return
-        }
-
-        setNavigateError(null)
-        gridRef.current?.scrollToPath(path)
-    }, [filteredWallpapers])
-
-    // True when every currently-visible wallpaper is already selected
-    const allFilteredSelected = useMemo(
-        () => filteredWallpapers.length > 0 && filteredWallpapers.every(w => editor.selectedSet.has(w.path)),
-        [filteredWallpapers, editor.selectedSet],
-    )
-
-    // Stable overlay renderer — only re-creates when selection changes
-    const renderCardOverlay = useCallback((wallpaper: Wallpaper) => {
-        if (!editor.selectedSet.has(wallpaper.path)) return null
-        return (
-            <div className="absolute bottom-2 right-2 flex size-6 items-center justify-center rounded-full bg-primary shadow-md shadow-black/30 ring-2 ring-primary-foreground/30 animate-in zoom-in-50 fade-in duration-150 ease-out motion-reduce:animate-none">
-                <Check className="size-3.5 text-primary-foreground" strokeWidth={3} />
-            </div>
+  const handleNavigateToWallpaper = useCallback(
+    (path: string) => {
+      if (!filteredWallpapers.some((w) => w.path === path)) {
+        setNavigateError(
+          'This wallpaper is hidden by your current filters. Adjust filters to find it.',
         )
-    }, [editor.selectedSet])
+        return
+      }
 
-    return (
-        <div className="flex flex-col h-full">
-            <div className="mb-6 space-y-4">
-                {/* Header */}
-                <div className="flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon-sm" onClick={editor.handleBack}>
-                            <ArrowLeft className="size-4" />
-                        </Button>
-                        <div>
-                            <h1 className="text-2xl font-bold">
-                                {editor.isEditing ? "Edit Playlist" : "New Playlist"}
-                            </h1>
-                            <p className="text-muted-foreground">
-                                Select wallpapers to add to your playlist
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={editor.handleBack}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={() => editor.form.handleSubmit()}
-                            aria-keyshortcuts={getAriaKeyShortcut("savePlaylist")}
-                            className="gap-2"
-                        >
-                            <Save className="size-4" />
-                            {editor.isSaving ? "Saving..." : "Save Playlist"}
-                            <KeyboardShortcut shortcut="savePlaylist" className="ml-1" />
-                        </Button>
-                    </div>
-                </div>
+      setNavigateError(null)
+      gridRef.current?.scrollToPath(path)
+    },
+    [filteredWallpapers],
+  )
 
-                {/* Settings */}
-                <PlaylistSettingsBar
-                    form={editor.form}
-                    selectedCount={editor.selectedPaths.length}
-                    serverError={editor.serverError}
-                    onClearServerError={editor.clearServerError}
-                />
+  // True when every currently-visible wallpaper is already selected
+  const allFilteredSelected = useMemo(
+    () =>
+      filteredWallpapers.length > 0 &&
+      filteredWallpapers.every((w) => editor.selectedSet.has(w.path)),
+    [filteredWallpapers, editor.selectedSet],
+  )
 
-                {/* Selected wallpapers as removable chips */}
-                <SelectedChips
-                    wallpapers={selectedWallpaperData}
-                    onRemove={editor.handleRemoveWallpaper}
-                    onChipClick={handleNavigateToWallpaper}
-                />
-                <ErrorMessage
-                    message={navigateError}
-                    setMessage={setNavigateError}
-                    className="bg-destructive/10"
-                />
-
-                {/* Search + filters + select-all */}
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 shrink-0">
-                        <IconButton
-                            icon={allFilteredSelected ? XCircle : CheckCheck}
-                            size="sm"
-                            pressed={allFilteredSelected}
-                            onClick={() =>
-                                allFilteredSelected
-                                    ? editor.handleDeselectAll(filteredWallpapers.map(w => w.path))
-                                    : editor.handleSelectAll(filteredWallpapers.map(w => w.path))
-                            }
-                            title={allFilteredSelected ? "Deselect All" : "Select All"}
-                        />
-                    </div>
-                    <SearchInput className="flex-1 max-w-md" />
-                    <div className="flex items-center gap-1.5">
-                        <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
-                            <FiltersDropdown />
-                        </div>
-                        <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
-                            <SortDropdown />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Wallpaper grid */}
-            <VirtualizedWallpaperGrid
-                ref={gridRef}
-                wallpapers={filteredWallpapers}
-                isLoading={isLoading}
-                compatibilityMap={compatibilityMap}
-                showCompatibilityDot={appSettings?.showCompatibilityDot ?? true}
-                isSelected={(w) => editor.selectedSet.has(w.path)}
-                selectionMode="pressed"
-                onCardClick={editor.handleToggleWallpaper}
-                emptyMessage="No wallpapers found"
-                emptySubMessage={searchQuery ? "Try a different search term" : "Install wallpapers first"}
-                renderCardOverlay={renderCardOverlay}
-            />
+  // Stable overlay renderer — only re-creates when selection changes
+  const renderCardOverlay = useCallback(
+    (wallpaper: Wallpaper) => {
+      if (!editor.selectedSet.has(wallpaper.path)) return null
+      return (
+        <div className="bg-primary ring-primary-foreground/30 animate-in zoom-in-50 fade-in absolute right-2 bottom-2 flex size-6 items-center justify-center rounded-full shadow-md ring-2 shadow-black/30 duration-150 ease-out motion-reduce:animate-none">
+          <Check className="text-primary-foreground size-3.5" strokeWidth={3} />
         </div>
-    )
+      )
+    },
+    [editor.selectedSet],
+  )
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="mb-6 space-y-4">
+        {/* Header */}
+        <div className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon-sm" onClick={editor.handleBack}>
+              <ArrowLeft className="size-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">
+                {editor.isEditing ? 'Edit Playlist' : 'New Playlist'}
+              </h1>
+              <p className="text-muted-foreground">Select wallpapers to add to your playlist</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={editor.handleBack}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => editor.form.handleSubmit()}
+              aria-keyshortcuts={getAriaKeyShortcut('savePlaylist')}
+              className="gap-2"
+            >
+              <Save className="size-4" />
+              {editor.isSaving ? 'Saving...' : 'Save Playlist'}
+              <KeyboardShortcut shortcut="savePlaylist" className="ml-1" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Settings */}
+        <PlaylistSettingsBar
+          form={editor.form}
+          selectedCount={editor.selectedPaths.length}
+          serverError={editor.serverError}
+          onClearServerError={editor.clearServerError}
+        />
+
+        {/* Selected wallpapers as removable chips */}
+        <SelectedChips
+          wallpapers={selectedWallpaperData}
+          onRemove={editor.handleRemoveWallpaper}
+          onChipClick={handleNavigateToWallpaper}
+        />
+        <ErrorMessage
+          message={navigateError}
+          setMessage={setNavigateError}
+          className="bg-destructive/10"
+        />
+
+        {/* Search + filters + select-all */}
+        <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1">
+            <IconButton
+              icon={allFilteredSelected ? XCircle : CheckCheck}
+              size="sm"
+              pressed={allFilteredSelected}
+              onClick={() =>
+                allFilteredSelected
+                  ? editor.handleDeselectAll(filteredWallpapers.map((w) => w.path))
+                  : editor.handleSelectAll(filteredWallpapers.map((w) => w.path))
+              }
+              title={allFilteredSelected ? 'Deselect All' : 'Select All'}
+            />
+          </div>
+          <SearchInput className="max-w-md flex-1" />
+          <div className="flex items-center gap-1.5">
+            <div className="ring-foreground/10 hover:ring-foreground/30 rounded-lg ring-1">
+              <FiltersDropdown />
+            </div>
+            <div className="ring-foreground/10 hover:ring-foreground/30 rounded-lg ring-1">
+              <SortDropdown />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Wallpaper grid */}
+      <VirtualizedWallpaperGrid
+        ref={gridRef}
+        wallpapers={filteredWallpapers}
+        isLoading={isLoading}
+        compatibilityMap={compatibilityMap}
+        showCompatibilityDot={appSettings?.showCompatibilityDot ?? true}
+        density={appSettings?.wallpaperGridDensity}
+        isSelected={(w) => editor.selectedSet.has(w.path)}
+        selectionMode="pressed"
+        onCardClick={editor.handleToggleWallpaper}
+        emptyMessage="No wallpapers found"
+        emptySubMessage={searchQuery ? 'Try a different search term' : 'Install wallpapers first'}
+        renderCardOverlay={renderCardOverlay}
+      />
+    </div>
+  )
 }

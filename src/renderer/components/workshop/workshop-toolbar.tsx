@@ -1,9 +1,9 @@
-import { Compass, LayoutGrid } from "lucide-react"
-import { IconButton } from "@/components/ui/icon-button"
-import { SearchInput } from "@/components/search-input"
-import { useWorkshopSearchQuery } from "@/contexts/workshop-search-context"
-import { WorkshopFiltersDropdown } from "@/components/workshop/workshop-filters-dropdown"
-import { WorkshopSortDropdown } from "@/components/workshop/workshop-sort-dropdown"
+import { Compass, LayoutGrid } from 'lucide-react'
+import { IconButton } from '@/components/ui/icon-button'
+import { SearchInput } from '@/components/search-input'
+import { useWorkshopSearchQuery } from '@/contexts/workshop-search-context'
+import { WorkshopFiltersDropdown } from '@/components/workshop/workshop-filters-dropdown'
+import { WorkshopSortDropdown } from '@/components/workshop/workshop-sort-dropdown'
 
 interface WorkshopToolbarProps {
   showBrowse: boolean
@@ -11,18 +11,22 @@ interface WorkshopToolbarProps {
   onSelectBrowse: () => void
 }
 
-export function WorkshopToolbar({ showBrowse, onSelectDiscover, onSelectBrowse }: WorkshopToolbarProps) {
+export function WorkshopToolbar({
+  showBrowse,
+  onSelectDiscover,
+  onSelectBrowse,
+}: WorkshopToolbarProps) {
   const { searchQuery, setSearchQuery } = useWorkshopSearchQuery()
 
   return (
-    <div className="flex items-center gap-3 max-w-2xl mx-auto pt-1.5">
-      <div className="flex items-center gap-1 shrink-0">
+    <div className="mx-auto flex max-w-2xl items-center gap-3 pt-1.5">
+      <div className="flex shrink-0 items-center gap-1">
         <IconButton
           icon={Compass}
           size="sm"
           pressed={!showBrowse}
           onClick={() => {
-            setSearchQuery("")
+            setSearchQuery('')
             onSelectDiscover()
           }}
           title="Discover"
@@ -32,7 +36,7 @@ export function WorkshopToolbar({ showBrowse, onSelectDiscover, onSelectBrowse }
           size="sm"
           pressed={showBrowse}
           onClick={() => {
-            setSearchQuery("")
+            setSearchQuery('')
             onSelectBrowse()
           }}
           title="Browse"
@@ -45,10 +49,10 @@ export function WorkshopToolbar({ showBrowse, onSelectDiscover, onSelectBrowse }
         setSearchQuery={setSearchQuery}
       />
       <div className="flex items-center gap-1.5">
-        <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
+        <div className="ring-foreground/10 hover:ring-foreground/30 rounded-lg ring-1">
           <WorkshopFiltersDropdown />
         </div>
-        <div className="rounded-lg ring-1 ring-foreground/10 hover:ring-foreground/30">
+        <div className="ring-foreground/10 hover:ring-foreground/30 rounded-lg ring-1">
           <WorkshopSortDropdown />
         </div>
       </div>

@@ -23,33 +23,51 @@ describe('parseProjectProperties', () => {
   })
 
   it('parses supported control types with metadata', () => {
-    const result = parseProjectProperties(project({
-      bloom: { type: 'bool', text: 'Bloom', value: true, order: 2 },
-      barcount: { type: 'slider', text: 'Bar Count', value: 64, min: 16, max: 64, step: 1, order: 1 },
-      frequency: {
-        type: 'combo',
-        text: 'Frequency',
-        value: 2,
-        order: 3,
-        options: [{ label: '16', value: 1 }, { label: '32', value: 2 }],
-      },
-    }))
+    const result = parseProjectProperties(
+      project({
+        bloom: { type: 'bool', text: 'Bloom', value: true, order: 2 },
+        barcount: {
+          type: 'slider',
+          text: 'Bar Count',
+          value: 64,
+          min: 16,
+          max: 64,
+          step: 1,
+          order: 1,
+        },
+        frequency: {
+          type: 'combo',
+          text: 'Frequency',
+          value: 2,
+          order: 3,
+          options: [
+            { label: '16', value: 1 },
+            { label: '32', value: 2 },
+          ],
+        },
+      }),
+    )
 
-    expect(result.map(p => p.name)).toEqual(['barcount', 'bloom', 'frequency'])
+    expect(result.map((p) => p.name)).toEqual(['barcount', 'bloom', 'frequency'])
     expect(result[0]).toMatchObject({ type: 'slider', value: '64', min: 16, max: 64, step: 1 })
     expect(result[1]).toMatchObject({ type: 'bool', value: '1' })
-    expect(result[2].options).toEqual([{ label: '16', value: '1' }, { label: '32', value: '2' }])
+    expect(result[2].options).toEqual([
+      { label: '16', value: '1' },
+      { label: '32', value: '2' },
+    ])
   })
 
   it('skips unsupported types and falls back to index for ordering', () => {
-    const result = parseProjectProperties(project({
-      heading: { type: 'text', value: true },
-      group: { index: 5 },
-      owl: { type: 'bool', value: false, index: 2 },
-      schemecolor: { type: 'color', value: '0.1 0.2 0.4', index: 1 },
-    }))
+    const result = parseProjectProperties(
+      project({
+        heading: { type: 'text', value: true },
+        group: { index: 5 },
+        owl: { type: 'bool', value: false, index: 2 },
+        schemecolor: { type: 'color', value: '0.1 0.2 0.4', index: 1 },
+      }),
+    )
 
-    expect(result.map(p => p.name)).toEqual(['schemecolor', 'owl'])
+    expect(result.map((p) => p.name)).toEqual(['schemecolor', 'owl'])
     expect(result[0].value).toBe('0.1 0.2 0.4')
   })
 

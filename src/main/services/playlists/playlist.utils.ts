@@ -1,8 +1,62 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { randomInt } from 'node:crypto'
+import { CACHE_TTL, STEAM_ROOT_PATHS } from '../../../shared/constants/app'
 import type { PlaylistOrder, SteamConfig } from '../../../shared/constants/playlist'
-import { resolveSteamLibraryPaths } from '../wallpaper/wallpaper.utils'
+
+let steamLibraryPathsCache: { value: string[]; timestamp: number; key: string } | null = null
+
+export async function resolveSteamLibraryPaths(basePaths = STEAM_ROOT_PATHS): Promise<string[]> {
+  const key = basePaths.join('\0')
+  if (
+    steamLibraryPathsCache?.key === key &&
+    Date.now() - steamLibraryPathsCache.timestamp <= CACHE_TTL
+  ) {
+    return steamLibraryPathsCache.value
+  }
+
+  const libraries = new Set<string>()
+
+  for (const basePath of basePaths) {
+    const expanded = basePath.startsWith('~')
+      ? path.join(process.env.HOME ?? '', basePath.slice(1))
+      : basePath
+    libraries.add(expanded)
+
+    const libraryFoldersPath = path.join(expanded, 'steamapps/libraryfolders.vdf')
+    try {
+      const data = await fs.readFile(libraryFoldersPath, 'utf-8')
+      const matches = data.matchAll(/"path"\s+"([^"]+)"/g)
+      for (const match of matches) {
+        libraries.add(match[1].replace(/\\\\/g, '\\'))
+      }
+    } catch {
+      /* path may not be a Steam root */
+    }
+  }
+
+  const value = [...libraries]
+  steamLibraryPathsCache = { value, timestamp: Date.now(), key }
+  return value
+}
+
+export async function resolveWallpaperEngineAssetsDir(
+  basePaths?: string[],
+): Promise<string | null> {
+  const steamLibraryPaths = await resolveSteamLibraryPaths(basePaths)
+
+  for (const steamLibraryPath of steamLibraryPaths) {
+    const assetsDir = path.join(steamLibraryPath, 'steamapps/common/wallpaper_engine/assets')
+    try {
+      await fs.access(assetsDir)
+      return assetsDir
+    } catch {
+      /* path doesn't exist */
+    }
+  }
+
+  return null
+}
 
 const DEFAULT_CONFIG: SteamConfig = {
   steamuser: {

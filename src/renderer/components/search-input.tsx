@@ -1,10 +1,10 @@
-import { Search, X } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
-import { useGlass } from "@/hooks/use-glass"
-import { useRef } from "react"
-import { KeyboardShortcut } from "@/components/keyboard-shortcut"
-import { getAriaKeyShortcut } from "@/lib/keyboard-shortcuts"
+import { Search, X } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { useGlass } from '@/hooks/use-glass'
+import { useRef } from 'react'
+import { KeyboardShortcut } from '@/components/keyboard-shortcut'
+import { getAriaKeyShortcut } from '@/lib/keyboard-shortcuts'
 
 interface SearchInputProps {
   placeholder?: string
@@ -14,7 +14,7 @@ interface SearchInputProps {
 }
 
 export function SearchInput({
-  placeholder = "Search...",
+  placeholder = 'Search...',
   className,
   searchQuery,
   setSearchQuery,
@@ -24,27 +24,37 @@ export function SearchInput({
 
   return (
     <div className={className}>
-      <div className={cn("group relative flex-1 rounded-xl ring-1 ring-foreground/10 hover:ring-foreground/30 focus-within:ring-foreground/40 focus-within:shadow-sm", glass)}>
-        <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60 transition-colors duration-200 group-focus-within:text-foreground" />
+      <div
+        className={cn(
+          'group ring-foreground/10 hover:ring-foreground/30 focus-within:ring-foreground/40 relative flex-1 rounded-xl ring-1 focus-within:shadow-sm',
+          glass,
+        )}
+      >
+        <Search className="text-muted-foreground/60 group-focus-within:text-foreground absolute top-1/2 left-3.5 size-4 -translate-y-1/2 transition-colors duration-200" />
         <Input
           ref={inputRef}
           type="text"
           aria-label={placeholder}
-          aria-keyshortcuts={getAriaKeyShortcut("search")}
+          aria-keyshortcuts={getAriaKeyShortcut('search')}
           data-shortcut-search
           placeholder={placeholder}
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          className="h-9 w-full rounded-xl border-0 bg-transparent pl-10 pr-10 text-sm font-medium tracking-wide text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:ring-0"
+          className="text-foreground placeholder:text-muted-foreground/50 h-9 w-full rounded-xl border-0 bg-transparent pr-10 pl-10 text-sm font-medium tracking-wide transition-all duration-200 focus:ring-0"
         />
-        {!searchQuery && <KeyboardShortcut shortcut="search" className="absolute right-2 top-1/2 -translate-y-1/2" />}
+        {!searchQuery && (
+          <KeyboardShortcut
+            shortcut="search"
+            className="absolute top-1/2 right-2 -translate-y-1/2"
+          />
+        )}
         {searchQuery && (
           <button
             type="button"
             aria-label="Clear search"
-            className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
             onClick={() => {
-              setSearchQuery("")
+              setSearchQuery('')
               requestAnimationFrame(() => inputRef.current?.focus())
             }}
           >

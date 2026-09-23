@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react"
-import { ArrowUp } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useGlass } from "@/hooks/use-glass"
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowUp } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useGlass } from '@/hooks/use-glass'
 
 const DEFAULT_THRESHOLD = 400
 
@@ -12,7 +12,10 @@ interface ScrollToTopButtonProps {
   className?: string
 }
 
-export function ScrollToTopButton({ threshold = DEFAULT_THRESHOLD, className }: ScrollToTopButtonProps) {
+export function ScrollToTopButton({
+  threshold = DEFAULT_THRESHOLD,
+  className,
+}: ScrollToTopButtonProps) {
   const [isVisible, setIsVisible] = useState(false)
   const glass = useGlass()
   const buttonRef = useRef<HTMLButtonElement | null>(null)
@@ -37,19 +40,20 @@ export function ScrollToTopButton({ threshold = DEFAULT_THRESHOLD, className }: 
     scrollTargetRef.current = scrollTarget
 
     const handleScroll = () => {
-      const scrollTop = scrollTarget instanceof HTMLElement ? scrollTarget.scrollTop : window.scrollY
+      const scrollTop =
+        scrollTarget instanceof HTMLElement ? scrollTarget.scrollTop : window.scrollY
       setIsVisible(scrollTop > threshold)
     }
 
     handleScroll()
-    scrollTarget.addEventListener("scroll", handleScroll, { passive: true })
+    scrollTarget.addEventListener('scroll', handleScroll, { passive: true })
 
-    return () => scrollTarget.removeEventListener("scroll", handleScroll)
+    return () => scrollTarget.removeEventListener('scroll', handleScroll)
   }, [threshold])
 
   const handleClick = useCallback(() => {
     const scrollTarget = scrollTargetRef.current ?? window
-    scrollTarget.scrollTo({ top: 0, behavior: "smooth" })
+    scrollTarget.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
   return (
@@ -60,18 +64,18 @@ export function ScrollToTopButton({ threshold = DEFAULT_THRESHOLD, className }: 
       aria-hidden={!isVisible}
       onClick={handleClick}
       className={cn(
-        "fixed bottom-[calc(var(--status-bar-h,0rem)_+_0.5rem)] right-4 z-50",
-        "flex items-center justify-center",
-        "size-10 rounded-full",
+        'fixed right-4 bottom-[calc(var(--status-bar-h,0rem)_+_0.5rem)] z-50',
+        'flex items-center justify-center',
+        'size-10 rounded-full',
         glass,
-        "text-foreground",
-        "shadow-lg",
-        "transition-all duration-300 ease-out",
-        "hover:scale-110 hover:shadow-xl hover:-translate-y-1",
-        "active:scale-95 active:shadow-md",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none",
-        className
+        'text-foreground',
+        'shadow-lg',
+        'transition-all duration-300 ease-out',
+        'hover:-translate-y-1 hover:scale-110 hover:shadow-xl',
+        'active:scale-95 active:shadow-md',
+        'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+        isVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
+        className,
       )}
       aria-label="Scroll to top"
       title="Scroll to top"
