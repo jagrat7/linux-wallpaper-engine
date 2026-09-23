@@ -1,65 +1,75 @@
-import { useEffect, type ReactNode } from "react"
-import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { useGlass } from "@/hooks/use-glass"
-import { type Wallpaper } from "../wallpaper-card"
-import { WallpaperThumbnail } from "../wallpaper-thumbnail"
-import { WallpaperMetadata } from "./wallpaper-metadata"
-import { WallpaperTags } from "./wallpaper-tags"
+import { useEffect, type ReactNode } from 'react'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { useGlass } from '@/hooks/use-glass'
+import { type Wallpaper } from '../wallpaper-card'
+import { WallpaperThumbnail } from '../wallpaper-thumbnail'
+import { WallpaperMetadata } from './wallpaper-metadata'
+import { WallpaperTags } from './wallpaper-tags'
 
 interface WallpaperDetailsShellProps {
-    wallpaper: Wallpaper
-    onClose: () => void
-    actions: ReactNode
-    children?: ReactNode
+  wallpaper: Wallpaper
+  onClose: () => void
+  actions: ReactNode
+  children?: ReactNode
 }
 
-export function WallpaperDetailsShell({ wallpaper, onClose, actions, children }: WallpaperDetailsShellProps) {
-    const glass = useGlass()
+export function WallpaperDetailsShell({
+  wallpaper,
+  onClose,
+  actions,
+  children,
+}: WallpaperDetailsShellProps) {
+  const glass = useGlass()
 
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== "Escape" || document.querySelector('[role="dialog"][data-state="open"]')) return
-            onClose()
-        }
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || document.querySelector('[role="dialog"][data-state="open"]'))
+        return
+      onClose()
+    }
 
-        document.addEventListener("keydown", handleKeyDown)
-        return () => document.removeEventListener("keydown", handleKeyDown)
-    }, [onClose])
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
-    return (
-        <div id="wallpaper-details" className={cn("sticky top-0 max-h-[calc(100vh_-_var(--status-bar-h,0rem)_-_2rem)] w-80 shrink-0 overflow-y-auto rounded-xl border border-border bg-card scrollbar-thin", glass)}>
-            <div className="sticky top-2 z-10 flex justify-end pr-2 h-0">
-                <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="size-7 bg-black/50 text-white hover:bg-black/70"
-                    onClick={onClose}
-                    aria-label={`Close details for ${wallpaper.title}`}
-                >
-                    <X className="size-4" />
-                </Button>
-            </div>
+  return (
+    <div
+      id="wallpaper-details"
+      className={cn(
+        'border-border bg-card scrollbar-thin sticky top-0 max-h-[calc(100vh_-_var(--status-bar-h,0rem)_-_2rem)] w-full shrink-0 overflow-y-auto rounded-xl border',
+        glass,
+      )}
+    >
+      <div className="sticky top-2 z-10 flex h-0 justify-end pr-2">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="size-7 bg-black/50 text-white hover:bg-black/70"
+          onClick={onClose}
+          aria-label={`Close details for ${wallpaper.title}`}
+        >
+          <X className="size-4" />
+        </Button>
+      </div>
 
-            <WallpaperThumbnail
-                src={wallpaper.thumbnail}
-                alt={wallpaper.title}
-                containerClassName="rounded-t-xl"
-            />
+      <WallpaperThumbnail
+        src={wallpaper.thumbnail}
+        alt={wallpaper.title}
+        containerClassName="rounded-t-xl"
+      />
 
-            <div className="p-4">
-                <h2 className="text-lg font-semibold">{wallpaper.title}</h2>
-                <p className="text-sm text-muted-foreground">by {wallpaper.author}</p>
+      <div className="p-4">
+        <h2 className="text-lg font-semibold">{wallpaper.title}</h2>
+        <p className="text-muted-foreground text-sm">by {wallpaper.author}</p>
 
-                <div className="mt-4">
-                    {actions}
-                </div>
+        <div className="mt-4">{actions}</div>
 
-                <WallpaperMetadata wallpaper={wallpaper} />
-                <WallpaperTags tags={wallpaper.tags} />
-                {children}
-            </div>
-        </div>
-    )
+        <WallpaperMetadata wallpaper={wallpaper} />
+        <WallpaperTags tags={wallpaper.tags} />
+        {children}
+      </div>
+    </div>
+  )
 }

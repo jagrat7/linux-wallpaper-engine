@@ -1,6 +1,9 @@
 import { TaggedError } from 'better-result'
 
-export type WorkshopConnectionIssue = 'steam_not_running' | 'steam_not_logged_in' | 'steam_unavailable'
+export type WorkshopConnectionIssue =
+  | 'steam_not_running'
+  | 'steam_not_logged_in'
+  | 'steam_unavailable'
 
 export class SteamNotRunningError extends TaggedError('SteamNotRunningError')<{
   message: string
@@ -37,7 +40,9 @@ export type WorkshopConnectionError =
   | SteamNotLoggedInError
   | WorkshopUnavailableError
 
-export function createWorkshopConnectionError(issue: WorkshopConnectionIssue): WorkshopConnectionError {
+export function createWorkshopConnectionError(
+  issue: WorkshopConnectionIssue,
+): WorkshopConnectionError {
   switch (issue) {
     case 'steam_not_running':
       return new SteamNotRunningError()
@@ -49,7 +54,9 @@ export function createWorkshopConnectionError(issue: WorkshopConnectionIssue): W
 }
 
 export function isWorkshopConnectionError(error: unknown): error is WorkshopConnectionError {
-  return SteamNotRunningError.is(error)
-    || SteamNotLoggedInError.is(error)
-    || WorkshopUnavailableError.is(error)
+  return (
+    SteamNotRunningError.is(error) ||
+    SteamNotLoggedInError.is(error) ||
+    WorkshopUnavailableError.is(error)
+  )
 }

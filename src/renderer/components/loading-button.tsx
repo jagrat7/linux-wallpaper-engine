@@ -1,14 +1,14 @@
-import { Loader2 } from "lucide-react"
-import { Button } from "./ui/button"
+import { Loader2 } from 'lucide-react'
+import { Button } from './ui/button'
 
 interface LoadingButtonProps extends React.ComponentPropsWithoutRef<typeof Button> {
   isLoading: boolean
   isDisabled?: boolean
   loadingText?: string
   children: React.ReactNode
-  variant?: "default" | "secondary" | "outline" | "ghost"
-  size?: "default" | "sm" | "lg" | "icon"
-  type?: "submit" | "button"
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
+  type?: 'submit' | 'button'
   className?: string
   onClick?: () => void
 }
@@ -16,11 +16,11 @@ interface LoadingButtonProps extends React.ComponentPropsWithoutRef<typeof Butto
 export function LoadingButton({
   isLoading,
   isDisabled = false,
-  loadingText = "Sending...",
+  loadingText = 'Sending...',
   children,
-  variant = "secondary",
+  variant = 'secondary',
   size,
-  type = "submit",
+  type = 'submit',
   onClick,
   className,
   ...props

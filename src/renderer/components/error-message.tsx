@@ -1,7 +1,7 @@
-import { motion } from "framer-motion"
-import { AlertCircle, X } from "lucide-react"
-import { useEffect } from "react"
-import { cn } from "~/lib/utils"
+import { motion } from 'framer-motion'
+import { AlertCircle, X } from 'lucide-react'
+import { useEffect } from 'react'
+import { cn } from '~/lib/utils'
 
 interface ErrorMessageProps {
   message: string | null
@@ -17,7 +17,7 @@ interface ErrorMessageProps {
 export const ErrorMessage = ({
   message,
   setMessage,
-  className = "",
+  className = '',
   autoDismissTimeout = 8000,
 }: ErrorMessageProps) => {
   // Set up auto-dismiss if a timeout is provided
@@ -40,7 +40,7 @@ export const ErrorMessage = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "group relative mb-2 flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm text-destructive",
+        'group text-destructive relative mb-2 flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm',
         className,
       )}
     >
@@ -51,7 +51,7 @@ export const ErrorMessage = ({
       <button
         type="button"
         onClick={() => setMessage(null)}
-        className="opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:text-destructive/80"
+        className="hover:text-destructive/80 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
         aria-label="Close error message"
       >
         <X className="h-4 w-4" />

@@ -10,11 +10,12 @@ export const FILTER_TYPE_OPTIONS = [
   { label: 'Web', value: 'web' },
   { label: 'Application', value: 'application' },
 ] as const
-export type WallpaperFilterType = typeof FILTER_TYPE_OPTIONS[number]['value']
+export type WallpaperFilterType = (typeof FILTER_TYPE_OPTIONS)[number]['value']
 export type WallpaperType = Exclude<WallpaperFilterType, 'all'>
 export type WindowGeometry = { x: number; y: number; width: number; height: number }
 
-export const BACKEND_NOT_INSTALLED_ERROR_MESSAGE = 'linux-wallpaperengine is not installed or is not available on PATH'
+export const BACKEND_NOT_INSTALLED_ERROR_MESSAGE =
+  'linux-wallpaperengine is not installed or is not available on PATH'
 export const WALLPAPER_APPLY_FAILED_MESSAGE = 'Wallpaper failed to apply. It may not be compatible.'
 
 export const AGE_RATINGS = {
@@ -26,11 +27,11 @@ export type AgeRating = keyof typeof AGE_RATINGS
 export const AGE_RATING_OPTIONS = Object.entries(AGE_RATINGS).map(([value, config]) => ({
   label: config.label,
   value,
-})) as Array<{ label: typeof AGE_RATINGS[AgeRating]['label']; value: AgeRating }>
+})) as Array<{ label: (typeof AGE_RATINGS)[AgeRating]['label']; value: AgeRating }>
 
 // Wallpaper type labels for display (derived from FILTER_TYPE_OPTIONS)
 export const WALLPAPER_TYPE_LABELS = Object.fromEntries(
-  FILTER_TYPE_OPTIONS.filter(o => o.value !== 'all').map(o => [o.value, o.label])
+  FILTER_TYPE_OPTIONS.filter((o) => o.value !== 'all').map((o) => [o.value, o.label]),
 ) as Record<WallpaperType, string>
 
 // Wallpaper data shape returned by scanning
@@ -93,7 +94,9 @@ export const isScanManagedKey = (key: string) =>
   (SCAN_MANAGED_KEYS as readonly string[]).includes(key)
 
 // The scan-managed subset of an overrides record (omitting unset fields)
-export function pickScanManagedFields(overrides: WallpaperOverrides | undefined): WallpaperOverrides {
+export function pickScanManagedFields(
+  overrides: WallpaperOverrides | undefined,
+): WallpaperOverrides {
   return {
     ...(overrides?.compatibility !== undefined && { compatibility: overrides.compatibility }),
     ...(overrides?.autoErrors !== undefined && { autoErrors: overrides.autoErrors }),
@@ -106,16 +109,56 @@ export function pickScanManagedFields(overrides: WallpaperOverrides | undefined)
 // discriminant for which UI control to render. Adding a new overridable
 // flag is one entry here (plus its WallpaperOverrides field and zod schema).
 export const ENGINE_OVERRIDE_FIELDS = [
-  { control: 'select', key: 'scaling', globalKey: 'defaultScaling', label: 'Scaling', options: SCALING_OPTIONS, fallback: 'fill' },
-  { control: 'slider', key: 'volume', globalKey: 'volume', label: 'Volume', min: 0, max: 100, suffix: '%', fallback: 100 },
-  { control: 'switch', key: 'audioProcessing', globalKey: 'audioProcessing', label: 'Audio reactive effects', fallback: true },
-  { control: 'switch', key: 'disableMouse', globalKey: 'disableMouse', label: 'Disable mouse interaction', fallback: false },
-  { control: 'switch', key: 'disableParallax', globalKey: 'disableParallax', label: 'Disable parallax effect', fallback: false },
-  { control: 'switch', key: 'disableParticles', globalKey: 'disableParticles', label: 'Disable particle effects', fallback: false },
+  {
+    control: 'select',
+    key: 'scaling',
+    globalKey: 'defaultScaling',
+    label: 'Scaling',
+    options: SCALING_OPTIONS,
+    fallback: 'fill',
+  },
+  {
+    control: 'slider',
+    key: 'volume',
+    globalKey: 'volume',
+    label: 'Volume',
+    min: 0,
+    max: 100,
+    suffix: '%',
+    fallback: 100,
+  },
+  {
+    control: 'switch',
+    key: 'audioProcessing',
+    globalKey: 'audioProcessing',
+    label: 'Audio reactive effects',
+    fallback: true,
+  },
+  {
+    control: 'switch',
+    key: 'disableMouse',
+    globalKey: 'disableMouse',
+    label: 'Disable mouse interaction',
+    fallback: false,
+  },
+  {
+    control: 'switch',
+    key: 'disableParallax',
+    globalKey: 'disableParallax',
+    label: 'Disable parallax effect',
+    fallback: false,
+  },
+  {
+    control: 'switch',
+    key: 'disableParticles',
+    globalKey: 'disableParticles',
+    label: 'Disable particle effects',
+    fallback: false,
+  },
 ] as const
-export type EngineOverrideField = typeof ENGINE_OVERRIDE_FIELDS[number]
+export type EngineOverrideField = (typeof ENGINE_OVERRIDE_FIELDS)[number]
 
-const SCALING_VALUES = SCALING_OPTIONS.map(o => o.value) as [ScalingOption, ...ScalingOption[]]
+const SCALING_VALUES = SCALING_OPTIONS.map((o) => o.value) as [ScalingOption, ...ScalingOption[]]
 
 // Shared zod schema for the user-settable engine flag overrides. Reused by the
 // per-wallpaper and per-playlist tRPC inputs and the playlist editor form.
@@ -152,7 +195,7 @@ export const PROPERTY_CONTROL_TYPES = ['bool', 'slider', 'combo', 'color', 'text
 // `value` is the wallpaper's default, serialized to --set-property string form.
 export interface WallpaperProperty {
   name: string
-  type: typeof PROPERTY_CONTROL_TYPES[number]
+  type: (typeof PROPERTY_CONTROL_TYPES)[number]
   text: string
   value: string
   min?: number

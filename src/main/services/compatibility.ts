@@ -25,29 +25,35 @@ class CompatibilityService {
     return CompatibilityService.instance
   }
 
-  parseStderrToStatus(stderr: string, processExitedEarly: boolean): { status: CompatibilityStatus; errors: string[] } {
+  parseStderrToStatus(
+    stderr: string,
+    processExitedEarly: boolean,
+  ): { status: CompatibilityStatus; errors: string[] } {
     const errors: string[] = []
-    const lines = stderr.split('\n').filter(l => {
+    const lines = stderr.split('\n').filter((l) => {
       const trimmed = l.trim()
       if (!trimmed) return false
       // Skip known harmless messages (e.g. Wayland GLFW warnings)
-      if (COMPAT_IGNORE_PATTERNS.some(p => p.test(trimmed))) return false
+      if (COMPAT_IGNORE_PATTERNS.some((p) => p.test(trimmed))) return false
       return true
     })
 
     for (const line of lines) {
-      if (BROKEN_PATTERNS.some(p => p.test(line))) {
+      if (BROKEN_PATTERNS.some((p) => p.test(line))) {
         errors.push(line.trim())
         return { status: 'broken', errors }
       }
     }
 
     if (processExitedEarly) {
-      return { status: 'broken', errors: errors.length > 0 ? errors : ['Process exited unexpectedly'] }
+      return {
+        status: 'broken',
+        errors: errors.length > 0 ? errors : ['Process exited unexpectedly'],
+      }
     }
 
     for (const line of lines) {
-      if (MINOR_PATTERNS.some(p => p.test(line))) {
+      if (MINOR_PATTERNS.some((p) => p.test(line))) {
         errors.push(line.trim())
       }
     }
@@ -88,13 +94,19 @@ class CompatibilityService {
     })
   }
 
-  private updateAutoCompatibility(wallpaperPath: string, status: CompatibilityStatus, errors: string[]): void {
+  private updateAutoCompatibility(
+    wallpaperPath: string,
+    status: CompatibilityStatus,
+    errors: string[],
+  ): void {
     const all = this.overridesStore.get('overrides')
     const existing = all[wallpaperPath] ?? {}
     const existingCompatibility = existing.compatibility
     const hasAutoResult = existing.autoErrors !== undefined
-    const shouldUpdate = !existingCompatibility
-      || (hasAutoResult && COMPATIBILITY_SEVERITY[status] > COMPATIBILITY_SEVERITY[existingCompatibility])
+    const shouldUpdate =
+      !existingCompatibility ||
+      (hasAutoResult &&
+        COMPATIBILITY_SEVERITY[status] > COMPATIBILITY_SEVERITY[existingCompatibility])
 
     if (!shouldUpdate) return
 
@@ -133,9 +145,19 @@ class CompatibilityService {
     return map
   }
 
-  getScanReport(): { path: string; status: CompatibilityStatus; errors: string[]; lastTested: number }[] {
+  getScanReport(): {
+    path: string
+    status: CompatibilityStatus
+    errors: string[]
+    lastTested: number
+  }[] {
     const all = this.overridesStore.get('overrides')
-    const results: { path: string; status: CompatibilityStatus; errors: string[]; lastTested: number }[] = []
+    const results: {
+      path: string
+      status: CompatibilityStatus
+      errors: string[]
+      lastTested: number
+    }[] = []
     for (const [path, value] of Object.entries(all)) {
       if (value.compatibility && value.lastTested) {
         results.push({
@@ -157,7 +179,9 @@ class CompatibilityService {
     this.scanProgress.aborted = true
   }
 
-  async scanAll(wallpapers: { title: string; path: string }[]): Promise<{ total: number; scanned: number }> {
+  async scanAll(
+    wallpapers: { title: string; path: string }[],
+  ): Promise<{ total: number; scanned: number }> {
     if (this.scanProgress.running) {
       return { total: this.scanProgress.total, scanned: this.scanProgress.scanned }
     }
@@ -168,7 +192,7 @@ class CompatibilityService {
     }
 
     const overrides = this.overridesStore.get('overrides')
-    const toScan = wallpapers.filter(w => !overrides[w.path]?.compatibility)
+    const toScan = wallpapers.filter((w) => !overrides[w.path]?.compatibility)
 
     this.scanProgress = {
       running: true,
@@ -187,14 +211,14 @@ class CompatibilityService {
       this.scanProgress.current = wallpaper.title
 
       return new Promise<void>((resolve) => {
-        const proc = hostSpawn('linux-wallpaperengine', [
-          '--window', '0x0x1x1',
-          '--silent',
-          wallpaper.path,
-        ], {
-          detached: true,
-          stdio: ['ignore', 'ignore', 'pipe'],
-        })
+        const proc = hostSpawn(
+          'linux-wallpaperengine',
+          ['--window', '0x0x1x1', '--silent', wallpaper.path],
+          {
+            detached: true,
+            stdio: ['ignore', 'ignore', 'pipe'],
+          },
+        )
 
         let stderrData = ''
         let resolved = false
@@ -207,7 +231,11 @@ class CompatibilityService {
           this.updateAutoCompatibility(wallpaper.path, status, errors)
           this.scanProgress.scanned++
 
-          try { proc.kill('SIGKILL') } catch { /* already dead */ }
+          try {
+            proc.kill('SIGKILL')
+          } catch {
+            /* already dead */
+          }
           resolve()
         }
 
