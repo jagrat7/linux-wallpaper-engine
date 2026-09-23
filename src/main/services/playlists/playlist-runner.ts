@@ -1,7 +1,12 @@
 import type { ChildProcess } from 'node:child_process'
 import type { playlistService } from './playlist'
 import { settingsService } from '../settings'
-import { hostCommandExists, hostExecAsync, hostSpawn } from '../../utils/host'
+import {
+  backendArgPattern,
+  hostCommandExists,
+  hostExecFileAsync,
+  hostSpawn,
+} from '../../utils/host'
 import {
   BACKEND_NOT_INSTALLED_ERROR_MESSAGE,
   applyOverridesToSettings,
@@ -69,7 +74,7 @@ export async function startPlaylistProcess(
     if (!settings.windowMode) {
       for (const screen of screenKeys) {
         try {
-          await hostExecAsync(`pkill -9 -f "linux-wallpaperengine.*--screen-root.*${screen}"`)
+          await hostExecFileAsync('pkill', ['-9', '-f', backendArgPattern('--screen-root', screen)])
         } catch {
           /* no process found is ok */
         }

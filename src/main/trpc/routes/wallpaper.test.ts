@@ -13,7 +13,13 @@ const {
   mockWallpaperService: {
     query: vi.fn(),
     apply: vi.fn(),
+    buildApplyOptions: vi.fn(),
     stop: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    applyRandom: vi.fn(),
+    getActiveScreens: vi.fn(),
+    getPausedScreens: vi.fn(),
     overrides: vi.fn(),
     diagnose: vi.fn(),
   },
@@ -158,94 +164,33 @@ describe('wallpaperRouter', () => {
   })
 
   describe('setWallpaper', () => {
-    it('should merge input with saved settings using nullish coalescing', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      await caller.setWallpaper({ backgroundId: '12345' })
-
-      expect(mockWallpaperService.apply).toHaveBeenCalledWith({
-        kind: 'wallpaper',
-        options: {
-          backgroundId: '12345',
-          screen: undefined,
-          scaling: DEFAULT_SETTINGS.defaultScaling,
-          fps: DEFAULT_SETTINGS.fps,
-          volume: DEFAULT_SETTINGS.volume,
-          silent: DEFAULT_SETTINGS.silent,
-          noAutomute: DEFAULT_SETTINGS.noAutomute,
-          noAudioProcessing: !DEFAULT_SETTINGS.audioProcessing,
-          disableMouse: DEFAULT_SETTINGS.disableMouse,
-          disableParallax: DEFAULT_SETTINGS.disableParallax,
-          disableParticles: DEFAULT_SETTINGS.disableParticles,
-          noFullscreenPause: !DEFAULT_SETTINGS.pauseOnFullscreen,
-          windowed: undefined,
-        },
-      })
-    })
-
-    it('should let explicit input override saved settings', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      await caller.setWallpaper({
-        backgroundId: '99',
-        fps: 144,
-        volume: 30,
-        silent: true,
-        scaling: 'stretch',
-        screen: 'eDP-1',
-      })
-
-      const call = mockWallpaperService.apply.mock.calls[0][0]
-      expect(call.options.fps).toBe(144)
-      expect(call.options.volume).toBe(30)
-      expect(call.options.silent).toBe(true)
-      expect(call.options.scaling).toBe('stretch')
-      expect(call.options.screen).toBe('eDP-1')
-    })
-
-    it('should invert audioProcessing and pauseOnFullscreen from settings', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({
-        ...DEFAULT_SETTINGS,
-        audioProcessing: false,
-        pauseOnFullscreen: false,
-      })
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      await caller.setWallpaper({ backgroundId: '1' })
-
-      const call = mockWallpaperService.apply.mock.calls[0][0]
-      expect(call.options.noAudioProcessing).toBe(true)
-      expect(call.options.noFullscreenPause).toBe(true)
-    })
-
-    it('should pass windowed option through when provided', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
-      mockWallpaperService.apply.mockResolvedValue({ success: true })
-
-      const windowed = { x: 0, y: 0, width: 800, height: 600 }
-      await caller.setWallpaper({ backgroundId: '1', windowed })
-
-      const call = mockWallpaperService.apply.mock.calls[0][0]
-      expect(call.options.windowed).toEqual(windowed)
-    })
-
-    it('should return the service response', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
-      mockWallpaperService.apply.mockResolvedValue({ success: false, error: 'spawn failed' })
-
-      const result = await caller.setWallpaper({ backgroundId: '1' })
-      expect(result).toEqual({ success: false, error: 'spawn failed' })
-    })
-
-    it('should clear active playlist entries only for affected screens', async () => {
-      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
+    it('passes saved settings and input through the wallpaper service', async () => {
+      const settings = { ...DEFAULT_SETTINGS }
+      const options = { backgroundId: '12345', fps: 144 }
+      mockSettingsService.loadSettings.mockResolvedValue(settings)
+      mockWallpaperService.buildApplyOptions.mockReturnValue(options)
       mockWallpaperService.apply.mockResolvedValue({ success: true, screens: ['HDMI-1'] })
 
-      await caller.setWallpaper({ backgroundId: '1', screen: 'HDMI-1' })
+      await caller.setWallpaper({ backgroundId: '12345', fps: 144 })
 
+      expect(mockWallpaperService.buildApplyOptions).toHaveBeenCalledWith(settings, {
+        backgroundId: '12345',
+        fps: 144,
+      })
+      expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'wallpaper', options })
       expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1'])
+    })
+
+    it('returns a failed apply without clearing playlist state', async () => {
+      mockSettingsService.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS })
+      mockWallpaperService.buildApplyOptions.mockReturnValue({ backgroundId: '1' })
+      mockWallpaperService.apply.mockResolvedValue({ success: false, error: 'spawn failed' })
+
+      await expect(caller.setWallpaper({ backgroundId: '1' })).resolves.toEqual({
+        success: false,
+        error: 'spawn failed',
+      })
+      expect(mockPlaylistService.clearActivePlaylist).not.toHaveBeenCalled()
     })
   })
 
@@ -263,6 +208,69 @@ describe('wallpaperRouter', () => {
       const result = await caller.stopWalpaper()
       expect(mockWallpaperService.stop).toHaveBeenCalledWith(undefined)
       expect(result).toEqual({ success: true })
+    })
+  })
+
+  describe('pause', () => {
+    it('should pause all screens when no input given', async () => {
+      mockWallpaperService.pause.mockResolvedValue({ success: true, screens: ['eDP-1', 'HDMI-1'] })
+      const result = await caller.pause()
+      expect(mockWallpaperService.pause).toHaveBeenCalledWith(undefined)
+      expect(result).toEqual({ success: true, screens: ['eDP-1', 'HDMI-1'] })
+    })
+
+    it('should pass a single screen through', async () => {
+      mockWallpaperService.pause.mockResolvedValue({ success: true, screens: ['HDMI-1'] })
+      const result = await caller.pause({ screen: 'HDMI-1' })
+      expect(mockWallpaperService.pause).toHaveBeenCalledWith('HDMI-1')
+      expect(result).toEqual({ success: true, screens: ['HDMI-1'] })
+    })
+
+    it('should pass a screen list through', async () => {
+      mockWallpaperService.pause.mockResolvedValue({ success: true, screens: ['eDP-1', 'HDMI-1'] })
+      const result = await caller.pause({ screen: ['eDP-1', 'HDMI-1'] })
+      expect(mockWallpaperService.pause).toHaveBeenCalledWith(['eDP-1', 'HDMI-1'])
+      expect(result).toEqual({ success: true, screens: ['eDP-1', 'HDMI-1'] })
+    })
+  })
+
+  describe('resume', () => {
+    it('should resume all screens when no input given', async () => {
+      mockWallpaperService.resume.mockResolvedValue({ success: true, screens: ['eDP-1'] })
+      const result = await caller.resume()
+      expect(mockWallpaperService.resume).toHaveBeenCalledWith(undefined)
+      expect(result).toEqual({ success: true, screens: ['eDP-1'] })
+    })
+
+    it('should pass a screen list through', async () => {
+      mockWallpaperService.resume.mockResolvedValue({ success: true, screens: ['HDMI-1'] })
+      const result = await caller.resume({ screen: ['HDMI-1'] })
+      expect(mockWallpaperService.resume).toHaveBeenCalledWith(['HDMI-1'])
+      expect(result).toEqual({ success: true, screens: ['HDMI-1'] })
+    })
+  })
+
+  describe('random', () => {
+    it('should apply a random wallpaper to all screens when no screen given', async () => {
+      mockWallpaperService.applyRandom.mockResolvedValue({
+        success: true,
+        screens: ['eDP-1'],
+        wallpaperTitle: 'Forest',
+      })
+      const result = await caller.random()
+      expect(mockWallpaperService.applyRandom).toHaveBeenCalledWith(undefined)
+      expect(result).toEqual({ success: true, screens: ['eDP-1'], wallpaperTitle: 'Forest' })
+    })
+
+    it('should pass the screen through', async () => {
+      mockWallpaperService.applyRandom.mockResolvedValue({
+        success: true,
+        screens: ['HDMI-1'],
+        wallpaperTitle: 'Ocean',
+      })
+      const result = await caller.random({ screen: 'HDMI-1' })
+      expect(mockWallpaperService.applyRandom).toHaveBeenCalledWith('HDMI-1')
+      expect(result).toEqual({ success: true, screens: ['HDMI-1'], wallpaperTitle: 'Ocean' })
     })
   })
 

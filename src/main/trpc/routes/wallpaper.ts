@@ -2,10 +2,7 @@ import { z } from 'zod'
 import { trpc } from '../trpc'
 import { wallpaperService, type DebugInfo } from '../../services/wallpaper/wallpaper'
 import { playlistService } from '../../services/playlists/playlist'
-import {
-  engineOverridesSchema,
-  type ApplyWallpaperOptions,
-} from '../../../shared/constants/wallpaper'
+import { engineOverridesSchema } from '../../../shared/constants/wallpaper'
 import { settingsService } from '../../services/settings'
 import { compatibilityService } from '../../services/compatibility'
 export const wallpaperRouter = trpc.router({
@@ -66,23 +63,7 @@ export const wallpaperRouter = trpc.router({
     .mutation(async ({ input }) => {
       const settings = await settingsService.loadSettings()
 
-      const options: ApplyWallpaperOptions = {
-        backgroundId: input.backgroundId,
-        screen: input.screen,
-        scaling: input.scaling ?? settings.defaultScaling,
-        fps: input.fps ?? settings.fps,
-        volume: input.volume ?? settings.volume,
-        silent: input.silent ?? settings.silent,
-        noAutomute: input.noAutomute ?? settings.noAutomute,
-        noAudioProcessing: input.noAudioProcessing ?? !settings.audioProcessing,
-        disableMouse: input.disableMouse ?? settings.disableMouse,
-        disableParallax: input.disableParallax ?? settings.disableParallax,
-        disableParticles: input.disableParticles ?? settings.disableParticles,
-        noFullscreenPause: input.noFullscreenPause ?? !settings.pauseOnFullscreen,
-        windowed: settings.windowMode
-          ? wallpaperService.parseWindowGeometry(settings.windowGeometry)
-          : input.windowed,
-      }
+      const options = wallpaperService.buildApplyOptions(settings, input)
 
       const result = await wallpaperService.apply({ kind: 'wallpaper', options })
       if (result.success && result.screens) {
@@ -103,6 +84,18 @@ export const wallpaperRouter = trpc.router({
       }
       return result
     }),
+
+  pause: trpc.procedure
+    .input(z.object({ screen: z.union([z.string(), z.array(z.string())]).optional() }).optional())
+    .mutation(({ input }) => wallpaperService.pause(input?.screen)),
+
+  resume: trpc.procedure
+    .input(z.object({ screen: z.union([z.string(), z.array(z.string())]).optional() }).optional())
+    .mutation(({ input }) => wallpaperService.resume(input?.screen)),
+
+  random: trpc.procedure
+    .input(z.object({ screen: z.string().optional() }).optional())
+    .mutation(({ input }) => wallpaperService.applyRandom(input?.screen)),
 
   // Get currently active wallpapers
   getActiveWallpaper: trpc.procedure.query(async () => {
