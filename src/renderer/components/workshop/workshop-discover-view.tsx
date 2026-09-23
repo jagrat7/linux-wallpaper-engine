@@ -6,6 +6,7 @@ import { WorkshopConnectionPrompt } from '@/components/workshop/workshop-connect
 import { WorkshopDiscoverSection } from '@/components/workshop/workshop-discover-section'
 import { WorkshopPagination } from '@/components/workshop/workshop-pagination'
 import { IconButton } from '@/components/ui/icon-button'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { trpc } from '@/lib/trpc'
 import { cn, toWallpaper } from '@/lib/utils'
@@ -252,14 +253,22 @@ export function WorkshopDiscoverView({
 
       {hasMore && (
         <div ref={loadMoreRef} className="flex justify-center py-2">
-          <div
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
             className={cn(
               glass,
-              'text-muted-foreground rounded-full px-4 py-2 text-xs font-medium tracking-[0.24em] uppercase',
+              'text-muted-foreground rounded-full px-4 text-xs font-medium tracking-[0.18em] uppercase',
             )}
+            onClick={() =>
+              setVisibleSectionCount((current) =>
+                Math.min(current + DISCOVER_SECTION_BATCH_SIZE, sections.length),
+              )
+            }
           >
-            Loading more categories
-          </div>
+            Load more categories
+          </Button>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { memo, useId, type ReactNode } from 'react'
+import { memo, useId, useMemo, type ReactNode } from 'react'
 import { LayoutGroup, motion } from 'framer-motion'
 import { FolderOpen, type LucideIcon } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -9,6 +9,10 @@ import type { CompatibilityStatus } from '../../../shared/constants/compatibilit
 import { WALLPAPER_GRID_SKELETON_COUNT } from '../../../shared/constants/grid'
 import { useGlass } from '@/hooks/use-glass'
 import { WALLPAPER_GRID_TRANSITION } from './wallpaper-grid-shell'
+import {
+  useWallpaperGridNavigation,
+  type WallpaperGridItemProps,
+} from '@/hooks/use-wallpaper-grid-navigation'
 
 interface WallpaperGridLayoutProps {
   wallpapers: Wallpaper[]
@@ -33,6 +37,9 @@ interface WallpaperGridCardItemProps {
   showCompatibilityDot: boolean
   glassClassName: string
   overlay?: ReactNode
+  rowIndex: number
+  columnIndex: number
+  itemProps: WallpaperGridItemProps
 }
 
 // Memoized so a parent re-render (e.g. selection change) only re-renders the
@@ -45,14 +52,21 @@ const WallpaperGridCardItem = memo(function WallpaperGridCardItem({
   showCompatibilityDot,
   glassClassName,
   overlay,
+  rowIndex,
+  columnIndex,
+  itemProps,
 }: WallpaperGridCardItemProps) {
   return (
     <motion.div
+      role="gridcell"
+      aria-rowindex={rowIndex + 1}
+      aria-colindex={columnIndex + 1}
       layout
       layoutId={wallpaper.id}
       transition={WALLPAPER_GRID_TRANSITION}
       className="relative"
       data-wallpaper-path={wallpaper.path}
+      data-wallpaper-id={wallpaper.id}
     >
       <WallpaperCard
         wallpaper={wallpaper}
@@ -61,6 +75,7 @@ const WallpaperGridCardItem = memo(function WallpaperGridCardItem({
         compatibilityStatus={compatibilityStatus}
         showCompatibilityDot={showCompatibilityDot}
         glassClassName={glassClassName}
+        {...itemProps}
       />
       {overlay}
     </motion.div>
@@ -85,6 +100,12 @@ export function WallpaperGridLayout({
   const glass = useGlass()
   const layoutGroupId = useId()
   const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
+  const itemIds = useMemo(
+    () => wallpapers.map((wallpaper) => wallpaper.path ?? wallpaper.id),
+    [wallpapers],
+  )
+  const rowCount = Math.ceil(wallpapers.length / columns)
+  const { getItemProps } = useWallpaperGridNavigation({ itemIds, columns })
 
   if (isLoading) {
     return (
@@ -102,18 +123,37 @@ export function WallpaperGridLayout({
 
   return (
     <LayoutGroup id={layoutGroupId}>
-      <div className="grid gap-4" style={gridStyle}>
-        {wallpapers.map((wallpaper) => (
-          <WallpaperGridCardItem
-            key={wallpaper.id}
-            wallpaper={wallpaper}
-            selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
-            onClick={onCardClick}
-            compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
-            showCompatibilityDot={showCompatibilityDot}
-            glassClassName={glass}
-            overlay={renderCardOverlay?.(wallpaper)}
-          />
+      <div
+        role="grid"
+        aria-label="Wallpapers"
+        aria-rowcount={rowCount}
+        aria-colcount={columns}
+        className="grid gap-4"
+        style={gridStyle}
+      >
+        {Array.from({ length: rowCount }, (_, rowIndex) => (
+          <div key={rowIndex} role="row" className="contents">
+            {wallpapers
+              .slice(rowIndex * columns, (rowIndex + 1) * columns)
+              .map((wallpaper, columnIndex) => {
+                const index = rowIndex * columns + columnIndex
+                return (
+                  <WallpaperGridCardItem
+                    key={wallpaper.id}
+                    wallpaper={wallpaper}
+                    selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+                    onClick={onCardClick}
+                    compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
+                    showCompatibilityDot={showCompatibilityDot}
+                    glassClassName={glass}
+                    overlay={renderCardOverlay?.(wallpaper)}
+                    rowIndex={rowIndex}
+                    columnIndex={columnIndex}
+                    itemProps={getItemProps(itemIds[index], index)}
+                  />
+                )
+              })}
+          </div>
         ))}
       </div>
     </LayoutGroup>
