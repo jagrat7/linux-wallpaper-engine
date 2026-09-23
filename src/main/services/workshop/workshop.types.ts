@@ -1,4 +1,3 @@
-
 import type { AgeRating, WallpaperType } from '../../../shared/constants/wallpaper'
 import type { WorkshopSortBy } from '../../../shared/constants/workshop'
 

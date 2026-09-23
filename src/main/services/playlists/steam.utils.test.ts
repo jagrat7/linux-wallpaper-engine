@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as fs from 'node:fs/promises'
-import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir } from './wallpaper.utils'
+import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir } from './playlist.utils'
 
 vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(),
@@ -54,7 +54,9 @@ describe('resolveWallpaperEngineAssetsDir', () => {
     mockReadFile.mockRejectedValueOnce(new Error('missing'))
     mockAccess.mockResolvedValueOnce(undefined)
 
-    await expect(resolveWallpaperEngineAssetsDir(['/steam'])).resolves.toBe('/steam/steamapps/common/wallpaper_engine/assets')
+    await expect(resolveWallpaperEngineAssetsDir(['/steam'])).resolves.toBe(
+      '/steam/steamapps/common/wallpaper_engine/assets',
+    )
   })
 
   it('returns null when no assets folder exists', async () => {

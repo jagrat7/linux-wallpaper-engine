@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { isFlatpak, getFlatpakID } from './host'
 
-const BINARY_NAME = 'linux-wallpaper-engine';
+const BINARY_NAME = 'linux-wallpaper-engine'
 
 const getDesktopFilePath = (): string => {
   const autostartDir = path.join(app.getPath('home'), '.config', 'autostart')
@@ -11,30 +11,28 @@ const getDesktopFilePath = (): string => {
 }
 
 const isBinaryInPath = (): boolean => {
-  const systemPaths = (process.env.PATH || '').split(path.delimiter);
+  const systemPaths = (process.env.PATH || '').split(path.delimiter)
   for (const dir of systemPaths) {
-    const fullPath = path.join(dir, BINARY_NAME);
+    const fullPath = path.join(dir, BINARY_NAME)
     if (fs.existsSync(fullPath)) {
-      return true;
+      return true
     }
   }
-  return false;
+  return false
 }
 
 const getLinuxExec = (): string => {
   // If flatpak, run via the host command
-  if (isFlatpak())
-    return `flatpak run ${getFlatpakID()}`;
+  if (isFlatpak()) return `flatpak run ${getFlatpakID()}`
 
   // If in PATH, use the binary name
-  if (isBinaryInPath())
-    return BINARY_NAME;
+  if (isBinaryInPath()) return BINARY_NAME
 
   // If wrapped with electron, wrap the app path command
   if (path.basename(process.execPath).toLowerCase().includes('electron'))
-    return `"${process.execPath}" "${app.getAppPath()}"`;
+    return `"${process.execPath}" "${app.getAppPath()}"`
 
-  return `"${process.execPath}"`;
+  return `"${process.execPath}"`
 }
 
 /**
@@ -48,23 +46,23 @@ export const setAutostart = (enabled: boolean | undefined): void => {
     app.setLoginItemSettings({
       openAtLogin: enabled,
       path: process.execPath,
-    });
-    return;
+    })
+    return
   }
 
   // If Linux
-  const desktopFile = getDesktopFilePath();
+  const desktopFile = getDesktopFilePath()
 
   if (!enabled) {
     if (fs.existsSync(desktopFile)) {
-      fs.unlinkSync(desktopFile);
+      fs.unlinkSync(desktopFile)
     }
-    return;
+    return
   }
 
-  const dir = path.dirname(desktopFile);
+  const dir = path.dirname(desktopFile)
   if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, { recursive: true })
   }
 
   const content = [
@@ -78,10 +76,9 @@ export const setAutostart = (enabled: boolean | undefined): void => {
     'StartupNotify=false',
     'X-GNOME-Autostart-enabled=true',
     'X-KDE-autostart-after=panel',
-  ];
+  ]
 
-  if (isFlatpak())
-    content.push(`X-Flatpak=${getFlatpakID()}`)
+  if (isFlatpak()) content.push(`X-Flatpak=${getFlatpakID()}`)
 
   try {
     fs.writeFileSync(desktopFile, content.join('\n') + '\n')

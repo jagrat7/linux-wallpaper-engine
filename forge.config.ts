@@ -26,13 +26,13 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: 'jagrat7',
-          name: 'linux-wallpaper-engine'
+          name: 'linux-wallpaper-engine',
         },
         prerelease: false,
         draft: false,
         generateReleaseNotes: true,
-      }
-    }
+      },
+    },
   ],
   packagerConfig: {
     // Native .node binaries dlopen sibling .so files via RUNPATH=$ORIGIN,
@@ -63,7 +63,7 @@ const config: ForgeConfig = {
         // Need to explicitly pass a set of size values
         // and ignore the typing for this one lol
         icon: {
-          '512x512': './assets/transparent-logo.png'
+          '512x512': './assets/transparent-logo.png',
         } as any,
         categories: ['Utility'],
         runtimeVersion: '24.08',

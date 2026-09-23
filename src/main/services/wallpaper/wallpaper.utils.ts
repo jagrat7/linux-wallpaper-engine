@@ -1,10 +1,10 @@
-import * as fs from "node:fs/promises"
-import * as path from "node:path"
-import { CACHE_TTL, STEAM_ROOT_PATHS } from '../../../shared/constants/app'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
+import { CACHE_TTL } from '../../../shared/constants/app'
 import type { ApplyWallpaperOptions, WallpaperType } from '../../../shared/constants/wallpaper'
 import { hostExecAsync } from '../../utils/host'
 
-type ImageType = "jpeg" | "png" | "bmp"
+type ImageType = 'jpeg' | 'png' | 'bmp'
 export type TimedCache<T> = {
   value: T
   timestamp: number
@@ -15,17 +15,16 @@ const IMAGE_HEADERS_IDENTIFIERS = {
   jpeg: 0xffd8,
   png: 0x89504e47,
   bmp: 0x424d,
-};
-const MAX_BYTES = 8192;
+}
+const MAX_BYTES = 8192
 const WINDOW_SIZE_PATTERN = /^(\d+)x(\d+)$/
-let steamLibraryPathsCache: TimedCache<string[]> | null = null
 
 export async function resolveTimedCache<T>(
   cache: TimedCache<T> | null,
   load: () => Promise<T>,
   key?: string,
 ): Promise<TimedCache<T>> {
-  if (cache && (!key || cache.key === key) && (Date.now() - cache.timestamp) <= CACHE_TTL) {
+  if (cache && (!key || cache.key === key) && Date.now() - cache.timestamp <= CACHE_TTL) {
     return cache
   }
 
@@ -36,7 +35,9 @@ export async function resolveTimedCache<T>(
   }
 }
 
-export const parseWindowGeometry = (size: string | null | undefined): ApplyWallpaperOptions['windowed'] => {
+export const parseWindowGeometry = (
+  size: string | null | undefined,
+): ApplyWallpaperOptions['windowed'] => {
   const match = size?.trim().match(WINDOW_SIZE_PATTERN)
   if (!match) return 'emit-flag'
 
@@ -55,65 +56,61 @@ export const parseWindowGeometry = (size: string | null | undefined): ApplyWallp
 
 export async function parseImageHeader(imagePath: string) {
   try {
-    const file = await fs.open(imagePath, "r");
-    const buffer = Buffer.alloc(8192); // 8kb
-    const { bytesRead } = await file.read(buffer, 0, MAX_BYTES, 0);
-    await file.close();
+    const file = await fs.open(imagePath, 'r')
+    const buffer = Buffer.alloc(8192) // 8kb
+    const { bytesRead } = await file.read(buffer, 0, MAX_BYTES, 0)
+    await file.close()
 
-    const res = { height: 0, width: 0 };
+    const res = { height: 0, width: 0 }
 
-    if (matchHeader(buffer, "png")) {
+    if (matchHeader(buffer, 'png')) {
       // https://en.wikipedia.org/wiki/PNG#Examples
-      const widthOffset = 16;
-      const heightOffset = widthOffset + 4;
-      res.width = buffer.readUInt32BE(widthOffset);
-      res.height = buffer.readUInt32BE(heightOffset);
-    } else if (matchHeader(buffer, "bmp")) {
+      const widthOffset = 16
+      const heightOffset = widthOffset + 4
+      res.width = buffer.readUInt32BE(widthOffset)
+      res.height = buffer.readUInt32BE(heightOffset)
+    } else if (matchHeader(buffer, 'bmp')) {
       // BMP uses little endian
-      const widthOffset = 18;
-      const heightOffset = widthOffset + 4;
-      res.width = buffer.readUInt32LE(widthOffset);
-      res.height = buffer.readUInt32LE(heightOffset);
-    } else if (matchHeader(buffer, "jpeg")) {
+      const widthOffset = 18
+      const heightOffset = widthOffset + 4
+      res.width = buffer.readUInt32LE(widthOffset)
+      res.height = buffer.readUInt32LE(heightOffset)
+    } else if (matchHeader(buffer, 'jpeg')) {
       // https://stackoverflow.com/questions/14414884
-      let offset = 2;
+      let offset = 2
       while (offset < bytesRead - 8) {
         if (buffer[offset] !== 0xff) {
-          offset++;
-          continue;
+          offset++
+          continue
         }
-        const marker = buffer[offset + 1];
+        const marker = buffer[offset + 1]
 
-        if (
-          marker >= 0xc0 &&
-          marker <= 0xcf &&
-          ![0xc4, 0xc8, 0xcc].includes(marker)
-        ) {
-          const heightOffset = offset + 5;
-          const widthOffset = heightOffset + 2;
-          res.height = buffer.readUInt16BE(heightOffset);
-          res.width = buffer.readUInt16BE(widthOffset);
-          break;
+        if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+          const heightOffset = offset + 5
+          const widthOffset = heightOffset + 2
+          res.height = buffer.readUInt16BE(heightOffset)
+          res.width = buffer.readUInt16BE(widthOffset)
+          break
         }
-        offset += 2 + buffer.readUInt16BE(offset + 2); // 2 + length segment, +2 so we skip the marker
+        offset += 2 + buffer.readUInt16BE(offset + 2) // 2 + length segment, +2 so we skip the marker
       }
     }
 
-    return res;
-  } catch (err) {
-    return { height: 0, width: 0 };
+    return res
+  } catch {
+    return { height: 0, width: 0 }
   }
 }
 
 function matchHeader(buffer: Buffer, imageType: ImageType) {
   switch (imageType) {
-    case "jpeg":
+    case 'jpeg':
       return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
 
-    case "png":
+    case 'png':
       return buffer.readUInt32BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
 
-    case "bmp":
+    case 'bmp':
       return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
   }
 }
@@ -123,44 +120,6 @@ export function expandPath(p: string): string {
     return path.join(process.env.HOME ?? '', p.slice(1))
   }
   return p
-}
-
-export async function resolveSteamLibraryPaths(basePaths = STEAM_ROOT_PATHS): Promise<string[]> {
-  steamLibraryPathsCache = await resolveTimedCache(steamLibraryPathsCache, async () => {
-    const libraries = new Set<string>()
-
-    for (const basePath of basePaths) {
-      const expanded = expandPath(basePath)
-      libraries.add(expanded)
-
-      const libraryFoldersPath = path.join(expanded, 'steamapps/libraryfolders.vdf')
-      try {
-        const data = await fs.readFile(libraryFoldersPath, 'utf-8')
-        const matches = data.matchAll(/"path"\s+"([^"]+)"/g)
-        for (const match of matches) {
-          libraries.add(match[1].replace(/\\\\/g, '\\'))
-        }
-      } catch { /* path may not be a Steam root */ }
-    }
-
-    return [...libraries]
-  }, basePaths.join('\0'))
-
-  return steamLibraryPathsCache.value
-}
-
-export async function resolveWallpaperEngineAssetsDir(basePaths?: string[]): Promise<string | null> {
-  const steamLibraryPaths = await resolveSteamLibraryPaths(basePaths)
-
-  for (const steamLibraryPath of steamLibraryPaths) {
-    const assetsDir = path.join(steamLibraryPath, 'steamapps/common/wallpaper_engine/assets')
-    try {
-      await fs.access(assetsDir)
-      return assetsDir
-    } catch { /* path doesn't exist */ }
-  }
-
-  return null
 }
 
 export function parseWallpaperType(rawType?: string): WallpaperType {
@@ -191,35 +150,51 @@ export async function resolveThumbnail(backgroundId: string): Promise<string> {
       try {
         await fs.access(candidatePath)
         return candidatePath
-      } catch { /* continue */ }
+      } catch {
+        /* continue */
+      }
     }
   }
   return ''
 }
 
-export async function detectResolution(wallpaperPath: string): Promise<{ width: number, height: number }> {
+export async function detectResolution(
+  wallpaperPath: string,
+): Promise<{ width: number; height: number }> {
   try {
     const files = await fs.readdir(wallpaperPath)
 
     // Look for video files first
-    const videoFile = files.find(f => {
+    const videoFile = files.find((f) => {
       const file = f.toLowerCase()
-      return file.endsWith('.mp4') || file.endsWith('.webm') || file.endsWith('.avi') || file.endsWith('.mkv')
+      return (
+        file.endsWith('.mp4') ||
+        file.endsWith('.webm') ||
+        file.endsWith('.avi') ||
+        file.endsWith('.mkv')
+      )
     })
 
     if (videoFile) {
       const videoPath = path.join(wallpaperPath, videoFile)
-      const { stdout } = await hostExecAsync(`ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`)
+      const { stdout } = await hostExecAsync(
+        `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`,
+      )
       const [w, h] = stdout.trim().split(',')
       if (w && h) {
         return { width: parseInt(w, 10), height: parseInt(h, 10) }
       }
     } else {
       // Look for image files (excluding preview thumbnails)
-      const imageFile = files.find(f => {
+      const imageFile = files.find((f) => {
         const file = f.toLowerCase()
-        return (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.bmp')) &&
+        return (
+          (file.endsWith('.png') ||
+            file.endsWith('.jpg') ||
+            file.endsWith('.jpeg') ||
+            file.endsWith('.bmp')) &&
           !file.includes('preview')
+        )
       })
 
       if (imageFile) {

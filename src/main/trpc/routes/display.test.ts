@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { displayRouter } from './display'
 import { trpc } from '../trpc'
 
-
 // --- Mocks ---------------------------------------------------------------
 
 const { mockDisplayService } = vi.hoisted(() => ({
@@ -46,7 +45,10 @@ beforeEach(() => {
 describe('displayRouter', () => {
   describe('list', () => {
     it('should return detected displays', async () => {
-      const displays = [makeDisplay(), makeDisplay({ id: 'HDMI-1', name: 'HDMI-1', primary: false })]
+      const displays = [
+        makeDisplay(),
+        makeDisplay({ id: 'HDMI-1', name: 'HDMI-1', primary: false }),
+      ]
       mockDisplayService.detectDisplays.mockResolvedValue(displays)
 
       const result = await caller.list()
