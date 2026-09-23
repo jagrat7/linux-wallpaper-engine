@@ -1497,6 +1497,10 @@
     url = "https://registry.npmjs.org/@tanstack/history/-/history-1.145.7.tgz";
     hash = "sha512-gMo/ReTUp0a3IOcZoI3hH6PLDC2R/5ELQ7P2yu9F6aEkA0wSQh+Q4qzMrtcKvF2ut0oE+16xWCGDo/TdYd6cEQ==";
   };
+  "@tanstack/hotkeys@0.8.0" = fetchurl {
+    url = "https://registry.npmjs.org/@tanstack/hotkeys/-/hotkeys-0.8.0.tgz";
+    hash = "sha512-vqH7X9nb0MTJ/O08++dB5bP9jgj4+BIPOUu/U+6myG86lDsirZSVSobpq5UQpE7nBuk62i8eIYeOhd+OMl/UrA==";
+  };
   "@tanstack/pacer-lite@0.1.1" = fetchurl {
     url = "https://registry.npmjs.org/@tanstack/pacer-lite/-/pacer-lite-0.1.1.tgz";
     hash = "sha512-y/xtNPNt/YeyoVxE/JCx+T7yjEzpezmbb+toK8DDD1P4m7Kzs5YR956+7OKexG3f8aXgC3rLZl7b1V+yNUSy5w==";
@@ -1509,6 +1513,10 @@
     url = "https://registry.npmjs.org/@tanstack/react-form/-/react-form-1.28.3.tgz";
     hash = "sha512-84yd0swZRcyC3Q46dYBH6bHf1tlIY1flchbdG3VwArg/wLVW5RdBenIrJhleHjk2OxXuF+9HoKQbHglJyWIXQA==";
   };
+  "@tanstack/react-hotkeys@0.10.0" = fetchurl {
+    url = "https://registry.npmjs.org/@tanstack/react-hotkeys/-/react-hotkeys-0.10.0.tgz";
+    hash = "sha512-GwOSndI5j3qBVYTmgP1mYyRTnlxb2MS17cwGlsavSxMQPSnmDf+m3LzMIpRMs+3zzQMjg3cYhHsFYizYlFI2tw==";
+  };
   "@tanstack/react-query@5.90.17" = fetchurl {
     url = "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.90.17.tgz";
     hash = "sha512-PGc2u9KLwohDUSchjW9MZqeDQJfJDON7y4W7REdNBgiFKxQy+Pf7eGjiFWEj5xPqKzAeHYdAb62IWI1a9UJyGQ==";
@@ -1516,6 +1524,10 @@
   "@tanstack/react-router@1.147.2" = fetchurl {
     url = "https://registry.npmjs.org/@tanstack/react-router/-/react-router-1.147.2.tgz";
     hash = "sha512-i4CMyGn2yxm+XsSeWpN8BIJGjoRo+gvqMoOX0mKb7025v8uia/Op31qlw8UeeZbqO9oUVz+fvotQ6Vwm4mf2PQ==";
+  };
+  "@tanstack/react-store@0.11.1" = fetchurl {
+    url = "https://registry.npmjs.org/@tanstack/react-store/-/react-store-0.11.1.tgz";
+    hash = "sha512-HaIGKI3YLmjBYIvy5DFDY23oNaYZIsTZfngey07Uh5iLVJgM3bIGCnZeOFOqzjFld9JHWcaHJnasD/bKoGKwJQ==";
   };
   "@tanstack/react-store@0.8.0" = fetchurl {
     url = "https://registry.npmjs.org/@tanstack/react-store/-/react-store-0.8.0.tgz";
@@ -1544,6 +1556,10 @@
   "@tanstack/router-utils@1.143.11" = fetchurl {
     url = "https://registry.npmjs.org/@tanstack/router-utils/-/router-utils-1.143.11.tgz";
     hash = "sha512-N24G4LpfyK8dOlnP8BvNdkuxg1xQljkyl6PcrdiPSA301pOjatRT1y8wuCCJZKVVD8gkd0MpCZ0VEjRMGILOtA==";
+  };
+  "@tanstack/store@0.11.1" = fetchurl {
+    url = "https://registry.npmjs.org/@tanstack/store/-/store-0.11.1.tgz";
+    hash = "sha512-mzTOBhypOuDJAy/D8n2MfUZ1HFkXnmSETviRyhqEC8LUE7/IZQExOTxMANj3KjTofYTkFNpBY67qaVrT41YccA==";
   };
   "@tanstack/store@0.8.0" = fetchurl {
     url = "https://registry.npmjs.org/@tanstack/store/-/store-0.8.0.tgz";

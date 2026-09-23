@@ -1,4 +1,5 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
+import type { ElementType } from 'react'
 import { Download, ListVideo, Monitor, Settings } from 'lucide-react'
 import { SteamIcon } from '@/components/icons/steam'
 import logoImage from '../../../../assets/transparent-logo.png'
@@ -15,14 +16,22 @@ import {
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { useTheme } from '../theme-provider'
+import { KeyboardShortcut } from '@/components/keyboard-shortcut'
+import { getAriaKeyShortcut, type KeyboardShortcutId } from '@/lib/keyboard-shortcuts'
+import { AppKeyboardShortcuts } from '@/components/app-keyboard-shortcuts'
 
 const navItems = [
-  { to: '/', icon: Download, label: 'Installed' },
-  { to: '/workshop', icon: SteamIcon, label: 'Workshop' },
-  { to: '/playlists', icon: ListVideo, label: 'Playlists' },
-  { to: '/displays', icon: Monitor, label: 'Displays' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
-] as const
+  { to: '/', icon: Download, label: 'Installed', shortcut: 'installed' },
+  { to: '/workshop', icon: SteamIcon, label: 'Workshop', shortcut: 'workshop' },
+  { to: '/playlists', icon: ListVideo, label: 'Playlists', shortcut: 'playlists' },
+  { to: '/displays', icon: Monitor, label: 'Displays', shortcut: 'displays' },
+  { to: '/settings', icon: Settings, label: 'Settings', shortcut: 'settings' },
+] as const satisfies ReadonlyArray<{
+  to: string
+  icon: ElementType
+  label: string
+  shortcut: KeyboardShortcutId
+}>
 
 interface SidebarProps {
   className?: string
@@ -57,12 +66,17 @@ export function Sidebar({ className }: SidebarProps) {
                 return (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton
+                      aria-keyshortcuts={getAriaKeyShortcut(item.shortcut)}
                       isActive={isActive}
                       tooltip={item.label}
                       onClick={() => navigate({ to: item.to })}
                     >
                       <item.icon className="size-4" />
                       <span>{item.label}</span>
+                      <KeyboardShortcut
+                        shortcut={item.shortcut}
+                        className="ml-auto group-data-[collapsible=icon]:hidden"
+                      />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )
@@ -74,6 +88,7 @@ export function Sidebar({ className }: SidebarProps) {
 
       <SidebarFooter className="group-data-[collapsible=icon]:hidden">
         <div className="p-2">
+          <AppKeyboardShortcuts />
           <div className="text-muted-foreground text-xs">
             <p>linux-wallpaperengine</p>
             <p className="mt-0.5 opacity-60">v1.0.0</p>

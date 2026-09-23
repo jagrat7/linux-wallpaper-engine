@@ -3,6 +3,8 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useGlass } from '@/hooks/use-glass'
 import { useRef } from 'react'
+import { KeyboardShortcut } from '@/components/keyboard-shortcut'
+import { getAriaKeyShortcut } from '@/lib/keyboard-shortcuts'
 
 interface SearchInputProps {
   placeholder?: string
@@ -33,11 +35,19 @@ export function SearchInput({
           ref={inputRef}
           type="text"
           aria-label={placeholder}
+          aria-keyshortcuts={getAriaKeyShortcut('search')}
+          data-shortcut-search
           placeholder={placeholder}
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           className="text-foreground placeholder:text-muted-foreground/50 h-9 w-full rounded-xl border-0 bg-transparent pr-10 pl-10 text-sm font-medium tracking-wide transition-all duration-200 focus:ring-0"
         />
+        {!searchQuery && (
+          <KeyboardShortcut
+            shortcut="search"
+            className="absolute top-1/2 right-2 -translate-y-1/2"
+          />
+        )}
         {searchQuery && (
           <button
             type="button"
