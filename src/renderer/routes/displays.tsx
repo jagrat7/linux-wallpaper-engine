@@ -169,9 +169,13 @@ function DisplaysPage() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="text-muted-foreground flex size-8 cursor-help items-center justify-center rounded-md">
+                    <button
+                      type="button"
+                      aria-label={`About wallpaper settings for ${monitor.name}`}
+                      className="text-muted-foreground focus-visible:ring-ring flex size-8 cursor-help items-center justify-center rounded-md focus-visible:ring-2 focus-visible:outline-none"
+                    >
                       <Info className="size-4" />
-                    </div>
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent side="left" className="max-w-xs">
                     <p className="text-sm">
