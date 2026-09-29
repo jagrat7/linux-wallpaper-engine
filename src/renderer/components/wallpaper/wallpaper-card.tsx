@@ -34,7 +34,7 @@ export const WallpaperCard = memo(function WallpaperCard({
   return (
     <div
       className={cn(
-        'cv-auto group bg-card relative cursor-pointer overflow-hidden rounded-xl border transition-all duration-200',
+        'group bg-card relative cursor-pointer overflow-hidden rounded-xl border transition-all duration-200',
         glassClassName,
         selected
           ? '!border-primary ring-primary/20 ring-2'

@@ -231,11 +231,6 @@
     0 0 0 0.5px oklch(from var(--background) l c h / 0.3);
 }
 
-@utility cv-auto {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 200px;
-}
-
 @utility scrollbar-styled {
   @apply scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border/40 hover:scrollbar-thumb-border;
 }
