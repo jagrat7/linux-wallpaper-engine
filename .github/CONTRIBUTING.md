@@ -14,7 +14,7 @@ Thanks for your interest in contributing! For bug reports and feature requests, 
 
 ### Prerequisites
 
-- [Node.js & Bun](https://bun.sh/) - you'll need both for development
+- Node `^22.18.0 || ^24.11.0 || >=26`, [Bun 1.4.2](https://bun.sh/), and the pinned Vite+ CLI (see [development and verification](../docs/development.md))
 - [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) installed and binary accessible in your `$PATH`
 - [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/) installed on Steam with wallpapers downloaded
 
@@ -30,14 +30,14 @@ cd linux-wallpaper-engine
 Then, on any distro, proceed to:
 
 ```bash
-bun install
-bun dev
+bun install --frozen-lockfile
+bunx --no-install vp run dev:web --fixtures
 ```
 
 ### Building Packages
 
 ```bash
-bun run make
+bunx --no-install vp run make
 ```
 
 Builds packages for your current platform using Electron Forge. Build configuration is in `forge.config.ts`. The results will be in the `out/` directory.
@@ -57,7 +57,7 @@ Now, every time you cd into the repo, you should be in the devshell with all the
 nix develop
 
 # you can also pass commands without entering the devshell
-nix develop -c bun dev
+nix develop -c bunx --no-install vp run dev:desktop
 ```
 
 In the devshell, you can run the make targets to package for other platforms. To build specifically for Nix, you'll have to build the flake output package:
@@ -98,7 +98,7 @@ vite.preload.config.mts    # Vite config for preload script
 
 Each Vite config has `@` and `~` aliases pointing to its respective `src/` subdirectory.
 
-The renderer communicates with the main process through tRPC — no manual IPC. This gives full type safety across process boundaries. You can check out my [react-electron-template](https://github.com/jagrat7/react-electron-template) for details on how I setup the app.
+The renderer communicates with the main process through tRPC — IPC on desktop and a development-only WebSocket bridge in a browser. See [development and verification](../docs/development.md) for isolated fixtures, evidence capture, and native limitations. This gives full type safety across process boundaries. You can check out my [react-electron-template](https://github.com/jagrat7/react-electron-template) for details on how I setup the app.
 
 TLDR: UI React stuff is in `renderer/` and the "backend" logic is in `main/`.
 
@@ -108,7 +108,7 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
 
 ### Shared
 
-- **Constants** — `src/shared/constants.ts`
+- **Constants** — `src/shared/constants/`
 - **Import aliases** — Use `@` or `~` import aliases instead of relative paths (e.g. `import { cn } from '@/lib/utils'`)
 
 ### "Backend" (`src/main/`)
@@ -132,11 +132,11 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
 ### Code Rules
 
 - No semicolons in files
-- Avoid hardcoded values — extract to `src/shared/constants.ts`
+- Avoid hardcoded values — extract to `src/shared/constants/`
 - No hardcoded colors like `text-red-500` — use Tailwind theme variables from `global.css`
 - Use kebab-case for file and folder names
 - Group related components in their own folder
-- Run `bun run check` before submitting. Use `bun run fmt` to format changes and `bun run fmt:check` to check formatting.
+- Run `vp run check:all` before submitting. Use `vp fmt` to format changes and `vp fmt --check` to check formatting; run `vp build` and `vp run package` for build or tooling changes.
 
 ## Submitting Changes
 
