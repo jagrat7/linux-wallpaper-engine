@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import type { ChildProcess } from 'node:child_process'
 import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'

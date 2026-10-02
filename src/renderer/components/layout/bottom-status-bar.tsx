@@ -82,7 +82,7 @@ export function StatusBar({ className }: StatusBarProps) {
     // backgroundId is the wallpaper's absolute path; the grid matches on the folder name id
     const wallpaperId = activeWallpaper.wallpaper.backgroundId.split('/').filter(Boolean).pop()
     if (!wallpaperId) return
-    navigate({ to: '/', search: { wallpaper: wallpaperId } })
+    void navigate({ to: '/', search: { wallpaper: wallpaperId } })
   }
 
   const handleStop = async () => {
@@ -96,8 +96,8 @@ export function StatusBar({ className }: StatusBarProps) {
     } else {
       await stopMutation.mutateAsync({ screen: activeWallpaper.screen })
     }
-    utils.wallpaper.getActiveWallpaper.invalidate()
-    utils.playlist.active.invalidate()
+    void utils.wallpaper.getActiveWallpaper.invalidate()
+    void utils.playlist.active.invalidate()
   }
 
   const handleMuteToggle = async () => {
@@ -109,7 +109,7 @@ export function StatusBar({ className }: StatusBarProps) {
     })
 
     // Refresh settings to update UI
-    utils.settings.get.invalidate()
+    void utils.settings.get.invalidate()
   }
 
   const handlePauseToggle = async () => {
@@ -119,8 +119,8 @@ export function StatusBar({ className }: StatusBarProps) {
     } else {
       await pauseMutation.mutateAsync({ screen: activeWallpaper.screen })
     }
-    utils.wallpaper.getActiveWallpaper.invalidate()
-    utils.playlist.active.invalidate()
+    void utils.wallpaper.getActiveWallpaper.invalidate()
+    void utils.playlist.active.invalidate()
   }
 
   return (

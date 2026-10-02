@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vite-plus/test'
 import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
 import type { Wallpaper, WallpaperOverrides } from '../../../shared/constants/wallpaper'
 
