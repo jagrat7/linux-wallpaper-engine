@@ -4,9 +4,12 @@
     "src/**/*.tsx",
     "vite.*.config.ts",
     "vite.*.config.mts",
-    "vitest.config.mts",
     "forge.config.ts",
-    "forge.env.d.ts"
+    "forge.env.d.ts",
+    "vite.config.mts",
+    "scripts/**/*.ts",
+    "tests/**/*.ts",
+    "playwright.config.ts"
   ],
   "compilerOptions": {
     "target": "ESNext",

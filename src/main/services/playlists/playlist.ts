@@ -1,3 +1,5 @@
+import path from 'node:path'
+import { isolatedDataDirectory, isBrowserDev } from '../../development/mode'
 import * as fs from 'node:fs/promises'
 import type { Playlist } from '../../../shared/constants/playlist'
 import { storeService, type ActivePlaylistInfo } from '../store'
@@ -30,6 +32,11 @@ class PlaylistService {
     stampLastApplied: boolean,
     register: RegisterProcessFn,
   ): Promise<{ success: boolean; error?: string }> {
+    if (isBrowserDev)
+      return Promise.resolve({
+        success: false,
+        error: 'Native playlist actions require desktop mode',
+      })
     return startPlaylistProcess(this, playlistName, screens, stampLastApplied, register)
   }
 
@@ -38,6 +45,18 @@ class PlaylistService {
   resolveWallpaperEngineAssetsDir = resolveWallpaperEngineAssetsDir
 
   private async getConfigPath(): Promise<string> {
+    if (isolatedDataDirectory) {
+      const configPath = path.join(isolatedDataDirectory, 'steam-config.json')
+      try {
+        await fs.access(configPath)
+      } catch {
+        await fs.writeFile(
+          configPath,
+          JSON.stringify({ steamuser: { general: { playlists: [] } } }),
+        )
+      }
+      return configPath
+    }
     if (this.configPath) {
       try {
         await fs.access(this.configPath)

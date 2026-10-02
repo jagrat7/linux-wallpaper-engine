@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/lib/platform'
 import { Clock, Shuffle, MoreVertical, Pencil, Trash2, Images } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
@@ -156,7 +157,7 @@ export function PlaylistRow({
                   )}
 
                   <img
-                    src={`local-file://${wallpaper.thumbnail ?? wallpaper.path}`}
+                    src={mediaUrl(wallpaper.thumbnail)}
                     alt={wallpaper.title ?? wallpaper.path.split('/').pop() ?? 'Wallpaper'}
                     className="size-full object-cover"
                   />

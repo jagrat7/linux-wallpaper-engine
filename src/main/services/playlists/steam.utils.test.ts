@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import * as fs from 'node:fs/promises'
 import { resolveSteamLibraryPaths, resolveWallpaperEngineAssetsDir } from './playlist.utils'
 
