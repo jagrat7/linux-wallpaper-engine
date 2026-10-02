@@ -90,15 +90,15 @@ function PlaylistsPage() {
 
   const handleDelete = async (name: string) => {
     await deleteMutation.mutateAsync({ name })
-    refetch()
+    void refetch()
   }
 
   const handleEdit = (playlist: Playlist) => {
-    navigate({ to: '/playlists/editor', search: { name: playlist.name } })
+    void navigate({ to: '/playlists/editor', search: { name: playlist.name } })
   }
 
   const handleCreate = () => {
-    navigate({ to: '/playlists/editor' })
+    void navigate({ to: '/playlists/editor' })
   }
 
   const filteredPlaylists = useMemo(() => {

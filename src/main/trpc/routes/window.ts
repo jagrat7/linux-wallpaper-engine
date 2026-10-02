@@ -1,3 +1,4 @@
+import { isBrowserDev } from '../../development/mode'
 import { BrowserWindow, shell } from 'electron'
 import { z } from 'zod'
 import { trpc } from '../trpc'
@@ -5,6 +6,7 @@ import { trpc } from '../trpc'
 // TODO: Add a window service for more controls like minimize, restore, close, etc.
 export const windowRouter = trpc.router({
   maximize: trpc.procedure.mutation(() => {
+    if (isBrowserDev) return { success: false }
     const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
     if (win && !win.isMaximized()) {
       win.maximize()
@@ -14,6 +16,7 @@ export const windowRouter = trpc.router({
   openExternal: trpc.procedure
     .input(z.object({ url: z.string().url() }))
     .mutation(async ({ input }) => {
+      if (isBrowserDev) return { success: false }
       await shell.openExternal(input.url)
       return { success: true }
     }),

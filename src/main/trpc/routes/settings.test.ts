@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vite-plus/test'
 import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/constants/app'
 
 // --- Mocks ---------------------------------------------------------------
