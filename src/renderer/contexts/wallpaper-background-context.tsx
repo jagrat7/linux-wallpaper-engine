@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/lib/platform'
 import { useMemo, type ReactNode } from 'react'
 import { useAtom } from 'jotai'
 import { trpc } from '@/lib/trpc'
@@ -21,7 +22,7 @@ export function useWallpaperBackground(): WallpaperBackgroundState {
 
   const activeUrl = useMemo(() => {
     const active = activeWallpapers?.[0]
-    return active?.thumbnail ? `local-file://${active.thumbnail}` : null
+    return active?.thumbnail ? mediaUrl(active.thumbnail) : null
   }, [activeWallpapers])
 
   const backgroundUrl = useMemo(() => selectedUrl ?? activeUrl, [selectedUrl, activeUrl])
