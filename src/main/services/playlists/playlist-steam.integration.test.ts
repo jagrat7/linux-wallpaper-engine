@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { tmpdir } from 'node:os'
-import { afterAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vite-plus/test'
 
 vi.mock('../store', () => ({
   storeService: { activeWallpapers: { get: vi.fn(), set: vi.fn() } },

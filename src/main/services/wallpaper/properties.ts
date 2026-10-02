@@ -7,7 +7,7 @@ import { PROPERTY_CONTROL_TYPES, type WallpaperProperty } from '../../../shared/
 export const serializePropertyValue = (value: unknown): string => {
   if (typeof value === 'boolean') return value ? '1' : '0'
   if (value === null || value === undefined) return ''
-  return String(value)
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
 }
 
 const isControlType = (type: unknown): type is WallpaperProperty['type'] =>

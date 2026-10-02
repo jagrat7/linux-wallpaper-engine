@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
 import type { Playlist } from '../../../shared/constants/playlist'
 
