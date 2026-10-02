@@ -27,12 +27,17 @@ export function WallpaperDetailsShell({
 
   useHotkey(
     KEYBOARD_SHORTCUTS.closeDetails.hotkey,
-    () => {
-      if (!document.querySelector('[role="dialog"][data-state="open"]')) onClose()
+    (event) => {
+      // Radix layers consume Escape in a capture listener and close before this listener runs.
+      if (event.defaultPrevented || document.querySelector('[role="dialog"][data-state="open"]')) {
+        return
+      }
+      event.preventDefault()
+      onClose()
     },
     {
       ignoreInputs: false,
-      preventDefault: true,
+      preventDefault: false,
       stopPropagation: true,
       conflictBehavior: 'replace',
       meta: {
