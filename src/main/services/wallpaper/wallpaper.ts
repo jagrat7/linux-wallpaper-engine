@@ -1,3 +1,4 @@
+import { isBrowserDev } from '../../development/mode'
 import * as fs from 'node:fs/promises'
 export type { DebugInfo } from './wallpaper.types'
 import * as fsSync from 'node:fs'
@@ -53,7 +54,7 @@ class WallpaperService implements IWallpaperService {
   private state = wallpaperStateManager
 
   private constructor() {
-    this.syncAndReapply()
+    if (!isBrowserDev) void this.syncAndReapply()
   }
 
   static getInstance(): WallpaperService {
@@ -86,6 +87,8 @@ class WallpaperService implements IWallpaperService {
   // ── Apply ──────────────────────────────────────────────────────────────
 
   async apply(target: ApplyTarget): Promise<MutationResult> {
+    if (isBrowserDev)
+      return { success: false, error: 'Native wallpaper actions require desktop mode' }
     switch (target.kind) {
       case 'wallpaper':
         return this.applyWallpaper(target.options)
@@ -105,6 +108,8 @@ class WallpaperService implements IWallpaperService {
   // ── Stop ───────────────────────────────────────────────────────────────
 
   async stop(screen?: string | string[]): Promise<MutationResult> {
+    if (isBrowserDev)
+      return { success: false, error: 'Native wallpaper actions require desktop mode' }
     const settings = await settingsService.loadSettings()
     const screens = Array.isArray(screen) ? screen : screen ? [screen] : []
     if (screens.length > 0 && !settings.windowMode) {
@@ -774,7 +779,7 @@ class WallpaperService implements IWallpaperService {
   private debouncedReapply(): void {
     if (this.reapplyTimer) clearTimeout(this.reapplyTimer)
     this.reapplyTimer = setTimeout(() => {
-      this.reapplyAll()
+      void this.reapplyAll()
     }, 500)
   }
 

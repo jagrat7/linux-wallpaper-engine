@@ -84,7 +84,7 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
 
       if (result.success) {
         await utils.playlist.list.invalidate()
-        navigate({ to: '/playlists' })
+        void navigate({ to: '/playlists' })
       } else {
         setServerError(result.error ?? 'Failed to save playlist')
       }
@@ -149,7 +149,7 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
   )
 
   const handleBack = useCallback(() => {
-    navigate({ to: '/playlists' })
+    void navigate({ to: '/playlists' })
   }, [navigate])
 
   const clearServerError = useCallback(() => {

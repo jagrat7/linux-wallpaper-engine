@@ -69,6 +69,8 @@ class WorkshopService implements IWorkshopService {
 
   isConnectionError = isWorkshopConnectionError
 
+  createConnectionError = createWorkshopConnectionError
+
   private async isSteamProcessRunning(): Promise<boolean> {
     for (const name of ['steam', 'steamwebhelper']) {
       try {
