@@ -46,11 +46,11 @@ export function DebugLogDialog({ open, onClose, screen }: DebugLogDialogProps) {
 
   const handleCopyLogs = () => {
     const text = [`$ ${command}`, '', ...logs].join('\n')
-    navigator.clipboard.writeText(text)
+    void navigator.clipboard.writeText(text)
   }
 
   const handleCopyCommand = () => {
-    navigator.clipboard.writeText(command)
+    void navigator.clipboard.writeText(command)
   }
 
   return (

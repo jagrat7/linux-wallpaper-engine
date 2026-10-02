@@ -47,7 +47,7 @@ export function CompatibilityScanRow() {
     onMutate: () => setIsScanning(true),
     onSettled: () => {
       setIsScanning(false)
-      utils.wallpaper.getScanReport.invalidate()
+      void utils.wallpaper.getScanReport.invalidate()
     },
   })
 

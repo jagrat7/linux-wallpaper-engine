@@ -1,6 +1,6 @@
 import path from 'node:path'
-import { RuleTester } from 'oxlint/plugins-dev'
-import { describe, it } from 'vitest'
+import { RuleTester } from 'vite-plus/lint/plugins-dev'
+import { describe, it } from 'vite-plus/test'
 import noServerDeepImports from './no-server-deep-imports.mjs'
 
 RuleTester.describe = describe

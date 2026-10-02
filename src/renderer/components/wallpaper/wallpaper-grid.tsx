@@ -100,7 +100,7 @@ export function WallpaperGrid() {
     setSelectedWallpaper(requestedWallpaper)
 
     // Clear the param so closing the card or re-clicking works as expected
-    navigate({ to: '/', search: {}, replace: true })
+    void navigate({ to: '/', search: {}, replace: true })
   }, [requestedWallpaper, setSelectedWallpaper, navigate])
 
   // Extract and set available tags from raw data (before filtering)
@@ -139,7 +139,7 @@ export function WallpaperGrid() {
   }, [rawWallpapers, setAvailableTags, setAvailableResolutions])
 
   const handleRefresh = () => {
-    refetch()
+    void refetch()
   }
 
   const handleUnsubscribe = () => {
