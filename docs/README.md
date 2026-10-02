@@ -201,3 +201,5 @@ Contributions and feedback are welcome! Checkout [Discussions](https://github.co
   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=jagrat7/linux-wallpaper-engine&type=date&legend=top-left" />
   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=jagrat7/linux-wallpaper-engine&type=date&legend=top-left" />
 </picture>
+
+For contributors, see [development and verification](development.md).

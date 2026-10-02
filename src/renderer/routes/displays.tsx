@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/lib/platform'
 import { createFileRoute } from '@tanstack/react-router'
 import { Monitor, Plus, Loader2, AlertCircle, Info } from 'lucide-react'
 import { WallpaperThumbnail } from '@/components/wallpaper/wallpaper-thumbnail'
@@ -45,7 +46,7 @@ function DisplaysPage() {
         wallpaper: active
           ? {
               name: active.title ?? 'Unknown',
-              thumbnail: active.thumbnail ? `local-file://${active.thumbnail}` : '',
+              thumbnail: active.thumbnail ? mediaUrl(active.thumbnail) : '',
             }
           : null,
         scaling: (active?.wallpaper.scaling ?? 'default') as DisplayMonitor['scaling'],

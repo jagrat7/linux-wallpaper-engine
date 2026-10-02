@@ -21,8 +21,8 @@ export function CompatibilitySection({ wallpaperPath }: { wallpaperPath: string 
 
   const setCompatibility = trpc.wallpaper.setCompatibility.useMutation({
     onSuccess: () => {
-      utils.wallpaper.getOverrides.invalidate({ path: wallpaperPath })
-      utils.wallpaper.getCompatibilityMap.invalidate()
+      void utils.wallpaper.getOverrides.invalidate({ path: wallpaperPath })
+      void utils.wallpaper.getCompatibilityMap.invalidate()
     },
   })
 

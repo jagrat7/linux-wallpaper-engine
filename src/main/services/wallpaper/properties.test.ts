@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { parseProjectProperties, serializePropertyValue } from './properties'
 
 const project = (properties: Record<string, unknown>) => ({ general: { properties } })
@@ -13,6 +13,11 @@ describe('serializePropertyValue', () => {
     expect(serializePropertyValue(1.2)).toBe('1.2')
     expect(serializePropertyValue('0.1 0.2 0.4')).toBe('0.1 0.2 0.4')
   })
+})
+
+it('ignores malformed compound property values', () => {
+  expect(serializePropertyValue({ value: 1 })).toBe('')
+  expect(serializePropertyValue([1, 2])).toBe('')
 })
 
 describe('parseProjectProperties', () => {

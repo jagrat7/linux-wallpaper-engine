@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/lib/platform'
 import { trpc } from '@/lib/trpc'
 import { useMemo } from 'react'
 import type { AgeRating, Wallpaper, WallpaperFilterType } from '../../shared/constants/wallpaper'
@@ -116,7 +117,7 @@ export function filterAndSortWallpapers(
 
 /**
  * Shared hook that fetches wallpapers, compatibility map, and app settings.
- * Handles the raw-to-Wallpaper transformation with local-file:// prefixed thumbnails.
+ * Handles the raw-to-Wallpaper transformation with platform-compatible media URLs.
  * Fetches installed wallpapers and related metadata.
  */
 export function useWallpapers() {
@@ -138,8 +139,8 @@ export function useWallpapers() {
       author: w.author,
       ageRating: w.ageRating,
       type: w.type,
-      thumbnail: w.thumbnail ? `local-file://${w.thumbnail}` : '',
-      previewUrl: w.previewUrl ? `local-file://${w.previewUrl}` : undefined,
+      thumbnail: w.thumbnail ? mediaUrl(w.thumbnail) : '',
+      previewUrl: w.previewUrl ? mediaUrl(w.previewUrl) : undefined,
       resolution: w.resolution,
       fileSize: w.fileSize,
       dateAdded: w.dateAdded,
@@ -158,7 +159,7 @@ export function useWallpapers() {
   return {
     /** Raw data from tRPC (before transformation), useful for extracting tags/resolutions */
     rawWallpapers,
-    /** Transformed wallpapers with local-file:// prefixed thumbnails */
+    /** Transformed wallpapers with platform-compatible media URLs */
     wallpapers,
     isLoading,
     isFetching,

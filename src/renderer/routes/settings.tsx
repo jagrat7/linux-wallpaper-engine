@@ -64,13 +64,13 @@ function SettingsPage() {
 
   const updateMutation = trpc.settings.update.useMutation({
     onSuccess: () => {
-      utils.settings.get.invalidate()
+      void utils.settings.get.invalidate()
     },
   })
 
   const resetMutation = trpc.settings.reset.useMutation({
     onSuccess: () => {
-      utils.settings.get.invalidate()
+      void utils.settings.get.invalidate()
     },
   })
 
