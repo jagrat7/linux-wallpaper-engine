@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
-import type { DevWebReady } from '../src/shared/constants/development.ts'
+import { DEV_WEB_READY_PREFIX, type DevWebReady } from '../src/shared/constants/development.ts'
 
 // Return the handle before readiness so failures/signals can always clean it up.
 export function startFixtureRunner(scenario: string, log: (line: string) => void) {
@@ -23,10 +23,10 @@ export function startFixtureRunner(scenario: string, log: (line: string) => void
     processHandle.stderr.on('data', (chunk: Buffer) => log(chunk.toString()))
     createInterface({ input: processHandle.stdout }).on('line', (line) => {
       log(line)
-      if (line.startsWith('LWE_WEB_READY ')) {
+      if (line.startsWith(DEV_WEB_READY_PREFIX)) {
         clearTimeout(timeout)
         try {
-          resolve(JSON.parse(line.slice(14)))
+          resolve(JSON.parse(line.slice(DEV_WEB_READY_PREFIX.length)))
         } catch (error) {
           reject(error)
         }
