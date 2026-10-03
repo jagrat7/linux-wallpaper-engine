@@ -102,13 +102,14 @@ class WallpaperService implements IWallpaperService {
       case 'reapply':
         return this.reapplyAll()
     }
+    throw new Error('Unsupported wallpaper apply target', { cause: target satisfies never })
   }
 
   // ── Stop ───────────────────────────────────────────────────────────────
 
-  async stop(screen?: string | string[]): Promise<MutationResult> {
+  async stop(targetScreen?: string | string[]): Promise<MutationResult> {
     const settings = await settingsService.loadSettings()
-    const screens = Array.isArray(screen) ? screen : screen ? [screen] : []
+    const screens = Array.isArray(targetScreen) ? targetScreen : targetScreen ? [targetScreen] : []
     if (screens.length > 0 && !settings.windowMode) {
       const { remaining, released } = this.state.releaseMany(screens)
       // Kill any orphaned processes for this screen
@@ -518,9 +519,9 @@ class WallpaperService implements IWallpaperService {
     proc.unref()
     compatibilityService.monitorProcess(proc, options.backgroundId)
     proc.once('exit', () => {
-      const { screens } = this.state.cleanupExitedProcess(proc)
-      if (screens.length > 0) {
-        playlistService.clearActivePlaylist(screens)
+      const { screens: releasedScreens } = this.state.cleanupExitedProcess(proc)
+      if (releasedScreens.length > 0) {
+        playlistService.clearActivePlaylist(releasedScreens)
         invalidationService.emit('wallpaper.stopped')
       }
     })
