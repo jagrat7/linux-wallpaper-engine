@@ -18,6 +18,9 @@ export interface IWallpaperService {
     active: ActiveWallpaperEntry[]
   }>
 
+  // Catalog only: the same cached scan, without the backend check or active state
+  catalog(): Promise<Wallpaper[]>
+
   // Apply, register external process, or reapply all
   apply(target: ApplyTarget): Promise<MutationResult>
 
