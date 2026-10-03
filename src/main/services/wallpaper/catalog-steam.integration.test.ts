@@ -22,8 +22,8 @@ vi.mock('steamworks.js', () => ({ init: () => ({ workshop: { getItems: mocks.get
 import { enrichAgeRatings } from './age-ratings'
 import { WallpaperCatalogCache } from './catalog-cache'
 
-const makeWallpaper = (): Wallpaper => ({
-  id: '123',
+const makeWallpaper = (id = '123'): Wallpaper => ({
+  id,
   title: 'Test',
   author: 'Test',
   type: 'scene',
@@ -33,7 +33,7 @@ const makeWallpaper = (): Wallpaper => ({
   dateAdded: 0,
   tags: [],
   installed: true,
-  path: '/wallpapers/123',
+  path: `/wallpapers/${id}`,
 })
 
 describe('Refresh during a stalled Steam lookup', () => {
@@ -66,6 +66,49 @@ describe('Refresh during a stalled Steam lookup', () => {
       expect(mocks.metadata.ageRatings['123']).toBe('r')
       expect((await cache.get())[0].ageRating).toBe('r')
       expect(mocks.getItems).toHaveBeenCalledTimes(2)
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+      vi.restoreAllMocks()
+    }
+  })
+
+  it('persists completed batches and retries only the remaining wallpapers on the next scan', async () => {
+    vi.useFakeTimers()
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mocks.metadata = { ageRatings: {}, checkedAt: {} }
+    mocks.getItems.mockReset()
+    try {
+      const lateRequest = Promise.withResolvers<{
+        items: Array<{ publishedFileId: bigint; tags: string[] }>
+      }>()
+      const wallpapers = Array.from({ length: 1001 }, (_value, index) =>
+        makeWallpaper(String(index + 1)),
+      )
+      mocks.getItems
+        .mockResolvedValueOnce({
+          items: Array.from({ length: 1000 }, (_value, index) => ({
+            publishedFileId: BigInt(index + 1),
+            tags: ['Everyone'],
+          })),
+        })
+        .mockReturnValueOnce(lateRequest.promise)
+      const firstScan = enrichAgeRatings(wallpapers)
+      await vi.advanceTimersByTimeAsync(WORKSHOP_AGE_RATING_TIMEOUT)
+      await firstScan
+      expect(Object.keys(mocks.metadata.checkedAt)).toHaveLength(1000)
+      expect(wallpapers[0].ageRating).toBe('g')
+      expect(mocks.metadata.checkedAt['1001']).toBeUndefined()
+      mocks.getItems.mockResolvedValueOnce({
+        items: [{ publishedFileId: 1001n, tags: ['Mature'] }],
+      })
+      await enrichAgeRatings(wallpapers)
+      expect(mocks.getItems).toHaveBeenNthCalledWith(3, [1001n])
+      expect(wallpapers[1000].ageRating).toBe('r')
+      expect(Object.keys(mocks.metadata.checkedAt)).toHaveLength(1001)
+      lateRequest.resolve({ items: [{ publishedFileId: 1001n, tags: ['Questionable'] }] })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(mocks.metadata.ageRatings['1001']).toBe('r')
       expect(vi.getTimerCount()).toBe(0)
     } finally {
       vi.useRealTimers()

@@ -364,12 +364,19 @@ class WorkshopService implements IWorkshopService {
         if (timedOut) break
         const chunk = uniqueIds.slice(i, i + WORKSHOP_DETAILS_BATCH_SIZE)
         const { items } = await client.workshop.getItems(chunk)
+        if (timedOut) break
         Object.assign(ratings, mapWorkshopAgeRatings(items))
       }
       return ratings
     })()
     try {
       return await Promise.race([request, timeout])
+    } catch (error) {
+      if (Object.keys(ratings).length === 0) throw error
+      console.warn('Steam age-rating lookup incomplete; keeping completed batches', error)
+      // A timed-out native request can still finish later. Return a snapshot so
+      // late results cannot mutate metadata already handed to the catalog.
+      return { ...ratings }
     } finally {
       clearTimeout(timer)
     }
