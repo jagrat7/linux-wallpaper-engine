@@ -1,14 +1,14 @@
-import { memo, useId, type ReactNode } from 'react'
-import { LayoutGroup, motion } from 'framer-motion'
+import { useId, type ReactNode } from 'react'
+import { LayoutGroup } from 'framer-motion'
 import { FolderOpen, type LucideIcon } from 'lucide-react'
+
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/empty-state'
-import { WallpaperCard } from './wallpaper-card'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
 import type { CompatibilityStatus } from '../../../shared/constants/compatibility'
 import { WALLPAPER_GRID_SKELETON_COUNT } from '../../../shared/constants/grid'
 import { useGlass } from '@/hooks/use-glass'
-import { WALLPAPER_GRID_TRANSITION } from './wallpaper-grid-shell'
+import { WallpaperGridCardItem } from './wallpaper-grid-card-item'
 
 interface WallpaperGridLayoutProps {
   wallpapers: Wallpaper[]
@@ -24,48 +24,6 @@ interface WallpaperGridLayoutProps {
   renderCardOverlay?: (wallpaper: Wallpaper) => ReactNode
   columns: number
 }
-
-interface WallpaperGridCardItemProps {
-  wallpaper: Wallpaper
-  selected: boolean
-  onClick: (wallpaper: Wallpaper) => void
-  compatibilityStatus?: CompatibilityStatus
-  showCompatibilityDot: boolean
-  glassClassName: string
-  overlay?: ReactNode
-}
-
-// Memoized so a parent re-render (e.g. selection change) only re-renders the
-// cards whose props actually changed, not the whole grid.
-const WallpaperGridCardItem = memo(function WallpaperGridCardItem({
-  wallpaper,
-  selected,
-  onClick,
-  compatibilityStatus,
-  showCompatibilityDot,
-  glassClassName,
-  overlay,
-}: WallpaperGridCardItemProps) {
-  return (
-    <motion.div
-      layout
-      layoutId={wallpaper.id}
-      transition={WALLPAPER_GRID_TRANSITION}
-      className="relative"
-      data-wallpaper-path={wallpaper.path}
-    >
-      <WallpaperCard
-        wallpaper={wallpaper}
-        selected={selected}
-        onClick={onClick}
-        compatibilityStatus={compatibilityStatus}
-        showCompatibilityDot={showCompatibilityDot}
-        glassClassName={glassClassName}
-      />
-      {overlay}
-    </motion.div>
-  )
-})
 
 export function WallpaperGridLayout({
   wallpapers,
