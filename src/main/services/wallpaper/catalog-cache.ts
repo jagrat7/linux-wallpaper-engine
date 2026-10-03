@@ -33,9 +33,9 @@ export class WallpaperCatalogCache {
     while (true) {
       const revision = this.revision
       const forceAgeRatings = this.forceAgeRatings
-      this.forceAgeRatings = false
       const value = await this.load(forceAgeRatings)
       if (revision !== this.revision) continue
+      this.forceAgeRatings = false
       this.entry = { value, timestamp: Date.now() }
       return value
     }

@@ -37,6 +37,7 @@ import {
   WORKSHOP_SORT_TO_QUERY_TYPE,
   WORKSHOP_TREND_DAYS,
   WORKSHOP_MAX_RESULTS,
+  WORKSHOP_AGE_RATING_TIMEOUT,
 } from '../../../shared/constants/workshop'
 
 type SteamworksModule = typeof import('steamworks.js')
@@ -348,15 +349,30 @@ class WorkshopService implements IWorkshopService {
     )
     const ratings: WorkshopAgeRatings = {}
     if (uniqueIds.length === 0) return ratings
-    const client = await this.getClient()
-
-    for (let i = 0; i < uniqueIds.length; i += WORKSHOP_DETAILS_BATCH_SIZE) {
-      const chunk = uniqueIds.slice(i, i + WORKSHOP_DETAILS_BATCH_SIZE)
-      const { items } = await client.workshop.getItems(chunk)
-      Object.assign(ratings, mapWorkshopAgeRatings(items))
+    let timedOut = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true
+        reject(new Error('Steam age-rating lookup timed out'))
+      }, WORKSHOP_AGE_RATING_TIMEOUT)
+    })
+    const request = (async () => {
+      const client = await this.getClient()
+      for (let i = 0; i < uniqueIds.length; i += WORKSHOP_DETAILS_BATCH_SIZE) {
+        // Native requests cannot be cancelled; stop further batches after a timeout.
+        if (timedOut) break
+        const chunk = uniqueIds.slice(i, i + WORKSHOP_DETAILS_BATCH_SIZE)
+        const { items } = await client.workshop.getItems(chunk)
+        Object.assign(ratings, mapWorkshopAgeRatings(items))
+      }
+      return ratings
+    })()
+    try {
+      return await Promise.race([request, timeout])
+    } finally {
+      clearTimeout(timer)
     }
-
-    return ratings
   }
 
   private async resolveWorkshopContext(

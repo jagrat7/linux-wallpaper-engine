@@ -78,6 +78,18 @@ describe('wallpaper catalog concurrency', () => {
     expect(load).toHaveBeenCalledTimes(2)
   })
 
+  it('preserves a forced refresh request after discovery fails', async () => {
+    const load = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('discovery failed'))
+      .mockResolvedValueOnce([makeWallpaper('r')])
+    const cache = new WallpaperCatalogCache(load)
+    cache.invalidate(true)
+    await expect(cache.get()).rejects.toThrow('discovery failed')
+    expect((await cache.get())[0].ageRating).toBe('r')
+    expect(load.mock.calls).toEqual([[true], [true]])
+  })
+
   it('expires the catalog independently of the longer metadata cache', async () => {
     const clock = vi.spyOn(Date, 'now').mockReturnValue(0)
     try {
