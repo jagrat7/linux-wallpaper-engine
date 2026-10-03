@@ -84,6 +84,11 @@ class WallpaperService implements IWallpaperService {
     return { wallpapers, backendInstalled, active, appliedHistory: this.state.getAppliedHistory() }
   }
 
+  /** Installed wallpapers from the same cached scan as `query`, without backend checks. */
+  catalog(): Promise<Wallpaper[]> {
+    return this.getWallpapers()
+  }
+
   // ── Apply ──────────────────────────────────────────────────────────────
 
   async apply(target: ApplyTarget): Promise<MutationResult> {
