@@ -39,13 +39,20 @@ const makeWallpaper = (preview = 'preview.png'): Wallpaper => ({
   installed: true,
   path: directory,
 })
-beforeEach(() => catalog.mockResolvedValue([makeWallpaper()]))
+beforeEach(() => {
+  catalog.mockClear()
+  catalog.mockResolvedValue([makeWallpaper()])
+})
 afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()))
   await fs.rm(root, { recursive: true, force: true })
 })
 
 describe('development preview media', () => {
+  it('returns 404 for a missing preview without scanning the catalog', async () => {
+    expect((await request(path.join(directory, 'missing.png'))).status).toBe(404)
+    expect(catalog).not.toHaveBeenCalled()
+  })
   it('serves an advertised preview', async () => {
     const response = await request(path.join(directory, 'preview.png'))
     expect(response.status).toBe(200)

@@ -23,6 +23,11 @@ export async function serveMedia(req: IncomingMessage, res: ServerResponse) {
     return
   }
   const requestedPath = path.resolve(requested)
+  const file = await fs.realpath(requestedPath).catch(() => null)
+  if (!file) {
+    res.writeHead(404).end()
+    return
+  }
   const wallpapers = await wallpaperService.catalog()
   const wallpaper = wallpapers.find((item) =>
     [item.thumbnail, item.previewUrl].some(
@@ -33,11 +38,8 @@ export async function serveMedia(req: IncomingMessage, res: ServerResponse) {
     res.writeHead(403).end()
     return
   }
-  const [file, directory] = await Promise.all([
-    fs.realpath(requestedPath).catch(() => null),
-    fs.realpath(wallpaper.path).catch(() => null),
-  ])
-  if (!file || !directory) {
+  const directory = await fs.realpath(wallpaper.path).catch(() => null)
+  if (!directory) {
     res.writeHead(404).end()
     return
   }

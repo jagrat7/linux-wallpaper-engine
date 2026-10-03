@@ -24,12 +24,11 @@ import {
   detectResolution,
   resolveThumbnail,
   parseWindowGeometry,
-  resolveTimedCache,
-  type TimedCache,
 } from './wallpaper.utils'
 import { listProperties } from './properties'
 import { wallpaperStateManager } from './state-manager/state-manager'
 import { enrichAgeRatings } from './age-ratings'
+import { WallpaperCatalogCache } from './catalog-cache'
 import type { IWallpaperService } from './wallpaper.interface'
 import type {
   MutationResult,
@@ -43,10 +42,8 @@ import type {
 class WallpaperService implements IWallpaperService {
   private static instance: WallpaperService | null = null
 
-  private wallpaperCache: Wallpaper[] | null = null
-  private wallpaperCacheEntry: TimedCache<Wallpaper[]> | null = null
+  private wallpaperCatalog = new WallpaperCatalogCache((force) => this.scanWallpapers(force))
   private overridesStore = storeService.wallpaperOverrides
-  private forceAgeRatingRefresh = false
   private fsWatchers: fsSync.FSWatcher[] = []
   private reapplyTimer: ReturnType<typeof setTimeout> | null = null
   private state = wallpaperStateManager
@@ -197,9 +194,7 @@ class WallpaperService implements IWallpaperService {
         return
 
       case 'invalidateCache':
-        this.forceAgeRatingRefresh = true
-        this.wallpaperCache = null
-        this.wallpaperCacheEntry = null
+        this.wallpaperCatalog.invalidate(true)
         return
 
       case 'cleanup':
@@ -214,15 +209,11 @@ class WallpaperService implements IWallpaperService {
     return hostCommandExists('linux-wallpaperengine')
   }
 
-  private async getWallpapers(): Promise<Wallpaper[]> {
-    this.wallpaperCacheEntry = await resolveTimedCache(this.wallpaperCacheEntry, () =>
-      this.scanWallpapers(),
-    )
-    this.wallpaperCache = this.wallpaperCacheEntry.value
-    return this.wallpaperCache
+  private getWallpapers(): Promise<Wallpaper[]> {
+    return this.wallpaperCatalog.get()
   }
 
-  private async scanWallpapers(): Promise<Wallpaper[]> {
+  private async scanWallpapers(forceAgeRatingRefresh: boolean): Promise<Wallpaper[]> {
     const workshopDirs: Set<string> = new Set()
     const wallpapers: Wallpaper[] = []
     const seen: Set<string> = new Set()
@@ -333,8 +324,6 @@ class WallpaperService implements IWallpaperService {
 
     wallpapers.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()))
     this.startWatchers([...workshopDirs])
-    const forceAgeRatingRefresh = this.forceAgeRatingRefresh
-    this.forceAgeRatingRefresh = false
     await enrichAgeRatings(wallpapers, forceAgeRatingRefresh)
 
     return wallpapers
@@ -846,8 +835,7 @@ class WallpaperService implements IWallpaperService {
         const watcher = fsSync.watch(dir, { recursive: false }, () => {
           clearTimeout(debounce)
           debounce = setTimeout(() => {
-            this.wallpaperCache = null
-            this.wallpaperCacheEntry = null
+            this.wallpaperCatalog.invalidate()
             invalidationService.emit('wallpaper.getWallpapers')
           }, 500)
         })
