@@ -22,9 +22,16 @@ export async function serveMedia(req: IncomingMessage, res: ServerResponse) {
     res.writeHead(400).end()
     return
   }
-  const file = path.resolve(requested)
+  const file = await fs.realpath(path.resolve(requested)).catch(() => null)
+  if (!file) {
+    res.writeHead(404).end()
+    return
+  }
   const wallpapers = await wallpaperService.catalog()
-  const known = wallpapers.some((item) => file.startsWith(path.resolve(item.path) + path.sep))
+  const directories = await Promise.all(
+    wallpapers.map((item) => fs.realpath(item.path).catch(() => null)),
+  )
+  const known = directories.some((directory) => directory && file.startsWith(directory + path.sep))
   if (!known) {
     res.writeHead(403).end()
     return
