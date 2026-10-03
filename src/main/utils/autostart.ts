@@ -1,4 +1,3 @@
-import { isBrowserDev } from '../development/mode'
 import { app } from 'electron'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
@@ -40,7 +39,7 @@ const getLinuxExec = (): string => {
  * Write / delete the autostart desktop entry
  */
 export const setAutostart = (enabled: boolean | undefined): void => {
-  if (isBrowserDev || enabled === undefined) return
+  if (enabled === undefined) return
 
   // If MacOS
   if (process.platform === 'darwin') {

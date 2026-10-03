@@ -1,4 +1,3 @@
-import { isBrowserDev } from '../../development/mode'
 import { execFile } from 'node:child_process'
 export type { DiscoverSectionConfig, WorkshopItem } from './workshop.types'
 import { EventEmitter } from 'node:events'
@@ -67,8 +66,6 @@ class WorkshopService implements IWorkshopService {
   }
 
   isConnectionError = isWorkshopConnectionError
-
-  createConnectionError = createWorkshopConnectionError
 
   private async isSteamProcessRunning(): Promise<boolean> {
     for (const name of ['steam', 'steamwebhelper']) {
@@ -342,8 +339,6 @@ class WorkshopService implements IWorkshopService {
   }
 
   async syncSubscribedItems(): Promise<void> {
-    // Automatic sync downloads are a desktop startup responsibility.
-    if (isBrowserDev) return
     let client: SteamClient
     try {
       client = await this.getClient()

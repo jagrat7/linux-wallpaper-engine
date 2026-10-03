@@ -1,1 +1,1 @@
-dont shared redfine types, look at /src/shared/constants to see it already exists 
+dont shared redfine types, look at /src/shared/constants to see if it already exists 
