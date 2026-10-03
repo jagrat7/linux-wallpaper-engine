@@ -1,7 +1,9 @@
 import {
+  useCallback,
   useId,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -20,6 +22,7 @@ import { WALLPAPER_GRID_GAP, WALLPAPER_GRID_SKELETON_COUNT } from '../../../shar
 import { findScrollParent, columnsForWidth } from '@/lib/utils'
 import { useGlass } from '@/hooks/use-glass'
 import { WALLPAPER_GRID_TRANSITION } from './wallpaper-grid-shell'
+import { useWallpaperGridNavigation } from '@/hooks/use-wallpaper-grid-navigation'
 
 const OVERSCAN = 3 // rows rendered beyond the viewport to smooth scrolling
 
@@ -42,6 +45,7 @@ interface VirtualizedWallpaperGridProps {
   renderCardOverlay?: (wallpaper: Wallpaper) => ReactNode
   columns?: number
   density?: WallpaperGridDensity
+  selectionMode?: 'expanded' | 'pressed'
   ref?: Ref<VirtualizedWallpaperGridHandle>
 }
 
@@ -59,6 +63,7 @@ export function VirtualizedWallpaperGrid({
   renderCardOverlay,
   columns: columnsOverride,
   density,
+  selectionMode = 'expanded',
   ref,
 }: VirtualizedWallpaperGridProps) {
   const parentRef = useRef<HTMLDivElement>(null)
@@ -68,6 +73,10 @@ export function VirtualizedWallpaperGrid({
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null)
   const [width, setWidth] = useState(0)
   const [scrollMargin, setScrollMargin] = useState(0)
+  const itemIds = useMemo(
+    () => wallpapers.map((wallpaper) => wallpaper.path ?? wallpaper.id),
+    [wallpapers],
+  )
 
   // Resolve the scroll container once mounted.
   useLayoutEffect(() => {
@@ -109,6 +118,18 @@ export function VirtualizedWallpaperGrid({
     overscan: OVERSCAN,
     scrollMargin,
   })
+  const handleNavigate = useCallback(
+    (index: number) => {
+      if (columns === 0) return
+      virtualizer.scrollToIndex(Math.floor(index / columns), { align: 'auto', behavior: 'auto' })
+    },
+    [columns, virtualizer],
+  )
+  const { focusId, getItemProps } = useWallpaperGridNavigation({
+    itemIds,
+    columns,
+    onNavigate: handleNavigate,
+  })
 
   // Re-measure rows when geometry changes (column count / width).
   useLayoutEffect(() => {
@@ -118,16 +139,9 @@ export function VirtualizedWallpaperGrid({
   useImperativeHandle(
     ref,
     () => ({
-      scrollToPath: (path: string) => {
-        const index = wallpapers.findIndex((w) => w.path === path)
-        if (index < 0 || columns === 0) return
-        virtualizer.scrollToIndex(Math.floor(index / columns), {
-          align: 'center',
-          behavior: 'auto',
-        })
-      },
+      scrollToPath: focusId,
     }),
-    [virtualizer, wallpapers, columns],
+    [focusId],
   )
 
   const skeleton = (
@@ -143,13 +157,18 @@ export function VirtualizedWallpaperGrid({
 
   const rows = (
     <LayoutGroup id={layoutGroupId}>
-      <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+      <div
+        role="presentation"
+        style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+      >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const start = virtualRow.index * columns
           const rowItems = wallpapers.slice(start, start + columns)
           return (
             <div
               key={virtualRow.key}
+              role="row"
+              aria-rowindex={virtualRow.index + 1}
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
               className="grid gap-4"
@@ -163,26 +182,35 @@ export function VirtualizedWallpaperGrid({
                 paddingBottom: WALLPAPER_GRID_GAP,
               }}
             >
-              {rowItems.map((wallpaper) => (
-                <motion.div
-                  key={wallpaper.id}
-                  layout
-                  layoutId={wallpaper.id}
-                  transition={WALLPAPER_GRID_TRANSITION}
-                  className="relative"
-                  data-wallpaper-path={wallpaper.path}
-                >
-                  <WallpaperCard
-                    wallpaper={wallpaper}
-                    selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
-                    onClick={onCardClick}
-                    compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
-                    showCompatibilityDot={showCompatibilityDot}
-                    glassClassName={glass}
-                  />
-                  {renderCardOverlay?.(wallpaper)}
-                </motion.div>
-              ))}
+              {rowItems.map((wallpaper, columnIndex) => {
+                const index = start + columnIndex
+                const itemProps = getItemProps(itemIds[index], index)
+                return (
+                  <motion.div
+                    key={wallpaper.id}
+                    role="gridcell"
+                    aria-rowindex={virtualRow.index + 1}
+                    aria-colindex={columnIndex + 1}
+                    layout
+                    layoutId={wallpaper.id}
+                    transition={WALLPAPER_GRID_TRANSITION}
+                    className="relative"
+                    data-wallpaper-path={wallpaper.path}
+                  >
+                    <WallpaperCard
+                      wallpaper={wallpaper}
+                      selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+                      onClick={onCardClick}
+                      compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
+                      showCompatibilityDot={showCompatibilityDot}
+                      glassClassName={glass}
+                      selectionMode={selectionMode}
+                      {...itemProps}
+                    />
+                    {renderCardOverlay?.(wallpaper)}
+                  </motion.div>
+                )
+              })}
             </div>
           )
         })}
@@ -193,7 +221,14 @@ export function VirtualizedWallpaperGrid({
   // The parentRef div is now always mounted so the layout effects above can
   // resolve the scroll parent and attach the ResizeObserver on first mount.
   return (
-    <div ref={parentRef}>
+    <div
+      ref={parentRef}
+      role={isLoading || wallpapers.length === 0 ? undefined : 'grid'}
+      aria-label="Wallpapers"
+      aria-busy={isLoading}
+      aria-rowcount={isLoading ? undefined : rowCount}
+      aria-colcount={isLoading ? undefined : columns}
+    >
       {isLoading ? (
         skeleton
       ) : wallpapers.length === 0 ? (

@@ -4,6 +4,7 @@ import { WallpaperCard } from './wallpaper-card'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
 import type { CompatibilityStatus } from '../../../shared/constants/compatibility'
 import { WALLPAPER_GRID_TRANSITION } from './wallpaper-grid-shell'
+import type { WallpaperGridItemProps } from '@/hooks/use-wallpaper-grid-navigation'
 
 interface WallpaperGridCardItemProps {
   wallpaper: Wallpaper
@@ -13,6 +14,9 @@ interface WallpaperGridCardItemProps {
   showCompatibilityDot: boolean
   glassClassName: string
   overlay?: ReactNode
+  rowIndex: number
+  columnIndex: number
+  itemProps: WallpaperGridItemProps
 }
 
 // Memoized so a parent re-render (e.g. selection change) only re-renders the
@@ -25,14 +29,21 @@ export const WallpaperGridCardItem = memo(function WallpaperGridCardItem({
   showCompatibilityDot,
   glassClassName,
   overlay,
+  rowIndex,
+  columnIndex,
+  itemProps,
 }: WallpaperGridCardItemProps) {
   return (
     <motion.div
+      role="gridcell"
+      aria-rowindex={rowIndex + 1}
+      aria-colindex={columnIndex + 1}
       layout
       layoutId={wallpaper.id}
       transition={WALLPAPER_GRID_TRANSITION}
       className="relative"
       data-wallpaper-path={wallpaper.path}
+      data-wallpaper-id={wallpaper.id}
     >
       <WallpaperCard
         wallpaper={wallpaper}
@@ -41,6 +52,7 @@ export const WallpaperGridCardItem = memo(function WallpaperGridCardItem({
         compatibilityStatus={compatibilityStatus}
         showCompatibilityDot={showCompatibilityDot}
         glassClassName={glassClassName}
+        {...itemProps}
       />
       {overlay}
     </motion.div>
