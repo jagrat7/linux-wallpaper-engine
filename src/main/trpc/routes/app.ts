@@ -1,7 +1,6 @@
-import { isFixtureMode, isBrowserDev } from '../../development/mode'
 import { app } from 'electron'
 import { trpc } from '../trpc'
-import { GITHUB_REPO, APP_VERSION } from '../../../shared/constants/app'
+import { GITHUB_REPO } from '../../../shared/constants/app'
 import { isNewerVersion, stripVersionPrefix } from '../../utils/version'
 
 interface GithubRelease {
@@ -11,8 +10,7 @@ interface GithubRelease {
 
 export const appRouter = trpc.router({
   checkUpdate: trpc.procedure.query(async () => {
-    if (isFixtureMode) return { hasUpdate: false, latestVersion: null, releaseUrl: null }
-    const currentVersion = isBrowserDev ? APP_VERSION : app.getVersion()
+    const currentVersion = app.getVersion()
 
     try {
       const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
