@@ -32,22 +32,22 @@
   },
   "main": ".vite/build/main.js",
   "scripts": {
-    "dev": "vp run dev:desktop",
+    "dev": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "built": "DEBUG=* ELECTRON_ENABLE_LOGGING=1 './out/Linux Wallpaper Engine-linux-x64/linux-wallpaper-engine'",
     "built:v": "DEBUG=* ELECTRON_ENABLE_LOGGING=1 './out/Linux Wallpaper Engine-linux-x64/linux-wallpaper-engine' --enable-logging --v=1",
     "publish": "bash scripts/publish.sh",
     "publish:script": "bash scripts/publish.sh",
+    "lint": "vp lint",
+    "lint:fix": "vp lint --fix",
+    "fmt": "vp fmt",
+    "fmt:check": "vp fmt --check",
     "typecheck": "tsc --noEmit",
-    "postinstall": "bun scripts/postinstall.ts",
-    "dev:desktop": "electron-forge start",
-    "dev:web": "node scripts/dev-runner.ts",
-    "build:web": "vp build",
-    "verify:web": "node scripts/browser-regression.ts",
-    "nix:lock": "bun2nix -o distro/nix/bun.nix",
-    "check:all": "vp check && vp test",
-    "verify:bridge": "LWE_NATIVE_BRIDGE_TEST=1 vp test scripts/dev-runner.integration.test.ts"
+    "test": "vp test",
+    "test:w": "vp test watch",
+    "check": "bun run lint && bun run typecheck",
+    "postinstall": "bun2nix -o distro/nix/bun.nix"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -98,7 +98,6 @@
     "@electron-forge/plugin-vite": "^7.10.2",
     "@electron-forge/publisher-github": "^7.11.1",
     "@electron/fuses": "^1.8.0",
-    "@playwright/test": "1.58.2",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/router-plugin": "^1.147.2",
     "@types/node": "^25.0.6",
@@ -119,16 +118,8 @@
     "@electron/rebuild": "^4.0.3",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0-rc.1"
   },
-  "devEngines": {
-    "packageManager": {
-      "name": "bun",
-      "version": "1.4.2",
-      "onFail": "download"
-    }
-  },
   "engines": {
     "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
   },
-  "packageManager": "bun@1.4.2",
   "productName": "Linux Wallpaper Engine"
 }
