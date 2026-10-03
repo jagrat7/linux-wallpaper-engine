@@ -1,3 +1,4 @@
 {
-  "disabledLabels": ["skip-greptile"]
+  "ignorePatterns": "src/main/development/**\nsrc/shared/constants/development.ts",
+  "instructions": "Continue reviewing each PR normally. Ignore findings confined to the local development browser wrapper: the gateway startup guarded by MAIN_WINDOW_VITE_DEV_SERVER_URL in src/main/main.ts, the browser-only branches in src/renderer/lib/trpc.ts and src/renderer/lib/platform.ts, and the Vite development proxy. These paths support local browser verification during bun dev; the gateway is absent from the packaged app. Do not request security hardening or tests for this development-only tooling. Keep reviewing packaged Electron behavior and shared application code, including changes to the Electron IPC and media paths in those same files."
 }
