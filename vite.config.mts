@@ -8,12 +8,6 @@ export default defineConfig({
     globals: true,
     exclude: ['**/node_modules/**', '**/.git/**', 'tests/browser/**', 'promo/**'],
   },
-  resolve: {
-    alias: {
-      '@': new URL('./src/renderer', import.meta.url).pathname,
-      '~': new URL('./src/renderer', import.meta.url).pathname,
-    },
-  },
   fmt: {
     semi: false,
     singleQuote: true,
