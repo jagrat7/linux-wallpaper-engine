@@ -1,4 +1,3 @@
-import { isBrowserDev } from '../development/mode'
 import type { ChildProcess } from 'node:child_process'
 import { hostCommandExists, hostSpawn } from '../utils/host'
 import type { WallpaperOverrides } from '../../shared/constants/wallpaper'
@@ -183,7 +182,6 @@ class CompatibilityService {
   async scanAll(
     wallpapers: { title: string; path: string }[],
   ): Promise<{ total: number; scanned: number }> {
-    if (isBrowserDev) return { total: wallpapers.length, scanned: 0 }
     if (this.scanProgress.running) {
       return { total: this.scanProgress.total, scanned: this.scanProgress.scanned }
     }
