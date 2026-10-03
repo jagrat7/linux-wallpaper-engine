@@ -1,12 +1,18 @@
-import { createHash, randomBytes, randomUUID } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { createRequire, builtinModules } from 'node:module'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { createInterface } from 'node:readline'
 import { build, createServer, type ViteDevServer } from 'vite-plus'
-import { DEV_READY_PREFIX, DEV_HEALTH_PATH } from '../src/shared/constants/development.ts'
+import {
+  DEV_READY_PREFIX,
+  DEV_HEALTH_PATH,
+  DEV_WEB_READY_PREFIX,
+  type DevWebReady,
+} from '../src/shared/constants/development.ts'
 import { stopOwnedProcess } from './dev-process.ts'
+import { createRunDirectory, pruneRuns, runCacheDirectory } from './dev-runtime.ts'
 
 // This command owns a development environment. Vite build otherwise initializes
 // an unset NODE_ENV to production, causing the subsequent server to skip refresh.
@@ -23,7 +29,9 @@ if (!['populated', 'empty', 'missing-backend'].includes(scenario))
   throw new Error(`Unknown scenario: ${scenario}`)
 if (!fixtureMode && scenario !== 'populated') throw new Error('--scenario requires --fixtures')
 const worktreeDirectory = path.resolve(root, '.dev-runtime', worktreeId)
-const runDirectory = path.join(worktreeDirectory, 'runs', randomUUID())
+const runsDirectory = path.join(worktreeDirectory, 'runs')
+const runDirectory = await createRunDirectory(runsDirectory)
+const cacheDirectory = runCacheDirectory(runDirectory)
 const dataDirectory = fixtureMode
   ? path.join(runDirectory, 'data')
   : path.join(worktreeDirectory, 'web')
@@ -39,6 +47,8 @@ async function cleanup() {
   if (shuttingDown) return
   shuttingDown = true
   await Promise.all([frontend?.close(), child ? stopOwnedProcess(child) : undefined])
+  // The dependency cache is most of a run; the backend bundle and data stay for inspection.
+  await fs.rm(cacheDirectory, { recursive: true, force: true })
 }
 for (const signal of ['SIGINT', 'SIGTERM'] as const)
   process.on(signal, () => {
@@ -47,6 +57,9 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const)
 
 try {
   await fs.mkdir(dataDirectory, { recursive: true })
+  await pruneRuns(runsDirectory, runDirectory).catch((error: unknown) => {
+    console.warn('Could not prune finished development runs:', error)
+  })
   await build({
     configFile: false,
     mode: 'development',
@@ -116,7 +129,7 @@ try {
   frontend = await createServer({
     configFile: path.join(root, 'vite.renderer.config.mts'),
     mode: 'development',
-    cacheDir: path.join(runDirectory, 'vite-cache'),
+    cacheDir: cacheDirectory,
     server: {
       host: '127.0.0.1',
       port: 0,
@@ -148,10 +161,15 @@ try {
     `\nBrowser UI: ${url}\nBackend: ${backendUrl}\nData: ${dataDirectory}\nMode: ${fixtureMode ? `fixtures (${scenario})` : 'isolated real services'}\nFrontend HMR is active. Restart this command after backend edits. Ctrl+C closes owned processes.\n`,
   )
   // A machine-readable URL for the regression runner; includes no credentials.
-  console.log(
-    'LWE_WEB_READY ' +
-      JSON.stringify({ url, port: address.port, backendPort, dataDirectory, buildDirectory }),
-  )
+  const ready: DevWebReady = {
+    url,
+    port: address.port,
+    backendPort,
+    dataDirectory,
+    buildDirectory,
+    cacheDirectory,
+  }
+  console.log(DEV_WEB_READY_PREFIX + JSON.stringify(ready))
 } catch (error) {
   console.error(error)
   process.exitCode = 1
