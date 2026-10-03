@@ -104,6 +104,7 @@ export async function installFixtures(dataDirectory: string) {
       appliedHistory,
       backendInstalled: process.env.LWE_DEV_SCENARIO !== 'missing-backend',
     }),
+    catalog: async () => wallpapers,
     apply: async (target) => {
       if (process.env.LWE_DEV_SCENARIO === 'missing-backend')
         return { success: false, error: BACKEND_NOT_INSTALLED_ERROR_MESSAGE }
@@ -137,7 +138,7 @@ export async function installFixtures(dataDirectory: string) {
       invalidationService.emit('wallpaper.stopped')
       return { success: true, screens }
     },
-  } satisfies Pick<typeof wallpaperService, 'query' | 'apply' | 'stop'>)
+  } satisfies Pick<typeof wallpaperService, 'query' | 'catalog' | 'apply' | 'stop'>)
   Object.assign(playlistService, {
     startProcess: async (name, screens, stampLastApplied) => {
       const playlist = await playlistService.getPlaylist(name)

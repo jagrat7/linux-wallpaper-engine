@@ -25,7 +25,8 @@ app
     const gateway = await startDevGateway({
       router: appRouter,
       token: process.env.LWE_DEV_TOKEN ?? '',
-      catalog: async () => (await wallpaperService.query()).wallpapers,
+      // Media requests reuse the advertised catalog without probing the native backend.
+      catalog: () => wallpaperService.catalog(),
     })
     console.log(DEV_READY_PREFIX + JSON.stringify({ port: gateway.port, dataDirectory }))
     let closing = false
