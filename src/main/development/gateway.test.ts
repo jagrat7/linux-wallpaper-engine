@@ -60,7 +60,7 @@ beforeAll(async () => {
   gateway = await startDevGateway({
     router: appRouter,
     token,
-    catalog: async () => (await wallpaperService.query()).wallpapers,
+    catalog: () => wallpaperService.catalog(),
   })
   baseUrl = `http://127.0.0.1:${gateway.port}`
   class AuthenticatedSocket extends WebSocket {
