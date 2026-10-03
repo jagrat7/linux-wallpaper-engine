@@ -3,7 +3,7 @@ export type { DiscoverSectionConfig, WorkshopItem } from './workshop.types'
 import { EventEmitter } from 'node:events'
 import { promisify } from 'node:util'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
-import type { AgeRating } from '../../../shared/constants/wallpaper'
+import type { WorkshopAgeRatings } from '../../../shared/constants/wallpaper'
 import { settingsService } from '../settings'
 import type { IWorkshopService } from './workshop.interface'
 import type {
@@ -340,13 +340,13 @@ class WorkshopService implements IWorkshopService {
     }
   }
 
-  async getAgeRatings(workshopIds: string[]): Promise<Record<string, AgeRating>> {
+  async getAgeRatings(workshopIds: string[]): Promise<WorkshopAgeRatings> {
     const uniqueIds = Array.from(
       new Set(
         workshopIds.map((id) => parseWorkshopId(id)).filter((id): id is bigint => id != null),
       ),
     )
-    const ratings: Record<string, AgeRating> = {}
+    const ratings: WorkshopAgeRatings = {}
     if (uniqueIds.length === 0) return ratings
     const client = await this.getClient()
 

@@ -24,6 +24,8 @@ export const AGE_RATINGS = {
   r: { label: 'R', workshopTag: 'Mature' },
 } as const
 export type AgeRating = keyof typeof AGE_RATINGS
+// null means Steam returned the item successfully without a recognized rating tag.
+export type WorkshopAgeRatings = Record<string, AgeRating | null>
 export const AGE_RATING_OPTIONS = Object.entries(AGE_RATINGS).map(([value, config]) => ({
   label: config.label,
   value,

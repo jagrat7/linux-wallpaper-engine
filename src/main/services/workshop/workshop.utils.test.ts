@@ -41,11 +41,11 @@ describe('mapWorkshopAgeRatings', () => {
     expect(ratings).toEqual({ '123': 'g' })
   })
 
-  it('skips items with no matching rating tag', () => {
+  it('records successful lookups without a matching rating tag', () => {
     const ratings = mapWorkshopAgeRatings([
       { publishedFileId: BigInt('456'), tags: ['Scene', '4K Ultra HD'] },
     ])
-    expect(ratings).toEqual({})
+    expect(ratings).toEqual({ '456': null })
   })
 
   it('maps multiple items', () => {

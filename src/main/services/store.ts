@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../shared/constants/app'
 import type {
   ApplyWallpaperOptions,
   WallpaperOverrides,
-  AgeRating,
+  WorkshopAgeRatings,
 } from '../../shared/constants/wallpaper'
 
 // Store schemas
@@ -26,7 +26,8 @@ export interface WallpaperOverridesSchema {
 
 export interface WorkshopMetadataSchema {
   // Steam workshop item id -> age rating, resolved from Steam UGC tags
-  ageRatings: Record<string, AgeRating>
+  ageRatings: WorkshopAgeRatings
+  checkedAt: Record<string, number>
 }
 
 class StoreService {
@@ -62,7 +63,7 @@ class StoreService {
 
     this.workshopMetadata = new Store<WorkshopMetadataSchema>({
       name: 'workshop-metadata',
-      defaults: { ageRatings: {} },
+      defaults: { ageRatings: {}, checkedAt: {} },
     })
   }
 

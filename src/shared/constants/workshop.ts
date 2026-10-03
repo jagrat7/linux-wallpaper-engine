@@ -2,6 +2,8 @@ import type { DiscoverSectionConfig } from '../../main/services/workshop/worksho
 
 // Steam Workshop pagination starts at page 1.
 export const FIRST_PAGE = 1
+// Refresh stored age tags daily; the installed-library Refresh action bypasses this cache.
+export const WORKSHOP_AGE_RATING_TTL = 24 * 60 * 60 * 1000
 // Discover sections use the first page because they are curated previews, not full paginated feeds.
 export const DISCOVER_PAGE = 1
 // Each discover section stays compact so the default page can load several categories in parallel.

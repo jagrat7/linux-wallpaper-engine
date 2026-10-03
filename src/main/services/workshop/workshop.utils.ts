@@ -2,6 +2,7 @@ import {
   AGE_RATINGS,
   FILTER_TYPE_OPTIONS,
   type AgeRating,
+  type WorkshopAgeRatings,
   type WallpaperType,
 } from '../../../shared/constants/wallpaper'
 import type { AppSettings } from '../../../shared/constants/app'
@@ -62,12 +63,11 @@ export function parseWorkshopAgeRating(tags: string[]): AgeRating | undefined {
 // Best-effort map of workshop item id -> age rating from raw steamworks item payloads
 export function mapWorkshopAgeRatings(
   items: Array<{ publishedFileId: bigint; tags: string[] } | null | undefined>,
-): Record<string, AgeRating> {
-  const ratings: Record<string, AgeRating> = {}
+): WorkshopAgeRatings {
+  const ratings: WorkshopAgeRatings = {}
   for (const item of items) {
     if (!item) continue
-    const rating = parseWorkshopAgeRating(item.tags)
-    if (rating) ratings[item.publishedFileId.toString()] = rating
+    ratings[item.publishedFileId.toString()] = parseWorkshopAgeRating(item.tags) ?? null
   }
   return ratings
 }
