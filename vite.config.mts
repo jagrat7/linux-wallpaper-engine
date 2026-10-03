@@ -128,6 +128,7 @@ export default defineConfig((env: ForgeConfigEnv) => {
           },
         ],
         'react/react-in-jsx-scope': 'off',
+        'react/no-multi-comp': 'error',
         'react/set-state-in-effect': 'warn',
         'react/incompatible-library': 'warn',
         'react/refs': 'warn',
@@ -150,6 +151,12 @@ export default defineConfig((env: ForgeConfigEnv) => {
           ],
           rules: {
             'local/only-service-export': 'error',
+          },
+        },
+        {
+          files: ['src/renderer/components/ui/**'],
+          rules: {
+            'react/no-multi-comp': 'off',
           },
         },
       ],
