@@ -1,12 +1,5 @@
-import { Suspense, lazy } from 'react'
-import { Skeleton } from '@/components/ui/skeleton'
+import { WorkshopWallpaperDetails } from '@/components/workshop/workshop-wallpaper-details'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
-
-const WorkshopWallpaperDetails = lazy(() =>
-  import('@/components/workshop/workshop-wallpaper-details').then((m) => ({
-    default: m.WorkshopWallpaperDetails,
-  })),
-)
 
 interface WorkshopDetailsPanelProps {
   wallpaper: Wallpaper
@@ -14,9 +7,5 @@ interface WorkshopDetailsPanelProps {
 }
 
 export function WorkshopDetailsPanel({ wallpaper, onClose }: WorkshopDetailsPanelProps) {
-  return (
-    <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
-      <WorkshopWallpaperDetails wallpaper={wallpaper} onClose={onClose} />
-    </Suspense>
-  )
+  return <WorkshopWallpaperDetails wallpaper={wallpaper} onClose={onClose} />
 }
