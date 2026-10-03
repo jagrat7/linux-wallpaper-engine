@@ -5,6 +5,8 @@ export type InvalidationKey =
   | 'wallpaper.getCompatibilityMap'
   | 'wallpaper.applied'
   | 'wallpaper.stopped'
+  | 'wallpaper.paused'
+  | 'wallpaper.resumed'
   | 'display.list'
   | 'settings.systemTheme'
 

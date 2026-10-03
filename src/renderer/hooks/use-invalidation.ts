@@ -4,7 +4,12 @@ export function useInvalidation() {
   const utils = trpc.useUtils()
   trpc.invalidation.onInvalidate.useSubscription(undefined, {
     onData(queryKey) {
-      if (queryKey === 'wallpaper.applied' || queryKey === 'wallpaper.stopped') {
+      if (
+        queryKey === 'wallpaper.applied' ||
+        queryKey === 'wallpaper.stopped' ||
+        queryKey === 'wallpaper.paused' ||
+        queryKey === 'wallpaper.resumed'
+      ) {
         // These events describe state changes, not procedure names. Update both
         // mounted clients immediately instead of waiting for their polling timers.
         void Promise.all([

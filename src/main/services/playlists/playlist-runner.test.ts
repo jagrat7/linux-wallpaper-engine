@@ -18,12 +18,15 @@ const { mockPlaylistService, mockSettingsService, mockHost } = vi.hoisted(() => 
   mockHost: {
     hostCommandExists: vi.fn(),
     hostSpawn: vi.fn(),
-    hostExecAsync: vi.fn(),
+    hostExecFileAsync: vi.fn(),
   },
 }))
 
 vi.mock('../settings', () => ({ settingsService: mockSettingsService }))
-vi.mock('../../utils/host', () => mockHost)
+vi.mock('../../utils/host', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/host')>()),
+  ...mockHost,
+}))
 
 import { startPlaylistProcess } from './playlist-runner'
 
@@ -49,6 +52,7 @@ beforeEach(() => {
   mockPlaylistService.resolveWallpaperEngineAssetsDir.mockResolvedValue('/assets')
   mockHost.hostCommandExists.mockResolvedValue(true)
   mockHost.hostSpawn.mockReturnValue(new EventEmitter())
+  mockHost.hostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
 })
 
 describe('startPlaylistProcess', () => {

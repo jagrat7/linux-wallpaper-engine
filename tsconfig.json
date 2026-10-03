@@ -25,7 +25,8 @@
     "isolatedModules": true,
     "paths": {
       "@/*": ["./src/renderer/*"],
-      "~/*": ["./src/renderer/*"]
+      "~/*": ["./src/renderer/*"],
+      "*": ["./*"]
     }
   }
 }
