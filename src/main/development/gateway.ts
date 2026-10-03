@@ -12,7 +12,8 @@ import { serveMedia } from './media.ts'
 
 // Dev only: lets the renderer dev server opened in a browser tab use this backend.
 // Serves the tRPC router over WebSocket and wallpaper media over HTTP.
-export async function startDevGateway() {
+export async function startDevGateway(devServerUrl: string) {
+  const allowedOrigin = new URL(devServerUrl).origin
   const server = http.createServer((req, res) => {
     const pathname = new URL(req.url ?? '/', 'http://localhost').pathname
     if (pathname !== DEV_MEDIA_PATH) {
@@ -24,7 +25,15 @@ export async function startDevGateway() {
       else res.destroy()
     })
   })
-  const wss = new WebSocketServer({ server, path: DEV_API_PATH })
+  const wss = new WebSocketServer({ noServer: true, path: DEV_API_PATH })
+  server.on('upgrade', (req, socket, head) => {
+    if (req.headers.origin !== allowedOrigin) {
+      socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
+      socket.destroy()
+      return
+    }
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req))
+  })
   applyWSSHandler({ wss, router: appRouter, createContext: () => createTrpcContext() })
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
