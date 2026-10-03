@@ -121,6 +121,13 @@ void app.whenReady().then(() => {
     createContext: async () => createTrpcContext(),
   })
 
+  // Dev only (undefined in packaged builds): serve the same router to browser tabs
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    import('./development/gateway.ts')
+      .then(({ startDevGateway }) => startDevGateway())
+      .catch((error: unknown) => console.error('Browser dev backend failed to start:', error))
+  }
+
   // Push a display.list invalidation to the renderer whenever monitors
   // are added, removed, or change resolution so apply menus stay accurate
   const notifyDisplayChange = () => invalidationService.emit('display.list')

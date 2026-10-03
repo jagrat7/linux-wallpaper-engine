@@ -1,4 +1,3 @@
-import { isBrowserDev } from '../../development/mode'
 import * as fs from 'node:fs/promises'
 export type { DebugInfo } from './wallpaper.types'
 import * as fsSync from 'node:fs'
@@ -61,7 +60,7 @@ class WallpaperService implements IWallpaperService {
   private state = wallpaperStateManager
 
   private constructor() {
-    if (!isBrowserDev) void this.syncAndReapply()
+    void this.syncAndReapply()
   }
 
   static getInstance(): WallpaperService {
@@ -102,8 +101,6 @@ class WallpaperService implements IWallpaperService {
   // ── Apply ──────────────────────────────────────────────────────────────
 
   async apply(target: ApplyTarget): Promise<MutationResult> {
-    if (isBrowserDev)
-      return { success: false, error: 'Native wallpaper actions require desktop mode' }
     switch (target.kind) {
       case 'wallpaper':
         return this.applyWallpaper(target.options)
@@ -123,8 +120,6 @@ class WallpaperService implements IWallpaperService {
   // ── Stop ───────────────────────────────────────────────────────────────
 
   async stop(screen?: string | string[]): Promise<MutationResult> {
-    if (isBrowserDev)
-      return { success: false, error: 'Native wallpaper actions require desktop mode' }
     const settings = await settingsService.loadSettings()
     const screens = Array.isArray(screen) ? screen : screen ? [screen] : []
     if (screens.length > 0 && !settings.windowMode) {
@@ -156,8 +151,6 @@ class WallpaperService implements IWallpaperService {
 
   /** Freeze active wallpaper processes on the requested screens. */
   async pause(screen?: string | string[]): Promise<MutationResult> {
-    if (isBrowserDev)
-      return { success: false, error: 'Native wallpaper actions require desktop mode' }
     const targets = this.resolveTargetScreens(screen)
     const paused: string[] = []
     const errors: string[] = []
@@ -186,8 +179,6 @@ class WallpaperService implements IWallpaperService {
 
   /** Resume wallpaper processes previously paused by the app. */
   async resume(screen?: string | string[]): Promise<MutationResult> {
-    if (isBrowserDev)
-      return { success: false, error: 'Native wallpaper actions require desktop mode' }
     const pausedSet = new Set(this.state.getPausedScreens())
     const targets = this.resolveTargetScreens(screen).filter((target) => pausedSet.has(target))
     const resumed: string[] = []
@@ -216,8 +207,6 @@ class WallpaperService implements IWallpaperService {
 
   /** Apply an installed wallpaper that is not already active when possible. */
   async applyRandom(screen?: string): Promise<MutationResult & { wallpaperTitle?: string }> {
-    if (isBrowserDev)
-      return { success: false, error: 'Native wallpaper actions require desktop mode' }
     const wallpapers = await this.getWallpapers()
     if (wallpapers.length === 0) return { success: false, error: 'No wallpapers installed' }
 
