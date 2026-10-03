@@ -34,13 +34,12 @@ export const WallpaperCard = memo(function WallpaperCard({
   return (
     <div
       className={cn(
-        'cv-auto group bg-card relative cursor-pointer overflow-hidden rounded-xl border transition-all duration-200',
+        'cv-auto group bg-card relative overflow-hidden rounded-xl border transition-all duration-200',
         glassClassName,
         selected
           ? '!border-primary ring-primary/20 ring-2'
           : 'border-border hover:border-ring/50 hover:shadow-lg',
       )}
-      onClick={() => onClick?.(wallpaper)}
     >
       <WallpaperThumbnail src={wallpaper.thumbnail} alt={wallpaper.title} enableHover={true}>
         {/* Gradient overlay at bottom */}
@@ -59,9 +58,10 @@ export const WallpaperCard = memo(function WallpaperCard({
             <TooltipTrigger asChild>
               <div
                 className={cn(
-                  'absolute top-2 right-2 size-2.5 rounded-full ring-1 ring-black/20',
+                  'absolute top-2 right-2 z-20 size-2.5 rounded-full ring-1 ring-black/20',
                   COMPATIBILITY_CONFIG[compatibilityStatus].bgColor,
                 )}
+                aria-hidden="true"
               />
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">
@@ -70,6 +70,12 @@ export const WallpaperCard = memo(function WallpaperCard({
           </Tooltip>
         )}
       </WallpaperThumbnail>
+      <button
+        type="button"
+        aria-label={`${wallpaper.title}${showCompatibilityDot && compatibilityStatus && compatibilityStatus !== 'unknown' ? `, ${COMPATIBILITY_CONFIG[compatibilityStatus].label}` : ''}`}
+        className="focus-visible:ring-ring absolute inset-0 z-10 cursor-pointer rounded-xl focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+        onClick={() => onClick?.(wallpaper)}
+      />
     </div>
   )
 })
