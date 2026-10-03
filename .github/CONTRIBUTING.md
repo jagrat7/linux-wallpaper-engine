@@ -34,6 +34,21 @@ bun install --frozen-lockfile
 bun dev
 ```
 
+### Vite+ commands
+
+The project uses [Vite+](https://viteplus.dev). Each `bun run <script>` also works through the `vp` CLI (installed locally, so `bunx vp ...` works without a global install):
+
+| bun                                 | Vite+                       |
+| ----------------------------------- | --------------------------- |
+| `bun dev`                           | `vp run dev`                |
+| `bun run make`                      | `vp run make`               |
+| `bun run check`                     | `vp run check`              |
+| `bun run lint` / `bun run lint:fix` | `vp lint` / `vp lint --fix` |
+| `bun run fmt` / `bun run fmt:check` | `vp fmt` / `vp fmt --check` |
+| `bun run test` / `bun run test:w`   | `vp test` / `vp test watch` |
+
+`vp check` runs format, lint and type checks in one pass. Use `vp run dev`, not `vp dev`: `vp dev` is Vite's own dev server without Electron.
+
 ### Building Packages
 
 ```bash
