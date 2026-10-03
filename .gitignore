@@ -126,8 +126,4 @@ jean.json
 /pr-video
 .vitest/
 
-# Isolated browser development and verification evidence
-.dev-runtime/
-test-results/
-playwright-report/
 dist/
