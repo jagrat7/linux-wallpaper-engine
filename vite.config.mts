@@ -3,15 +3,7 @@ import react from '@vitejs/plugin-react'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
-import { randomUUID } from 'node:crypto'
-import {
-  DEV_BACKEND_PORT,
-  DEV_GATEWAY_TOKEN_ENV,
-  DEV_GATEWAY_TOKEN_HEADER,
-} from './src/shared/constants/development.ts'
-
-// Forge loads multiple build entries in one process; all use one server-only session token.
-const gatewayToken = (process.env[DEV_GATEWAY_TOKEN_ENV] ??= randomUUID())
+import { DEV_BACKEND_PORT } from './src/shared/constants/development.ts'
 
 const alias = (directory: string) => ({
   '@': path.resolve(import.meta.dirname, directory),
@@ -47,13 +39,7 @@ export default defineConfig((env: ForgeConfigEnv) => {
     server: {
       watch: { ignored: ['**/.vite/**', '**/out/**'] },
       // Browser tabs reach the dev backend in Electron main (src/main/development/gateway.ts)
-      proxy: {
-        '/api': {
-          target: `http://127.0.0.1:${DEV_BACKEND_PORT}`,
-          ws: true,
-          headers: { [DEV_GATEWAY_TOKEN_HEADER]: gatewayToken },
-        },
-      },
+      proxy: { '/api': { target: `http://127.0.0.1:${DEV_BACKEND_PORT}`, ws: true } },
     },
     resolve: { alias: alias('./src/renderer') },
     test: {

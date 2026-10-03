@@ -15,35 +15,24 @@ const mimeTypes: Record<string, string> = {
   '.webm': 'video/webm',
 }
 
-// Only advertised previews inside their wallpaper directory may be served.
+// Streams a file only if it lives inside an installed wallpaper's directory
 export async function serveMedia(req: IncomingMessage, res: ServerResponse) {
   const requested = new URL(req.url ?? '', 'http://localhost').searchParams.get('path')
   if (!requested) {
     res.writeHead(400).end()
     return
   }
-  const requestedPath = path.resolve(requested)
-  const file = await fs.realpath(requestedPath).catch(() => null)
+  const file = await fs.realpath(path.resolve(requested)).catch(() => null)
   if (!file) {
     res.writeHead(404).end()
     return
   }
   const wallpapers = await wallpaperService.catalog()
-  const wallpaper = wallpapers.find((item) =>
-    [item.thumbnail, item.previewUrl].some(
-      (preview) => preview && path.resolve(preview) === requestedPath,
-    ),
+  const directories = await Promise.all(
+    wallpapers.map((item) => fs.realpath(item.path).catch(() => null)),
   )
-  if (!wallpaper) {
-    res.writeHead(403).end()
-    return
-  }
-  const directory = await fs.realpath(wallpaper.path).catch(() => null)
-  if (!directory) {
-    res.writeHead(404).end()
-    return
-  }
-  if (!file.startsWith(directory + path.sep)) {
+  const known = directories.some((directory) => directory && file.startsWith(directory + path.sep))
+  if (!known) {
     res.writeHead(403).end()
     return
   }
