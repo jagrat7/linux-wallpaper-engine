@@ -6,7 +6,6 @@ import type {
   WorkshopStatus,
 } from './workshop.types'
 import type { WorkshopConnectionEvent } from './workshop'
-import type { AgeRating } from '../../../shared/constants/wallpaper'
 
 export interface IWorkshopService {
   /**
@@ -28,9 +27,9 @@ export interface IWorkshopService {
   discover(options?: WorkshopDiscoverOptions): Promise<WorkshopDiscoverResult>
 
   /**
-   * Subscribes and downloads a Workshop item, saving its age rating once.
+   * Subscribes the current Steam user to a Workshop item by its published file id.
    */
-  subscribe(workshopId: string, ageRating?: AgeRating | null): Promise<boolean>
+  subscribe(workshopId: string): Promise<boolean>
 
   /**
    * Unsubscribes the current Steam user from a Workshop item by its published file id.

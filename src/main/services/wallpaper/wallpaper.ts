@@ -10,6 +10,7 @@ import { hostSpawn, hostExecAsync, hostCommandExists, isFlatpak } from '../../ut
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import {
   BACKEND_NOT_INSTALLED_ERROR_MESSAGE,
+  parseWorkshopAgeRating,
   pickScanManagedFields,
   type ApplyWallpaperOptions,
   type Wallpaper,
@@ -222,7 +223,6 @@ class WallpaperService implements IWallpaperService {
   private async scanWallpapers(): Promise<Wallpaper[]> {
     const workshopDirs: Set<string> = new Set()
     const wallpapers: Wallpaper[] = []
-    const ageRatings = storeService.workshopMetadata.get('ageRatings')
     const seen: Set<string> = new Set()
 
     const steamLibraryPaths = await playlistService.resolveSteamLibraryPaths()
@@ -306,7 +306,7 @@ class WallpaperService implements IWallpaperService {
             wallpapers.push({
               id: itemId,
               workshopId: itemId,
-              ageRating: ageRatings[itemId] ?? undefined,
+              ageRating: parseWorkshopAgeRating([project.contentrating ?? '']),
               title: project.title ?? 'Untitled',
               author: project.author ?? (project.workshopurl ? 'Workshop' : 'Unknown'),
               type,

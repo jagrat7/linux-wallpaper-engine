@@ -43,8 +43,7 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
   )
 
   const subscribeMutation = trpc.workshop.subscribe.useMutation({
-    onSuccess: (didSubscribe) => {
-      if (!didSubscribe) return
+    onSuccess: () => {
       removeUnsubscribedWorkshopId(workshopId)
       setLocalIsDownloading(true)
     },
@@ -77,7 +76,7 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
     .map((w) => w.screen)
 
   const handleDownload = () => {
-    subscribeMutation.mutate({ workshopId, ageRating: wallpaper.ageRating ?? null })
+    subscribeMutation.mutate({ workshopId })
   }
 
   const handleUnsubscribe = () => {

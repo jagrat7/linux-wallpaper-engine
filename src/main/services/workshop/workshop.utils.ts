@@ -1,7 +1,7 @@
 import {
   AGE_RATINGS,
   FILTER_TYPE_OPTIONS,
-  type AgeRating,
+  parseWorkshopAgeRating,
   type WallpaperType,
 } from '../../../shared/constants/wallpaper'
 import type { AppSettings } from '../../../shared/constants/app'
@@ -44,20 +44,6 @@ const WORKSHOP_TYPE_TAGS = Object.fromEntries(
       option.value !== 'all',
   ).map((option) => [option.value, option.label]),
 ) as Record<WallpaperType, string>
-
-export function parseWorkshopAgeRating(tags: string[]): AgeRating | undefined {
-  const normalizedTags = new Set(tags.map((tag) => tag.trim().toLowerCase()))
-
-  for (const [ageRating, config] of Object.entries(AGE_RATINGS) as Array<
-    [AgeRating, (typeof AGE_RATINGS)[AgeRating]]
-  >) {
-    if (normalizedTags.has(config.workshopTag.toLowerCase())) {
-      return ageRating
-    }
-  }
-
-  return undefined
-}
 
 export function parseWorkshopType(tags: string[]): WallpaperType {
   const normalizedTags = new Set(tags.map((tag) => tag.trim().toLowerCase()))

@@ -1,10 +1,6 @@
 import Store from 'electron-store'
 import { DEFAULT_SETTINGS, type AppSettings } from '../../shared/constants/app'
-import type {
-  ApplyWallpaperOptions,
-  WallpaperOverrides,
-  WorkshopAgeRatings,
-} from '../../shared/constants/wallpaper'
+import type { ApplyWallpaperOptions, WallpaperOverrides } from '../../shared/constants/wallpaper'
 
 // Store schemas
 export interface ActivePlaylistInfo {
@@ -24,18 +20,12 @@ export interface WallpaperOverridesSchema {
   overrides: Record<string, WallpaperOverrides>
 }
 
-export interface WorkshopMetadataSchema {
-  // Steam workshop item id -> age rating, resolved from Steam UGC tags
-  ageRatings: WorkshopAgeRatings
-}
-
 class StoreService {
   private static instance: StoreService | null = null
 
   readonly settings: Store<AppSettings>
   readonly activeWallpapers: Store<ActiveWallpapersSchema>
   readonly wallpaperOverrides: Store<WallpaperOverridesSchema>
-  readonly workshopMetadata: Store<WorkshopMetadataSchema>
 
   private constructor() {
     this.settings = new Store<AppSettings>({
@@ -58,11 +48,6 @@ class StoreService {
       defaults: {
         overrides: {},
       },
-    })
-
-    this.workshopMetadata = new Store<WorkshopMetadataSchema>({
-      name: 'workshop-metadata',
-      defaults: { ageRatings: {} },
     })
   }
 

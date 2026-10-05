@@ -4,8 +4,6 @@ import { EventEmitter } from 'node:events'
 import { promisify } from 'node:util'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import { settingsService } from '../settings'
-import { storeService } from '../store'
-import type { AgeRating } from '../../../shared/constants/wallpaper'
 import type { IWorkshopService } from './workshop.interface'
 import type {
   WorkshopDiscoverOptions,
@@ -279,7 +277,7 @@ class WorkshopService implements IWorkshopService {
     }
   }
 
-  async subscribe(workshopId: string, ageRating: AgeRating | null = null): Promise<boolean> {
+  async subscribe(workshopId: string): Promise<boolean> {
     const workshopContext = await this.resolveWorkshopContext(workshopId)
 
     if (!workshopContext) {
@@ -288,12 +286,7 @@ class WorkshopService implements IWorkshopService {
 
     try {
       await workshopContext.client.workshop.subscribe(workshopContext.itemId)
-      if (!workshopContext.client.workshop.download(workshopContext.itemId, true)) return false
-      const id = workshopContext.itemId.toString()
-      const ageRatings = storeService.workshopMetadata.get('ageRatings')
-      if (ageRatings[id] === undefined) {
-        storeService.workshopMetadata.set('ageRatings', { ...ageRatings, [id]: ageRating })
-      }
+      workshopContext.client.workshop.download(workshopContext.itemId, true)
       return true
     } catch {
       return false
