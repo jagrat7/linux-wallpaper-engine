@@ -27,7 +27,6 @@ export interface WallpaperOverridesSchema {
 export interface WorkshopMetadataSchema {
   // Steam workshop item id -> age rating, resolved from Steam UGC tags
   ageRatings: WorkshopAgeRatings
-  checkedAt: Record<string, number>
 }
 
 class StoreService {
@@ -63,7 +62,7 @@ class StoreService {
 
     this.workshopMetadata = new Store<WorkshopMetadataSchema>({
       name: 'workshop-metadata',
-      defaults: { ageRatings: {}, checkedAt: {} },
+      defaults: { ageRatings: {} },
     })
   }
 

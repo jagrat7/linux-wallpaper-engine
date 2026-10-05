@@ -4,6 +4,7 @@ import { TRPCError } from '@trpc/server'
 import { trpc } from '../trpc'
 import { workshopService, type WorkshopConnectionEvent } from '../../services/workshop/workshop'
 import { WORKSHOP_SORT_OPTIONS, type WorkshopSortBy } from '../../../shared/constants/workshop'
+import { AGE_RATING_OPTIONS } from '../../../shared/constants/wallpaper'
 
 const workshopSortSchema = z.enum(
   WORKSHOP_SORT_OPTIONS.map((o) => o.value) as [WorkshopSortBy, ...WorkshopSortBy[]],
@@ -59,8 +60,13 @@ export const workshopRouter = trpc.router({
     .query(({ input }) => workshopService.discover(input)),
 
   subscribe: workshopProcedure
-    .input(z.object({ workshopId: z.string() }))
-    .mutation(({ input }) => workshopService.subscribe(input.workshopId)),
+    .input(
+      z.object({
+        workshopId: z.string(),
+        ageRating: z.enum(AGE_RATING_OPTIONS.map((option) => option.value)).nullable(),
+      }),
+    )
+    .mutation(({ input }) => workshopService.subscribe(input.workshopId, input.ageRating)),
 
   unsubscribe: workshopProcedure
     .input(z.object({ workshopId: z.string() }))

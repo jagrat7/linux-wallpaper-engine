@@ -3,8 +3,9 @@ export type { DiscoverSectionConfig, WorkshopItem } from './workshop.types'
 import { EventEmitter } from 'node:events'
 import { promisify } from 'node:util'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
-import type { WorkshopAgeRatings } from '../../../shared/constants/wallpaper'
 import { settingsService } from '../settings'
+import { storeService } from '../store'
+import type { AgeRating } from '../../../shared/constants/wallpaper'
 import type { IWorkshopService } from './workshop.interface'
 import type {
   WorkshopDiscoverOptions,
@@ -17,7 +18,6 @@ import type {
 import { createWorkshopConnectionError, isWorkshopConnectionError } from './workshop.errors'
 import {
   buildFilterCombinations,
-  mapWorkshopAgeRatings,
   mapWorkshopItems,
   mergeWorkshopItemsBySource,
   parseWorkshopId,
@@ -37,7 +37,6 @@ import {
   WORKSHOP_SORT_TO_QUERY_TYPE,
   WORKSHOP_TREND_DAYS,
   WORKSHOP_MAX_RESULTS,
-  WORKSHOP_AGE_RATING_TIMEOUT,
 } from '../../../shared/constants/workshop'
 
 type SteamworksModule = typeof import('steamworks.js')
@@ -47,9 +46,6 @@ export type WorkshopConnectionEvent = 'connected' | 'disconnected'
 
 const execFileAsync = promisify(execFile)
 const AUTO_CONNECT_INTERVAL_MS = 3000
-
-// Steam UGC details requests currently accept up to 1,000 ids per call (https://partner.steamgames.com/doc/api/ISteamUGC#CreateQueryUGCDetailsRequest)
-const WORKSHOP_DETAILS_BATCH_SIZE = 1000
 
 class WorkshopService implements IWorkshopService {
   private static instance: WorkshopService | null = null
@@ -283,7 +279,7 @@ class WorkshopService implements IWorkshopService {
     }
   }
 
-  async subscribe(workshopId: string): Promise<boolean> {
+  async subscribe(workshopId: string, ageRating: AgeRating | null = null): Promise<boolean> {
     const workshopContext = await this.resolveWorkshopContext(workshopId)
 
     if (!workshopContext) {
@@ -292,7 +288,12 @@ class WorkshopService implements IWorkshopService {
 
     try {
       await workshopContext.client.workshop.subscribe(workshopContext.itemId)
-      workshopContext.client.workshop.download(workshopContext.itemId, true)
+      if (!workshopContext.client.workshop.download(workshopContext.itemId, true)) return false
+      const id = workshopContext.itemId.toString()
+      const ageRatings = storeService.workshopMetadata.get('ageRatings')
+      if (ageRatings[id] === undefined) {
+        storeService.workshopMetadata.set('ageRatings', { ...ageRatings, [id]: ageRating })
+      }
       return true
     } catch {
       return false
@@ -338,47 +339,6 @@ class WorkshopService implements IWorkshopService {
             total: toSafeNumber(downloadInfo.total),
           }
         : null,
-    }
-  }
-
-  async getAgeRatings(workshopIds: string[]): Promise<WorkshopAgeRatings> {
-    const uniqueIds = Array.from(
-      new Set(
-        workshopIds.map((id) => parseWorkshopId(id)).filter((id): id is bigint => id != null),
-      ),
-    )
-    const ratings: WorkshopAgeRatings = {}
-    if (uniqueIds.length === 0) return ratings
-    let timedOut = false
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const timeout = new Promise<never>((_resolve, reject) => {
-      timer = setTimeout(() => {
-        timedOut = true
-        reject(new Error('Steam age-rating lookup timed out'))
-      }, WORKSHOP_AGE_RATING_TIMEOUT)
-    })
-    const request = (async () => {
-      const client = await this.getClient()
-      for (let i = 0; i < uniqueIds.length; i += WORKSHOP_DETAILS_BATCH_SIZE) {
-        // Native requests cannot be cancelled; stop further batches after a timeout.
-        if (timedOut) break
-        const chunk = uniqueIds.slice(i, i + WORKSHOP_DETAILS_BATCH_SIZE)
-        const { items } = await client.workshop.getItems(chunk)
-        if (timedOut) break
-        Object.assign(ratings, mapWorkshopAgeRatings(items))
-      }
-      return ratings
-    })()
-    try {
-      return await Promise.race([request, timeout])
-    } catch (error) {
-      if (Object.keys(ratings).length === 0) throw error
-      console.warn('Steam age-rating lookup incomplete; keeping completed batches', error)
-      // A timed-out native request can still finish later. Return a snapshot so
-      // late results cannot mutate metadata already handed to the catalog.
-      return { ...ratings }
-    } finally {
-      clearTimeout(timer)
     }
   }
 
