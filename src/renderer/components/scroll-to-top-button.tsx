@@ -60,6 +60,8 @@ export function ScrollToTopButton({
     <button
       ref={buttonRef}
       type="button"
+      tabIndex={isVisible ? 0 : -1}
+      aria-hidden={!isVisible}
       onClick={handleClick}
       className={cn(
         'fixed right-4 bottom-[calc(var(--status-bar-h,0rem)_+_0.5rem)] z-50',
