@@ -50,6 +50,7 @@ import type {
   OverrideMutation,
   ServiceAction,
   DebugInfo,
+  RemainingScreen,
 } from './wallpaper.types'
 
 class WallpaperService implements IWallpaperService {
@@ -660,6 +661,7 @@ class WallpaperService implements IWallpaperService {
 
   private async reapplyAll(): Promise<MutationResult> {
     const errors: string[] = []
+    const pausedScreens = this.state.getPausedScreens()
     const settings = await settingsService.loadSettings()
     const grouped = new Map<string, { screens: string[]; options: ApplyWallpaperOptions }>()
 
@@ -715,17 +717,25 @@ class WallpaperService implements IWallpaperService {
       }
     }
 
+    // Respawned processes start running; keep previously paused screens frozen
+    const repause = await this.setPaused(pausedScreens, true)
+    if (repause.error) errors.push(repause.error)
+
     return {
       success: errors.length === 0,
       error: errors.length > 0 ? errors.join('; ') : undefined,
     }
   }
 
-  private async respawnGrouped(
-    remaining: Array<{ screen: string; options: ApplyWallpaperOptions }>,
-  ): Promise<void> {
+  /** Respawn screens left over from a released shared process, keeping paused ones frozen. */
+  private async respawnGrouped(remaining: RemainingScreen[]): Promise<void> {
     if (remaining.length === 0) return
+    await this.respawnScreens(remaining)
+    const paused = remaining.filter((entry) => entry.paused).map((entry) => entry.screen)
+    await this.setPaused(paused, true)
+  }
 
+  private async respawnScreens(remaining: RemainingScreen[]): Promise<void> {
     const settings = await settingsService.loadSettings()
 
     // Screens that were part of a playlist restart their playlist process —

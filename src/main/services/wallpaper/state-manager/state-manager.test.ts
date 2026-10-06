@@ -77,6 +77,16 @@ describe('wallpaperStateManager paused state', () => {
     expect(wallpaperStateManager.getPausedScreens()).toEqual([])
   })
 
+  it('reports paused group members for respawn before clearing their state', () => {
+    wallpaperStateManager.register(['eDP-1', 'HDMI-1'], makeProc(), makeOptions())
+    wallpaperStateManager.markPaused(['eDP-1'], true)
+
+    const { remaining } = wallpaperStateManager.release('eDP-1')
+
+    expect(remaining).toEqual([{ screen: 'HDMI-1', options: expect.anything(), paused: true }])
+    expect(wallpaperStateManager.getPausedScreens()).toEqual([])
+  })
+
   it('clears paused state when the process exits', () => {
     const proc = makeProc()
     wallpaperStateManager.register(['eDP-1'], proc, makeOptions())

@@ -1,7 +1,7 @@
 import type { ChildProcess } from 'node:child_process'
 import type { ApplyWallpaperOptions } from '../../../../shared/constants/wallpaper'
 import type { IStateManager } from './state-manger.interface'
-import type { DebugInfo } from '../wallpaper.types'
+import type { DebugInfo, RemainingScreen } from '../wallpaper.types'
 import { storeService } from '../../store'
 
 class WallpaperStateManager implements IStateManager {
@@ -62,21 +62,19 @@ class WallpaperStateManager implements IStateManager {
     this.save()
   }
 
-  release(screen: string): {
-    remaining: Array<{ screen: string; options: ApplyWallpaperOptions }>
-  } {
+  release(screen: string): { remaining: RemainingScreen[] } {
     const proc = this.runningProcesses.get(screen)
     if (!proc) return { remaining: [] }
 
     const group = this.processScreenGroups.get(proc)
 
     // Collect remaining screens before cleanup
-    const remaining: Array<{ screen: string; options: ApplyWallpaperOptions }> = []
+    const remaining: RemainingScreen[] = []
     if (group) {
       for (const s of group) {
         if (s === screen) continue
         const opts = this.activeWallpapers.get(s)
-        if (opts) remaining.push({ screen: s, options: opts })
+        if (opts) remaining.push({ screen: s, options: opts, paused: this.pausedScreens.has(s) })
       }
     }
 
@@ -106,12 +104,9 @@ class WallpaperStateManager implements IStateManager {
     return { remaining }
   }
 
-  releaseMany(screens: string[]): {
-    remaining: Array<{ screen: string; options: ApplyWallpaperOptions }>
-    released: string[]
-  } {
+  releaseMany(screens: string[]): { remaining: RemainingScreen[]; released: string[] } {
     const targets = new Set(screens)
-    const remaining: Array<{ screen: string; options: ApplyWallpaperOptions }> = []
+    const remaining: RemainingScreen[] = []
     const released: string[] = []
     const procs = new Set<ChildProcess>()
 
@@ -127,7 +122,8 @@ class WallpaperStateManager implements IStateManager {
         for (const screen of group) {
           if (targets.has(screen)) continue
           const opts = this.activeWallpapers.get(screen)
-          if (opts) remaining.push({ screen, options: opts })
+          if (opts)
+            remaining.push({ screen, options: opts, paused: this.pausedScreens.has(screen) })
         }
         for (const screen of group) {
           if (this.runningProcesses.get(screen) === proc) {
