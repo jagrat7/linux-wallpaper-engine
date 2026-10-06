@@ -27,6 +27,7 @@ import { playlistService } from '../playlists/playlist'
 import {
   expandPath,
   parseWallpaperType,
+  parseContentRating,
   detectResolution,
   resolveThumbnail,
   parseWindowGeometry,
@@ -412,6 +413,7 @@ class WallpaperService implements IWallpaperService {
             wallpapers.push({
               id: itemId,
               workshopId: itemId,
+              ageRating: parseContentRating(project.contentrating),
               title: project.title ?? 'Untitled',
               author: project.author ?? (project.workshopurl ? 'Workshop' : 'Unknown'),
               type,

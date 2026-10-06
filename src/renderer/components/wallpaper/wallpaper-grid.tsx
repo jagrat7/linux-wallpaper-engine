@@ -5,18 +5,14 @@ import { GridHeader } from './wallpaper-grid-header'
 import { VirtualizedWallpaperGrid } from './virtualized-wallpaper-grid'
 import { WallpaperGridShell } from './wallpaper-grid-shell'
 import { AlertCircle, FolderOpen } from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useWallpaperSearch } from '@/contexts/wallpaper-search-context'
 import { useWallpaperBackground } from '@/contexts/wallpaper-background-context'
 import { useWallpapers, filterAndSortWallpapers } from '@/hooks/use-wallpapers'
 import { useWallpaperSelection } from '@/hooks/use-wallpaper-selection'
-import { useMemo, useEffect, lazy, Suspense } from 'react'
+import { useMemo, useEffect } from 'react'
 import { useAtomValue } from 'jotai'
 import { unsubscribedWorkshopIdsAtom } from '@/contexts/atoms/workshop-atoms'
-
-const WallpaperDetails = lazy(() =>
-  import('./details-card/wallpaper-details').then((m) => ({ default: m.WallpaperDetails })),
-)
+import { WallpaperDetails } from './details-card/wallpaper-details'
 
 export function WallpaperGrid() {
   const { selectedWallpaper, setSelectedWallpaper, toggleWallpaper } = useWallpaperSelection()
@@ -169,14 +165,12 @@ export function WallpaperGrid() {
         detailsKey={selectedWallpaper?.id}
         details={
           selectedWallpaper ? (
-            <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
-              <WallpaperDetails
-                key={selectedWallpaper.id}
-                wallpaper={selectedWallpaper}
-                onClose={() => setSelectedWallpaper(null)}
-                onUnsubscribe={handleUnsubscribe}
-              />
-            </Suspense>
+            <WallpaperDetails
+              key={selectedWallpaper.id}
+              wallpaper={selectedWallpaper}
+              onClose={() => setSelectedWallpaper(null)}
+              onUnsubscribe={handleUnsubscribe}
+            />
           ) : null
         }
       >

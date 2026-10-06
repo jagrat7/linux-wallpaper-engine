@@ -1,2 +1,3 @@
 - dont shared redfine types, look at /src/shared/constants to see if it already exists
 - add jsdocs for services
+- Avoid litering services with one of files, try to see if you can add it to utils first

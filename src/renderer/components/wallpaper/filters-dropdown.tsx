@@ -120,19 +120,6 @@ export function FiltersDropdown() {
         )}
 
         <FilterSection
-          label="Age rating"
-          items={AGE_RATING_ITEMS}
-          selected={filterAgeRating}
-          onToggle={(key) => toggleFilterAgeRating(key as AgeRating)}
-          multi
-          badge={
-            filterAgeRating.length > 0 ? (
-              <span className="text-primary">{filterAgeRating.length} selected</span>
-            ) : undefined
-          }
-        />
-
-        <FilterSection
           label="Compatibility"
           items={COMPAT_ITEMS}
           selected={filterCompatibility}
@@ -159,6 +146,19 @@ export function FiltersDropdown() {
             }
           />
         )}
+
+        <FilterSection
+          label="Age rating"
+          items={AGE_RATING_ITEMS}
+          selected={filterAgeRating}
+          onToggle={(key) => toggleFilterAgeRating(key as AgeRating)}
+          multi
+          badge={
+            filterAgeRating.length > 0 ? (
+              <span className="text-primary">{filterAgeRating.length} selected</span>
+            ) : undefined
+          }
+        />
 
         <FilterSection
           label="Type"
