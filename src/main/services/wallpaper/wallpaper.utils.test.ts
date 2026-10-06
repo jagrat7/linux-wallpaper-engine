@@ -2,18 +2,25 @@ import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import type { ChildProcess } from 'node:child_process'
 import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
-import { buildApplyOptions, pickRandomWallpaper, signalWallpaperProcess } from './wallpaper.utils'
+import {
+  BACKEND_PROCESS_PATTERN,
+  buildApplyOptions,
+  isScreenBackendRunning,
+  listBackendProcesses,
+  pickRandomWallpaper,
+  signalWallpaperProcess,
+} from './wallpaper.utils'
 import { backendArgPattern, escapeRegExp } from '../../utils/host'
 
-const { mockHostExecFileAsync, mockUsesFlatpakSpawn } = vi.hoisted(() => ({
+const { mockHostExecFileAsync, mockShouldUseFlatpakSpawn } = vi.hoisted(() => ({
   mockHostExecFileAsync: vi.fn(),
-  mockUsesFlatpakSpawn: vi.fn(),
+  mockShouldUseFlatpakSpawn: vi.fn(),
 }))
 
 vi.mock('../../utils/host', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/host')>()),
   hostExecFileAsync: mockHostExecFileAsync,
-  usesFlatpakSpawn: mockUsesFlatpakSpawn,
+  shouldUseFlatpakSpawn: mockShouldUseFlatpakSpawn,
 }))
 
 describe('pickRandomWallpaper', () => {
@@ -126,8 +133,8 @@ describe('signalWallpaperProcess', () => {
 
   beforeEach(() => {
     mockHostExecFileAsync.mockReset()
-    mockUsesFlatpakSpawn.mockReset()
-    mockUsesFlatpakSpawn.mockReturnValue(false)
+    mockShouldUseFlatpakSpawn.mockReset()
+    mockShouldUseFlatpakSpawn.mockReturnValue(false)
   })
 
   it('signals the tracked process handle and skips the host fallback', async () => {
@@ -145,7 +152,7 @@ describe('signalWallpaperProcess', () => {
   })
 
   it('falls back to a host-side pkill when the handle wraps flatpak-spawn', async () => {
-    mockUsesFlatpakSpawn.mockReturnValue(true)
+    mockShouldUseFlatpakSpawn.mockReturnValue(true)
     mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
     const kill = vi.fn().mockReturnValue(true)
 
@@ -242,6 +249,62 @@ describe('signalWallpaperProcess', () => {
     )
 
     expect(delivered).toBe(false)
+  })
+})
+
+describe('listBackendProcesses', () => {
+  beforeEach(() => {
+    mockHostExecFileAsync.mockReset()
+  })
+
+  it('matches full command lines, since the backend name exceeds the 15-char comm', async () => {
+    mockHostExecFileAsync.mockResolvedValue({
+      stdout: '101 linux-wallpaperengine --screen-root DP-1 --bg /wp/a\n',
+      stderr: '',
+    })
+
+    await expect(listBackendProcesses()).resolves.toEqual([
+      '101 linux-wallpaperengine --screen-root DP-1 --bg /wp/a',
+    ])
+    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pgrep', ['-af', BACKEND_PROCESS_PATTERN])
+  })
+
+  it('returns no processes when pgrep finds no match', async () => {
+    mockHostExecFileAsync.mockRejectedValue(new Error('exit code 1'))
+
+    await expect(listBackendProcesses()).resolves.toEqual([])
+  })
+})
+
+describe('BACKEND_PROCESS_PATTERN', () => {
+  const pattern = new RegExp(BACKEND_PROCESS_PATTERN)
+
+  it('matches plain, absolute, and Nix-wrapped executables', () => {
+    expect(pattern.test('linux-wallpaperengine --bg /wp')).toBe(true)
+    expect(pattern.test('/usr/bin/linux-wallpaperengine --bg /wp')).toBe(true)
+    expect(pattern.test('/nix/store/x/bin/.linux-wallpaperengine-wrapped --bg /wp')).toBe(true)
+  })
+
+  it('ignores processes that only mention the backend in their arguments', () => {
+    expect(pattern.test('flatpak-spawn --host linux-wallpaperengine --bg /wp')).toBe(false)
+    expect(pattern.test('vim linux-wallpaperengine.log')).toBe(false)
+  })
+})
+
+describe('isScreenBackendRunning', () => {
+  const processes = [
+    '101 linux-wallpaperengine --screen-root DP-1 --bg /wp/a',
+    '102 linux-wallpaperengine --bg /wp/b',
+  ]
+
+  it('matches a screen by its exact --screen-root argument', () => {
+    expect(isScreenBackendRunning('DP-1', processes)).toBe(true)
+    expect(isScreenBackendRunning('DP-10', processes)).toBe(false)
+  })
+
+  it('finds the default process even when per-screen processes also run', () => {
+    expect(isScreenBackendRunning('default', processes)).toBe(true)
+    expect(isScreenBackendRunning('default', processes.slice(0, 1))).toBe(false)
   })
 })
 

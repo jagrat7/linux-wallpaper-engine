@@ -52,15 +52,9 @@ export const getFlatpakBypass = (): boolean => flatpakBypass
 
 /**
  * Whether to use flatpak-spawn for this call (inside Flatpak and not bypassed).
+ * When true, ChildProcess handles wrap `flatpak-spawn`, not the real host process.
  */
-const shouldUseFlatpakSpawn = (): boolean => isFlatpak() && !flatpakBypass
-
-/**
- * Exported so callers can avoid paths that assume a directly-owned child
- * process — under Flatpak, ChildProcess handles wrap `flatpak-spawn` rather
- * than the real host process.
- */
-export const usesFlatpakSpawn = (): boolean => shouldUseFlatpakSpawn()
+export const shouldUseFlatpakSpawn = (): boolean => isFlatpak() && !flatpakBypass
 
 export const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

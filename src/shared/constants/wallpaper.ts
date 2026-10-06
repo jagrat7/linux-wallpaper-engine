@@ -14,6 +14,17 @@ export type WallpaperFilterType = (typeof FILTER_TYPE_OPTIONS)[number]['value']
 export type WallpaperType = Exclude<WallpaperFilterType, 'all'>
 export type WindowGeometry = { x: number; y: number; width: number; height: number }
 
+// Invalidation events describing a playback state change, not a procedure name
+export const PLAYBACK_INVALIDATION_KEYS = [
+  'wallpaper.applied',
+  'wallpaper.stopped',
+  'wallpaper.paused',
+  'wallpaper.resumed',
+] as const
+export type PlaybackInvalidationKey = (typeof PLAYBACK_INVALIDATION_KEYS)[number]
+export const isPlaybackInvalidationKey = (key: string): key is PlaybackInvalidationKey =>
+  (PLAYBACK_INVALIDATION_KEYS as readonly string[]).includes(key)
+
 export const BACKEND_NOT_INSTALLED_ERROR_MESSAGE =
   'linux-wallpaperengine is not installed or is not available on PATH'
 export const WALLPAPER_APPLY_FAILED_MESSAGE = 'Wallpaper failed to apply. It may not be compatible.'

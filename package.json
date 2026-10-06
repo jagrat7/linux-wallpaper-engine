@@ -47,6 +47,7 @@
     "test": "vp test",
     "test:w": "vp test watch",
     "check": "bun run lint && bun run typecheck",
+    "icons:tray": "node scripts/generate-tray-icons.mjs",
     "postinstall": "bun2nix -o distro/nix/bun.nix"
   },
   "dependencies": {

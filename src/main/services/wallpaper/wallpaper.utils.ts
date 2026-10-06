@@ -7,7 +7,7 @@ import type {
   Wallpaper,
   WallpaperType,
 } from '../../../shared/constants/wallpaper'
-import { hostExecFileAsync, usesFlatpakSpawn } from '../../utils/host'
+import { backendArgPattern, hostExecFileAsync, shouldUseFlatpakSpawn } from '../../utils/host'
 
 type ImageType = 'jpeg' | 'png' | 'bmp'
 export type TimedCache<T> = {
@@ -92,7 +92,7 @@ export const signalWallpaperProcess = async (
   proc: ChildProcess | undefined,
   pattern: string | null,
 ): Promise<boolean> => {
-  if (proc && !usesFlatpakSpawn()) {
+  if (proc && !shouldUseFlatpakSpawn()) {
     try {
       return proc.kill(signal)
     } catch {
@@ -107,6 +107,25 @@ export const signalWallpaperProcess = async (
   } catch {
     return false
   }
+}
+
+// Matches backend command lines by argv[0], including Nix-style wrapped binaries.
+// Needs -f: plain pgrep only sees the 15-char comm, which truncates the name.
+export const BACKEND_PROCESS_PATTERN = '^[^ ]*linux-wallpaperengine[^ ]*( |$)'
+
+/** `pid cmdline` lines of running backend processes; empty when none run. */
+export const listBackendProcesses = async (): Promise<string[]> => {
+  const { stdout } = await hostExecFileAsync('pgrep', ['-af', BACKEND_PROCESS_PATTERN]).catch(
+    () => ({ stdout: '' }),
+  )
+  return stdout.split('\n').filter((line) => line.trim().length > 0)
+}
+
+/** Whether a backend process is rendering `screen`, judged from `listBackendProcesses` output. */
+export const isScreenBackendRunning = (screen: string, processes: string[]): boolean => {
+  if (screen === 'default') return processes.some((line) => !line.includes('--screen-root'))
+  const pattern = new RegExp(backendArgPattern('--screen-root', screen))
+  return processes.some((line) => pattern.test(line))
 }
 
 export async function parseImageHeader(imagePath: string) {

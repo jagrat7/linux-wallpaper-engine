@@ -93,16 +93,14 @@ class WallpaperStateManager implements IStateManager {
         if (this.runningProcesses.get(s) === proc) {
           this.runningProcesses.delete(s)
         }
-        this.pausedScreens.delete(s)
-        this.screenGroups.delete(s)
+        this.forgetPauseState(s)
       }
       this.processScreenGroups.delete(proc)
     }
 
     // Remove the released screen from active wallpapers
     this.activeWallpapers.delete(screen)
-    this.pausedScreens.delete(screen)
-    this.screenGroups.delete(screen)
+    this.forgetPauseState(screen)
     this.save()
 
     return { remaining }
@@ -135,8 +133,7 @@ class WallpaperStateManager implements IStateManager {
           if (this.runningProcesses.get(screen) === proc) {
             this.runningProcesses.delete(screen)
           }
-          this.pausedScreens.delete(screen)
-          this.screenGroups.delete(screen)
+          this.forgetPauseState(screen)
         }
         this.processScreenGroups.delete(proc)
       }
@@ -151,8 +148,7 @@ class WallpaperStateManager implements IStateManager {
     // process handle exists (e.g. state restored after an app restart)
     for (const screen of targets) {
       this.activeWallpapers.delete(screen)
-      this.pausedScreens.delete(screen)
-      this.screenGroups.delete(screen)
+      this.forgetPauseState(screen)
     }
     this.save()
 
@@ -171,8 +167,7 @@ class WallpaperStateManager implements IStateManager {
       if (this.runningProcesses.get(screen) === proc) {
         this.runningProcesses.delete(screen)
       }
-      this.pausedScreens.delete(screen)
-      this.screenGroups.delete(screen)
+      this.forgetPauseState(screen)
       if (this.activeWallpapers.has(screen)) {
         this.activeWallpapers.delete(screen)
         cleanedScreens.push(screen)
@@ -226,35 +221,38 @@ class WallpaperStateManager implements IStateManager {
 
   // ── Paused (frozen) process state ──────────────────────────────────────
 
+  /** Screens whose backend process is currently frozen with SIGSTOP. */
   getPausedScreens(): string[] {
     return [...this.pausedScreens]
   }
 
+  /** Whether `screen`'s backend process is currently frozen. */
   isPaused(screen: string): boolean {
     return this.pausedScreens.has(screen)
   }
 
-  // Mark screens as paused/unpaused. A screen shares its process with its
-  // whole screen group, so pausing one screen freezes (and unpausing unfreezes)
-  // every screen in that group — expand the mark accordingly.
+  /**
+   * Mark screens as paused/unpaused. Screens sharing a process freeze and
+   * unfreeze together, so the mark expands to each screen's whole group.
+   */
   markPaused(screens: string[], paused: boolean): void {
-    const targets = new Set<string>()
     for (const screen of screens) {
-      const proc = this.runningProcesses.get(screen)
-      const liveGroup = proc ? this.processScreenGroups.get(proc) : undefined
-      const restoredGroup = this.screenGroups.get(screen)
-      for (const s of liveGroup ?? restoredGroup ?? [screen]) {
-        targets.add(s)
-      }
-    }
-    for (const screen of targets) {
-      if (paused) {
-        this.pausedScreens.add(screen)
-      } else {
-        this.pausedScreens.delete(screen)
+      for (const s of this.screenGroups.get(screen) ?? [screen]) {
+        if (paused) {
+          this.pausedScreens.add(s)
+        } else {
+          this.pausedScreens.delete(s)
+        }
       }
     }
     this.save()
+  }
+
+  // Pause state only describes a live process; drop it once the screen's
+  // process is released, replaced, or gone
+  private forgetPauseState(screen: string): void {
+    this.pausedScreens.delete(screen)
+    this.screenGroups.delete(screen)
   }
 
   // ── Applied history ────────────────────────────────────────────────────

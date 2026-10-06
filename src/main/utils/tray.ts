@@ -12,6 +12,7 @@ import { invalidationService } from '../services/invalidation'
 import { playlistService } from '../services/playlists/playlist'
 import { wallpaperService } from '../services/wallpaper/wallpaper'
 import { APP_NAME } from '../../shared/constants/app'
+import { isPlaybackInvalidationKey } from '../../shared/constants/wallpaper'
 import { resolveAssetPath } from './assets'
 import { createTrayStartupRetry, type TrayStartupRetry } from './tray-startup'
 
@@ -39,16 +40,28 @@ const trayMenuIcon = (name: string) =>
     resolveAssetPath(`tray/${nativeTheme.shouldUseDarkColors ? 'dark' : 'light'}/${name}.png`),
   )
 
-// Tray actions have no other feedback surface — report failures as a desktop
-// notification so they aren't silent no-ops
-const notifyFailure = (error: string | undefined, fallback: string): void => {
+// Tray actions have no other feedback surface — report failed results and
+// thrown errors as a desktop notification so they aren't silent no-ops
+const runTrayAction = async (
+  action: () => Promise<{ success: boolean; error?: string }>,
+  fallback: string,
+): Promise<void> => {
+  let error: string | undefined
+  try {
+    const result = await action()
+    if (result.success) return
+    error = result.error
+  } catch (err) {
+    error = err instanceof Error ? err.message : undefined
+  }
   new Notification({ title: APP_NAME, body: error ?? fallback }).show()
 }
 
-// Stop everything (wallpapers and playlists) from the tray
-const stopAllWallpapers = async (): Promise<void> => {
+// Stops playlists too, since they run as the same tracked backend processes
+const stopAllWallpapers = async () => {
   const result = await wallpaperService.stop()
   if (result.success) playlistService.clearActivePlaylist()
+  return result
 }
 
 /**
@@ -90,35 +103,25 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
         label: 'Pause Wallpaper',
         icon: trayMenuIcon('pause'),
         enabled: hasUnpaused,
-        click: async () => {
-          const result = await wallpaperService.pause()
-          if (!result.success) notifyFailure(result.error, 'Failed to pause wallpapers')
-        },
+        click: () => runTrayAction(() => wallpaperService.pause(), 'Failed to pause wallpapers'),
       },
       {
         label: 'Resume Wallpaper',
         icon: trayMenuIcon('play'),
         enabled: hasPaused,
-        click: async () => {
-          const result = await wallpaperService.resume()
-          if (!result.success) notifyFailure(result.error, 'Failed to resume wallpapers')
-        },
+        click: () => runTrayAction(() => wallpaperService.resume(), 'Failed to resume wallpapers'),
       },
       {
         label: 'Random Wallpaper',
         icon: trayMenuIcon('shuffle'),
-        click: async () => {
-          const result = await wallpaperService.applyRandom()
-          if (!result.success) notifyFailure(result.error, 'Failed to apply a random wallpaper')
-        },
+        click: () =>
+          runTrayAction(() => wallpaperService.applyRandom(), 'Failed to apply a random wallpaper'),
       },
       {
         label: 'Stop Wallpaper',
         icon: trayMenuIcon('stop'),
         enabled: hasActive,
-        click: () => {
-          void stopAllWallpapers()
-        },
+        click: () => runTrayAction(stopAllWallpapers, 'Failed to stop wallpapers'),
       },
       { type: 'separator' },
       {
@@ -161,14 +164,7 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
 
   // Keep the tray menu in sync with playback state (apply/stop/pause/resume)
   const unsubscribeInvalidation = invalidationService.subscribe((key) => {
-    if (
-      key === 'wallpaper.applied' ||
-      key === 'wallpaper.stopped' ||
-      key === 'wallpaper.paused' ||
-      key === 'wallpaper.resumed'
-    ) {
-      refreshMenu()
-    }
+    if (isPlaybackInvalidationKey(key)) refreshMenu()
   })
 
   // Swap menu icon variants when the system theme flips between dark and light

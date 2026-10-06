@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Square, Volume2, VolumeX, Monitor, ListVideo, Pause, Play } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
@@ -53,6 +54,7 @@ export function StatusBar({ className }: StatusBarProps) {
   const stopPlaylistMutation = trpc.playlist.stop.useMutation()
   const pauseMutation = trpc.wallpaper.pause.useMutation()
   const resumeMutation = trpc.wallpaper.resume.useMutation()
+  const [pauseError, setPauseError] = useState<string | null>(null)
   const updateSettingsMutation = trpc.settings.update.useMutation()
   const utils = trpc.useUtils()
   const navigate = useNavigate()
@@ -112,15 +114,14 @@ export function StatusBar({ className }: StatusBarProps) {
     void utils.settings.get.invalidate()
   }
 
+  // Active-state queries refresh from the service's paused/resumed invalidation events
   const handlePauseToggle = async () => {
     if (!activeWallpaper) return
-    if (isPaused) {
-      await resumeMutation.mutateAsync({ screen: activeWallpaper.screen })
-    } else {
-      await pauseMutation.mutateAsync({ screen: activeWallpaper.screen })
-    }
-    void utils.wallpaper.getActiveWallpaper.invalidate()
-    void utils.playlist.active.invalidate()
+    const mutation = isPaused ? resumeMutation : pauseMutation
+    const result = await mutation.mutateAsync({ screen: activeWallpaper.screen })
+    setPauseError(
+      result.success ? null : (result.error ?? `Failed to ${isPaused ? 'resume' : 'pause'}`),
+    )
   }
 
   return (
@@ -198,9 +199,13 @@ export function StatusBar({ className }: StatusBarProps) {
           className="size-7"
           onClick={handlePauseToggle}
           disabled={!activeWallpaper}
-          title={isPaused ? 'Resume wallpaper' : 'Pause wallpaper'}
+          title={pauseError ?? (isPaused ? 'Resume wallpaper' : 'Pause wallpaper')}
         >
-          {isPaused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
+          {isPaused ? (
+            <Play className={cn('size-3.5', pauseError && 'text-destructive')} />
+          ) : (
+            <Pause className={cn('size-3.5', pauseError && 'text-destructive')} />
+          )}
         </Button>
         <Button
           variant="ghost"

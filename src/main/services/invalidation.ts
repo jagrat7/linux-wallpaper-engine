@@ -1,12 +1,10 @@
 import { EventEmitter } from 'node:events'
+import type { PlaybackInvalidationKey } from '../../shared/constants/wallpaper'
 
 export type InvalidationKey =
   | 'wallpaper.getWallpapers'
   | 'wallpaper.getCompatibilityMap'
-  | 'wallpaper.applied'
-  | 'wallpaper.stopped'
-  | 'wallpaper.paused'
-  | 'wallpaper.resumed'
+  | PlaybackInvalidationKey
   | 'display.list'
   | 'settings.systemTheme'
 

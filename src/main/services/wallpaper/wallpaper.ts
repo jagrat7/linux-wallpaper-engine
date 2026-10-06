@@ -9,7 +9,6 @@ import { storeService } from '../store'
 import {
   backendArgPattern,
   hostSpawn,
-  hostExecAsync,
   hostExecFileAsync,
   hostCommandExists,
   isFlatpak,
@@ -35,6 +34,9 @@ import {
   buildApplyOptions,
   pickRandomWallpaper,
   signalWallpaperProcess,
+  listBackendProcesses,
+  isScreenBackendRunning,
+  BACKEND_PROCESS_PATTERN,
   type TimedCache,
 } from './wallpaper.utils'
 import { listProperties } from './properties'
@@ -89,6 +91,7 @@ class WallpaperService implements IWallpaperService {
       this.getWallpapers(),
       this.checkBackendInstalled(),
     ])
+    await this.pruneDeadRestoredScreens()
     const active = await this.getActiveWithTitles(wallpapers)
     return { wallpapers, backendInstalled, active, appliedHistory: this.state.getAppliedHistory() }
   }
@@ -141,7 +144,7 @@ class WallpaperService implements IWallpaperService {
       const activeScreens = [...this.state.getActive().keys()]
       this.state.reset()
       try {
-        await hostExecFileAsync('pkill', ['-9', '-f', 'linux-wallpaperengine'])
+        await hostExecFileAsync('pkill', ['-9', '-f', BACKEND_PROCESS_PATTERN])
       } catch {
         /* no process found is ok */
       }
@@ -151,59 +154,13 @@ class WallpaperService implements IWallpaperService {
   }
 
   /** Freeze active wallpaper processes on the requested screens. */
-  async pause(screen?: string | string[]): Promise<MutationResult> {
-    const targets = this.resolveTargetScreens(screen)
-    const paused: string[] = []
-    const errors: string[] = []
-    for (const target of targets) {
-      if (this.state.isPaused(target)) continue
-      if (
-        await signalWallpaperProcess(
-          'SIGSTOP',
-          this.state.getProcess(target),
-          this.screenSignalPattern(target),
-        )
-      ) {
-        paused.push(target)
-      } else {
-        errors.push(`${target}: process is not running`)
-      }
-    }
-    this.state.markPaused(paused, true)
-    if (paused.length > 0) invalidationService.emit('wallpaper.paused')
-    return {
-      success: errors.length === 0,
-      error: errors.length > 0 ? errors.join('; ') : undefined,
-      screens: paused.length > 0 ? paused : undefined,
-    }
+  pause(screen?: string | string[]): Promise<MutationResult> {
+    return this.setPaused(screen, true)
   }
 
   /** Resume wallpaper processes previously paused by the app. */
-  async resume(screen?: string | string[]): Promise<MutationResult> {
-    const pausedSet = new Set(this.state.getPausedScreens())
-    const targets = this.resolveTargetScreens(screen).filter((target) => pausedSet.has(target))
-    const resumed: string[] = []
-    const errors: string[] = []
-    for (const target of targets) {
-      if (
-        await signalWallpaperProcess(
-          'SIGCONT',
-          this.state.getProcess(target),
-          this.screenSignalPattern(target),
-        )
-      ) {
-        resumed.push(target)
-      } else {
-        errors.push(`${target}: failed to resume frozen process`)
-      }
-    }
-    this.state.markPaused(resumed, false)
-    if (resumed.length > 0) invalidationService.emit('wallpaper.resumed')
-    return {
-      success: errors.length === 0,
-      error: errors.length > 0 ? errors.join('; ') : undefined,
-      screens: resumed.length > 0 ? resumed : undefined,
-    }
+  resume(screen?: string | string[]): Promise<MutationResult> {
+    return this.setPaused(screen, false)
   }
 
   /** Apply an installed wallpaper that is not already active when possible. */
@@ -228,6 +185,47 @@ class WallpaperService implements IWallpaperService {
   /** Return screen keys whose wallpaper process is paused. */
   getPausedScreens(): string[] {
     return this.state.getPausedScreens()
+  }
+
+  /**
+   * Signal each target's process with SIGSTOP/SIGCONT. Screens sharing a
+   * process flip together, so later group members are skipped once their
+   * process has been signalled.
+   */
+  private async setPaused(
+    screen: string | string[] | undefined,
+    paused: boolean,
+  ): Promise<MutationResult> {
+    const before = new Set(this.state.getPausedScreens())
+    const errors: string[] = []
+    for (const target of this.resolveTargetScreens(screen)) {
+      if (this.state.isPaused(target) === paused) continue
+      const delivered = await signalWallpaperProcess(
+        paused ? 'SIGSTOP' : 'SIGCONT',
+        this.state.getProcess(target),
+        this.screenSignalPattern(target),
+      )
+      if (delivered) {
+        this.state.markPaused([target], paused)
+      } else {
+        errors.push(
+          `${target}: ${paused ? 'process is not running' : 'failed to resume frozen process'}`,
+        )
+      }
+    }
+
+    const after = new Set(this.state.getPausedScreens())
+    const changed = paused
+      ? [...after].filter((s) => !before.has(s))
+      : [...before].filter((s) => !after.has(s))
+    if (changed.length > 0) {
+      invalidationService.emit(paused ? 'wallpaper.paused' : 'wallpaper.resumed')
+    }
+    return {
+      success: errors.length === 0,
+      error: errors.length > 0 ? errors.join('; ') : undefined,
+      screens: changed.length > 0 ? changed : undefined,
+    }
   }
 
   private resolveTargetScreens(screen?: string | string[]): string[] {
@@ -446,24 +444,9 @@ class WallpaperService implements IWallpaperService {
   // ── Private: active wallpaper enrichment ───────────────────────────────
 
   private async getActiveWithTitles(allWallpapers: Wallpaper[]): Promise<ActiveWallpaperEntry[]> {
-    const entries = [...this.state.getActive().entries()]
-    const restoredScreens = entries
-      .filter(([screen]) => !this.state.getProcess(screen))
-      .map(([screen]) => screen)
-    let deadScreens = new Set<string>()
-    if (restoredScreens.length > 0) {
-      deadScreens = new Set(await this.findDeadRestoredScreens(restoredScreens))
-      if (deadScreens.size > 0) {
-        this.state.releaseMany([...deadScreens])
-        invalidationService.emit('wallpaper.stopped')
-      }
-    }
-
     const result: ActiveWallpaperEntry[] = []
 
-    for (const [screen, wallpaper] of entries) {
-      if (deadScreens.has(screen)) continue
-
+    for (const [screen, wallpaper] of this.state.getActive().entries()) {
       const cached = allWallpapers.find((w) => w.path === wallpaper.backgroundId)
       const title =
         cached?.title ?? wallpaper.backgroundId.split('/').filter(Boolean).pop() ?? 'Unknown'
@@ -475,18 +458,23 @@ class WallpaperService implements IWallpaperService {
     return result
   }
 
-  private async findDeadRestoredScreens(screens: string[]): Promise<string[]> {
-    const { stdout } = await hostExecAsync('pgrep -a linux-wallpaperengine').catch(() => ({
-      stdout: '',
-    }))
-    const processOutput = stdout.trim()
-    return screens.filter((screen) => {
-      const isRunning =
-        screen === 'default'
-          ? processOutput.length > 0 && !processOutput.includes('--screen-root')
-          : new RegExp(backendArgPattern('--screen-root', screen)).test(processOutput)
-      return !isRunning
-    })
+  /**
+   * Drop restored screens (no process handle, so no exit listener) whose
+   * backend process has since died, so they stop showing as active.
+   */
+  private async pruneDeadRestoredScreens(): Promise<void> {
+    const restored = [...this.state.getActive().keys()].filter(
+      (screen) => !this.state.getProcess(screen),
+    )
+    if (restored.length === 0) return
+
+    const processes = await listBackendProcesses()
+    const dead = restored.filter((screen) => !isScreenBackendRunning(screen, processes))
+    if (dead.length === 0) return
+
+    this.state.releaseMany(dead)
+    playlistService.clearActivePlaylist(dead)
+    invalidationService.emit('wallpaper.stopped')
   }
 
   // ── Private: process spawning ──────────────────────────────────────────
@@ -851,25 +839,17 @@ class WallpaperService implements IWallpaperService {
 
     try {
       const settings = await settingsService.loadSettings()
-      const { stdout } = await hostExecAsync('pgrep -a linux-wallpaperengine').catch(() => ({
-        stdout: '',
-      }))
-      const processOutput = stdout.trim()
+      const processes = await listBackendProcesses()
 
       if (settings.windowMode) {
-        if (processOutput.length === 0) {
+        if (processes.length === 0) {
           await this.reapplyAll()
         }
         return
       }
 
-      for (const [screen] of this.state.getActive().entries()) {
-        const isRunning =
-          screen === 'default'
-            ? processOutput.length > 0 && !processOutput.includes('--screen-root')
-            : new RegExp(backendArgPattern('--screen-root', screen)).test(processOutput)
-
-        if (!isRunning) {
+      for (const screen of this.state.getActive().keys()) {
+        if (!isScreenBackendRunning(screen, processes)) {
           await this.reapplyAll()
           return
         }

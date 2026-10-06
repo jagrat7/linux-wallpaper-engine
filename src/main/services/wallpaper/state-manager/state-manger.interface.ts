@@ -18,8 +18,11 @@ export interface IStateManager {
   reset(): void
 
   // Paused (frozen) process state
+  /** Screens whose backend process is currently frozen with SIGSTOP. */
   getPausedScreens(): string[]
+  /** Whether `screen`'s backend process is currently frozen. */
   isPaused(screen: string): boolean
+  /** Mark screens (and every screen sharing their process) as paused or unpaused. */
   markPaused(screens: string[], paused: boolean): void
 
   // Applied history (drives the "recent" sort)
