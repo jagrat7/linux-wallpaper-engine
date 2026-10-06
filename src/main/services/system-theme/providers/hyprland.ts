@@ -17,14 +17,6 @@ export const getHyprlandLuaPath = (homeDirectory: string): string =>
 export const getHyprlandConfPath = (homeDirectory: string): string =>
   path.join(homeDirectory, '.config/hypr/hyprland.conf')
 
-export const getHyprlandWatchPaths = (homeDirectory: string): string[] => [
-  getHyprlandLuaPath(homeDirectory),
-  getHyprlandConfPath(homeDirectory),
-  // Sourced files are only read when hyprland.conf sources them, but this is the
-  // usual one for generated colours, so watch it for live updates.
-  path.join(homeDirectory, '.config/hypr/colors.conf'),
-]
-
 const OMARCHY_THEME_PATHS = getOmarchyThemePaths(homedir())
 const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
 const HYPRLAND_LUA_PATH = getHyprlandLuaPath(homedir())
@@ -34,15 +26,30 @@ const stripComments = (source: string): string => source.replace(/^\s*(?:#|--).*
 
 // Inlines `source = path` lines the way Hyprland does, so only files the config
 // actually loads contribute colours.
-export const readHyprlangConfig = (filePath: string, depth = 0): string => {
+export const readHyprlangConfig = (
+  filePath: string,
+  readPaths: string[] = [],
+  depth = 0,
+): string => {
   const source = depth > MAX_SOURCE_DEPTH ? null : readText(filePath)
   if (source === null) return ''
+  readPaths.push(filePath)
   return stripComments(source).replace(/^\s*source\s*=\s*(.+)$/gm, (_, target: string) =>
     readHyprlangConfig(
       path.resolve(path.dirname(filePath), target.trim().replace(/^~(?=\/)/, homedir())),
+      readPaths,
       depth + 1,
     ),
   )
+}
+
+// Files sourced by hyprland.conf are resolved once at startup; a source line added
+// later is picked up on the next launch.
+export const getHyprlandWatchPaths = (homeDirectory: string): string[] => {
+  const confPath = getHyprlandConfPath(homeDirectory)
+  const sourcedPaths: string[] = []
+  readHyprlangConfig(confPath, sourcedPaths)
+  return [...new Set([getHyprlandLuaPath(homeDirectory), confPath, ...sourcedPaths])]
 }
 
 const resolveHyprlangVariables = (source: string): string => {

@@ -1,15 +1,14 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vite-plus/test'
 import { getHyprlandWatchPaths, parseHyprlandTheme, readHyprlangConfig } from './hyprland'
 
 describe('getHyprlandWatchPaths', () => {
-  it('watches the Lua and hyprlang configs plus the usual sourced colors file', () => {
+  it('watches the Lua and hyprlang configs', () => {
     expect(getHyprlandWatchPaths('/home/user')).toEqual([
       '/home/user/.config/hypr/hyprland.lua',
       '/home/user/.config/hypr/hyprland.conf',
-      '/home/user/.config/hypr/colors.conf',
     ])
   })
 })
@@ -144,8 +143,10 @@ $muted = rgb(585b70)
 })
 
 describe('readHyprlangConfig', () => {
-  it('inlines sourced files and skips files the config does not source', () => {
-    const directory = mkdtempSync(path.join(tmpdir(), 'hypr-'))
+  it('inlines and watches sourced files, skipping files the config does not source', () => {
+    const home = mkdtempSync(path.join(tmpdir(), 'hypr-'))
+    const directory = path.join(home, '.config/hypr')
+    mkdirSync(directory, { recursive: true })
     try {
       writeFileSync(path.join(directory, 'hyprland.conf'), 'source = ./theme.conf\n')
       writeFileSync(path.join(directory, 'theme.conf'), '$accent = rgb(89b4fa)\n')
@@ -154,8 +155,13 @@ describe('readHyprlangConfig', () => {
       expect(parseHyprlandTheme(readHyprlangConfig(path.join(directory, 'hyprland.conf')))).toEqual(
         expect.objectContaining({ primary: '#89b4fa' }),
       )
+      expect(getHyprlandWatchPaths(home)).toEqual([
+        path.join(directory, 'hyprland.lua'),
+        path.join(directory, 'hyprland.conf'),
+        path.join(directory, 'theme.conf'),
+      ])
     } finally {
-      rmSync(directory, { recursive: true, force: true })
+      rmSync(home, { recursive: true, force: true })
     }
   })
 })
