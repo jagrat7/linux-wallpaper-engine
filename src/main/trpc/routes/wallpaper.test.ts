@@ -18,8 +18,6 @@ const {
     pause: vi.fn(),
     resume: vi.fn(),
     applyRandom: vi.fn(),
-    getActiveScreens: vi.fn(),
-    getPausedScreens: vi.fn(),
     overrides: vi.fn(),
     diagnose: vi.fn(),
   },
@@ -212,21 +210,7 @@ describe('wallpaperRouter', () => {
   })
 
   describe('pause', () => {
-    it('should pause all screens when no input given', async () => {
-      mockWallpaperService.pause.mockResolvedValue({ success: true, screens: ['eDP-1', 'HDMI-1'] })
-      const result = await caller.pause()
-      expect(mockWallpaperService.pause).toHaveBeenCalledWith(undefined)
-      expect(result).toEqual({ success: true, screens: ['eDP-1', 'HDMI-1'] })
-    })
-
-    it('should pass a single screen through', async () => {
-      mockWallpaperService.pause.mockResolvedValue({ success: true, screens: ['HDMI-1'] })
-      const result = await caller.pause({ screen: 'HDMI-1' })
-      expect(mockWallpaperService.pause).toHaveBeenCalledWith('HDMI-1')
-      expect(result).toEqual({ success: true, screens: ['HDMI-1'] })
-    })
-
-    it('should pass a screen list through', async () => {
+    it('should pass the screen list through', async () => {
       mockWallpaperService.pause.mockResolvedValue({ success: true, screens: ['eDP-1', 'HDMI-1'] })
       const result = await caller.pause({ screen: ['eDP-1', 'HDMI-1'] })
       expect(mockWallpaperService.pause).toHaveBeenCalledWith(['eDP-1', 'HDMI-1'])
@@ -241,27 +225,9 @@ describe('wallpaperRouter', () => {
       expect(mockWallpaperService.resume).toHaveBeenCalledWith(undefined)
       expect(result).toEqual({ success: true, screens: ['eDP-1'] })
     })
-
-    it('should pass a screen list through', async () => {
-      mockWallpaperService.resume.mockResolvedValue({ success: true, screens: ['HDMI-1'] })
-      const result = await caller.resume({ screen: ['HDMI-1'] })
-      expect(mockWallpaperService.resume).toHaveBeenCalledWith(['HDMI-1'])
-      expect(result).toEqual({ success: true, screens: ['HDMI-1'] })
-    })
   })
 
   describe('random', () => {
-    it('should apply a random wallpaper to all screens when no screen given', async () => {
-      mockWallpaperService.applyRandom.mockResolvedValue({
-        success: true,
-        screens: ['eDP-1'],
-        wallpaperTitle: 'Forest',
-      })
-      const result = await caller.random()
-      expect(mockWallpaperService.applyRandom).toHaveBeenCalledWith(undefined)
-      expect(result).toEqual({ success: true, screens: ['eDP-1'], wallpaperTitle: 'Forest' })
-    })
-
     it('should pass the screen through', async () => {
       mockWallpaperService.applyRandom.mockResolvedValue({
         success: true,

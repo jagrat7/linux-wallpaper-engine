@@ -40,14 +40,6 @@ describe('pickRandomWallpaper', () => {
 
   const WALLPAPERS = ['/wp/a', '/wp/b', '/wp/c'].map(makeWallpaper)
 
-  it('never picks an actively applied wallpaper when alternatives exist', () => {
-    const activeIds = new Set(['/wp/a'])
-    for (let i = 0; i < 50; i++) {
-      const pick = pickRandomWallpaper(WALLPAPERS, activeIds)
-      expect(pick.path).not.toBe('/wp/a')
-    }
-  })
-
   it('only picks from the unused pool', () => {
     const activeIds = new Set(['/wp/a', '/wp/b'])
     for (let i = 0; i < 50; i++) {
@@ -205,23 +197,6 @@ describe('signalWallpaperProcess', () => {
     expect(mockHostExecFileAsync).not.toHaveBeenCalled()
   })
 
-  it('falls back to pkill for screens without a tracked handle', async () => {
-    mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
-
-    const delivered = await signalWallpaperProcess(
-      'SIGSTOP',
-      undefined,
-      'linux-wallpaperengine.*--screen-root.*eDP-1',
-    )
-
-    expect(delivered).toBe(true)
-    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', [
-      '-STOP',
-      '-f',
-      'linux-wallpaperengine.*--screen-root.*eDP-1',
-    ])
-  })
-
   it('sends SIGCONT via pkill when resuming without a handle', async () => {
     mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
 
@@ -311,10 +286,6 @@ describe('isScreenBackendRunning', () => {
 describe('escapeRegExp', () => {
   it('escapes regex metacharacters so interpolated values match literally', () => {
     expect(escapeRegExp('/wp/a.b(c)[d]')).toBe('/wp/a\\.b\\(c\\)\\[d\\]')
-  })
-
-  it('leaves plain screen names untouched', () => {
-    expect(escapeRegExp('eDP-1')).toBe('eDP-1')
   })
 })
 

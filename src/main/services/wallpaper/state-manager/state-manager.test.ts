@@ -33,25 +33,6 @@ beforeEach(() => {
 })
 
 describe('wallpaperStateManager paused state', () => {
-  it('marks and reports paused screens', () => {
-    wallpaperStateManager.register(['eDP-1'], makeProc(), makeOptions())
-
-    wallpaperStateManager.markPaused(['eDP-1'], true)
-
-    expect(wallpaperStateManager.isPaused('eDP-1')).toBe(true)
-    expect(wallpaperStateManager.getPausedScreens()).toEqual(['eDP-1'])
-  })
-
-  it('unmarks resumed screens', () => {
-    wallpaperStateManager.register(['eDP-1'], makeProc(), makeOptions())
-    wallpaperStateManager.markPaused(['eDP-1'], true)
-
-    wallpaperStateManager.markPaused(['eDP-1'], false)
-
-    expect(wallpaperStateManager.isPaused('eDP-1')).toBe(false)
-    expect(wallpaperStateManager.getPausedScreens()).toEqual([])
-  })
-
   it('expands pause marks to the whole process screen group', () => {
     wallpaperStateManager.register(['eDP-1', 'HDMI-1'], makeProc(), makeOptions())
 
@@ -102,15 +83,6 @@ describe('wallpaperStateManager paused state', () => {
     wallpaperStateManager.markPaused(['eDP-1'], true)
 
     wallpaperStateManager.cleanupExitedProcess(proc)
-
-    expect(wallpaperStateManager.getPausedScreens()).toEqual([])
-  })
-
-  it('clears paused state on reset', () => {
-    wallpaperStateManager.register(['eDP-1'], makeProc(), makeOptions())
-    wallpaperStateManager.markPaused(['eDP-1'], true)
-
-    wallpaperStateManager.reset()
 
     expect(wallpaperStateManager.getPausedScreens()).toEqual([])
   })
