@@ -1,14 +1,14 @@
-import { useId, type ReactNode } from 'react'
+import { useId, useMemo, type ReactNode } from 'react'
 import { LayoutGroup } from 'framer-motion'
 import { FolderOpen, type LucideIcon } from 'lucide-react'
-
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/empty-state'
+import { WallpaperGridCardItem } from './wallpaper-grid-card-item'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
 import type { CompatibilityStatus } from '../../../shared/constants/compatibility'
 import { WALLPAPER_GRID_SKELETON_COUNT } from '../../../shared/constants/grid'
 import { useGlass } from '@/hooks/use-glass'
-import { WallpaperGridCardItem } from './wallpaper-grid-card-item'
+import { useWallpaperGridNavigation } from '@/hooks/use-wallpaper-grid-navigation'
 
 interface WallpaperGridLayoutProps {
   wallpapers: Wallpaper[]
@@ -43,6 +43,12 @@ export function WallpaperGridLayout({
   const glass = useGlass()
   const layoutGroupId = useId()
   const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
+  const itemIds = useMemo(
+    () => wallpapers.map((wallpaper) => wallpaper.path ?? wallpaper.id),
+    [wallpapers],
+  )
+  const rowCount = Math.ceil(wallpapers.length / columns)
+  const { getItemProps } = useWallpaperGridNavigation({ itemIds, columns })
 
   if (isLoading) {
     return (
@@ -60,18 +66,37 @@ export function WallpaperGridLayout({
 
   return (
     <LayoutGroup id={layoutGroupId}>
-      <div className="grid gap-4" style={gridStyle}>
-        {wallpapers.map((wallpaper) => (
-          <WallpaperGridCardItem
-            key={wallpaper.id}
-            wallpaper={wallpaper}
-            selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
-            onClick={onCardClick}
-            compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
-            showCompatibilityDot={showCompatibilityDot}
-            glassClassName={glass}
-            overlay={renderCardOverlay?.(wallpaper)}
-          />
+      <div
+        role="grid"
+        aria-label="Wallpapers"
+        aria-rowcount={rowCount}
+        aria-colcount={columns}
+        className="grid gap-4"
+        style={gridStyle}
+      >
+        {Array.from({ length: rowCount }, (_, rowIndex) => (
+          <div key={rowIndex} role="row" className="contents">
+            {wallpapers
+              .slice(rowIndex * columns, (rowIndex + 1) * columns)
+              .map((wallpaper, columnIndex) => {
+                const index = rowIndex * columns + columnIndex
+                return (
+                  <WallpaperGridCardItem
+                    key={wallpaper.id}
+                    wallpaper={wallpaper}
+                    selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+                    onClick={onCardClick}
+                    compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
+                    showCompatibilityDot={showCompatibilityDot}
+                    glassClassName={glass}
+                    overlay={renderCardOverlay?.(wallpaper)}
+                    rowIndex={rowIndex}
+                    columnIndex={columnIndex}
+                    itemProps={getItemProps(itemIds[index], index)}
+                  />
+                )
+              })}
+          </div>
         ))}
       </div>
     </LayoutGroup>

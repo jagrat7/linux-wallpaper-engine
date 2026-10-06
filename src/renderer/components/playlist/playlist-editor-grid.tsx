@@ -197,6 +197,7 @@ export function PlaylistEditorGrid({ editPlaylist }: PlaylistEditorGridProps) {
         showCompatibilityDot={appSettings?.showCompatibilityDot ?? true}
         density={appSettings?.wallpaperGridDensity}
         isSelected={(w) => editor.selectedSet.has(w.path)}
+        selectionMode="pressed"
         onCardClick={editor.handleToggleWallpaper}
         emptyMessage="No wallpapers found"
         emptySubMessage={searchQuery ? 'Try a different search term' : 'Install wallpapers first'}

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAtom } from 'jotai'
 import { PageHeader } from '@/components/page-header'
 import { WorkshopToolbar } from '@/components/workshop/workshop-toolbar'
@@ -71,6 +71,18 @@ function WorkshopPage() {
     }
   }
 
+  const handleCloseDetails = useCallback(() => {
+    const wallpaperId = selectedWallpaper?.id
+    setSelectedWallpaper(null)
+    if (!wallpaperId) return
+
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLButtonElement>(`[data-wallpaper-id="${CSS.escape(wallpaperId)}"] button`)
+        ?.focus()
+    })
+  }, [selectedWallpaper, setSelectedWallpaper])
+
   return (
     <div className="flex h-full flex-col p-6">
       <PageHeader
@@ -89,10 +101,7 @@ function WorkshopPage() {
         detailsKey={selectedWallpaper?.id}
         details={
           selectedWallpaper ? (
-            <WorkshopDetailsPanel
-              wallpaper={selectedWallpaper}
-              onClose={() => setSelectedWallpaper(null)}
-            />
+            <WorkshopDetailsPanel wallpaper={selectedWallpaper} onClose={handleCloseDetails} />
           ) : null
         }
       >
