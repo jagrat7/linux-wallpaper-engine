@@ -185,10 +185,9 @@ const readFirstPalette = (
   return null
 }
 
+// Hyprland ignores hyprland.conf once hyprland.lua exists.
 const readHyprlandConfigPalette = (): SystemThemePalette | null =>
-  parseHyprlandTheme(
-    `${readText(HYPRLAND_LUA_PATH) ?? ''}\n${readHyprlangConfig(HYPRLAND_CONF_PATH)}`,
-  )
+  parseHyprlandTheme(readText(HYPRLAND_LUA_PATH) ?? readHyprlangConfig(HYPRLAND_CONF_PATH))
 
 export const hyprlandThemeProvider = {
   matches: (desktop: string) => desktop.includes('hyprland') || desktop.includes('omarchy'),
