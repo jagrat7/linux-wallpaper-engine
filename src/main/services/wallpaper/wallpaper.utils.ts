@@ -1,7 +1,12 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { CACHE_TTL } from '../../../shared/constants/app'
-import type { ApplyWallpaperOptions, WallpaperType } from '../../../shared/constants/wallpaper'
+import {
+  AGE_RATINGS,
+  type AgeRating,
+  type ApplyWallpaperOptions,
+  type WallpaperType,
+} from '../../../shared/constants/wallpaper'
 import { hostExecAsync } from '../../utils/host'
 
 type ImageType = 'jpeg' | 'png' | 'bmp'
@@ -131,6 +136,13 @@ export function parseWallpaperType(rawType?: string): WallpaperType {
     application: 'application',
   }
   return typeMap[rawType.toLowerCase()] ?? 'scene'
+}
+
+// project.json contentrating holds the Steam rating tag (Everyone / Questionable / Mature)
+export function parseContentRating(contentRating?: string): AgeRating | undefined {
+  return (Object.keys(AGE_RATINGS) as AgeRating[]).find(
+    (rating) => AGE_RATINGS[rating].workshopTag === contentRating,
+  )
 }
 
 const PREVIEW_CANDIDATES = ['preview.jpg', 'preview.png', 'preview.gif']

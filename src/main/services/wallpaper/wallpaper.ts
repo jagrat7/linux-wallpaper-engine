@@ -10,7 +10,6 @@ import { hostSpawn, hostExecAsync, hostCommandExists, isFlatpak } from '../../ut
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import {
   BACKEND_NOT_INSTALLED_ERROR_MESSAGE,
-  parseWorkshopAgeRating,
   pickScanManagedFields,
   type ApplyWallpaperOptions,
   type Wallpaper,
@@ -22,6 +21,7 @@ import { playlistService } from '../playlists/playlist'
 import {
   expandPath,
   parseWallpaperType,
+  parseContentRating,
   detectResolution,
   resolveThumbnail,
   parseWindowGeometry,
@@ -306,7 +306,7 @@ class WallpaperService implements IWallpaperService {
             wallpapers.push({
               id: itemId,
               workshopId: itemId,
-              ageRating: parseWorkshopAgeRating([project.contentrating ?? '']),
+              ageRating: parseContentRating(project.contentrating),
               title: project.title ?? 'Untitled',
               author: project.author ?? (project.workshopurl ? 'Workshop' : 'Unknown'),
               type,
