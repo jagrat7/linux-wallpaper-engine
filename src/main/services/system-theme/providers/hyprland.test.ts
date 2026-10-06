@@ -148,7 +148,10 @@ describe('readHyprlangConfig', () => {
     const directory = path.join(home, '.config/hypr')
     mkdirSync(directory, { recursive: true })
     try {
-      writeFileSync(path.join(directory, 'hyprland.conf'), 'source = ./theme.conf\n')
+      writeFileSync(
+        path.join(directory, 'hyprland.conf'),
+        'source = ./theme.conf\nsource = ./generated.conf\n',
+      )
       writeFileSync(path.join(directory, 'theme.conf'), '$accent = rgb(89b4fa)\n')
       writeFileSync(path.join(directory, 'colors.conf'), '$accent = rgb(ff0000)\n')
 
@@ -159,6 +162,7 @@ describe('readHyprlangConfig', () => {
         path.join(directory, 'hyprland.lua'),
         path.join(directory, 'hyprland.conf'),
         path.join(directory, 'theme.conf'),
+        path.join(directory, 'generated.conf'),
       ])
     } finally {
       rmSync(home, { recursive: true, force: true })

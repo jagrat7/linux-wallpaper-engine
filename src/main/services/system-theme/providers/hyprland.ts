@@ -31,9 +31,11 @@ export const readHyprlangConfig = (
   readPaths: string[] = [],
   depth = 0,
 ): string => {
-  const source = depth > MAX_SOURCE_DEPTH ? null : readText(filePath)
-  if (source === null) return ''
+  if (depth > MAX_SOURCE_DEPTH) return ''
+  // Track missing files too, so a generated colours file is picked up once created.
   readPaths.push(filePath)
+  const source = readText(filePath)
+  if (source === null) return ''
   return stripComments(source).replace(/^\s*source\s*=\s*(.+)$/gm, (_, target: string) =>
     readHyprlangConfig(
       path.resolve(path.dirname(filePath), target.trim().replace(/^~(?=\/)/, homedir())),
