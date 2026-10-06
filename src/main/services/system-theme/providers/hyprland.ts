@@ -9,18 +9,41 @@ import {
   parseOmarchyTheme,
 } from './omarchy'
 
-export const getHyprlandConfigPaths = (homeDirectory: string): string[] => [
-  path.join(homeDirectory, '.config/hypr/hyprland.lua'),
-  path.join(homeDirectory, '.config/hypr/hyprland.conf'),
-  // Conventional home for colour variables sourced by hyprland.conf.
+const MAX_SOURCE_DEPTH = 8
+
+export const getHyprlandLuaPath = (homeDirectory: string): string =>
+  path.join(homeDirectory, '.config/hypr/hyprland.lua')
+
+export const getHyprlandConfPath = (homeDirectory: string): string =>
+  path.join(homeDirectory, '.config/hypr/hyprland.conf')
+
+export const getHyprlandWatchPaths = (homeDirectory: string): string[] => [
+  getHyprlandLuaPath(homeDirectory),
+  getHyprlandConfPath(homeDirectory),
+  // Sourced files are only read when hyprland.conf sources them, but this is the
+  // usual one for generated colours, so watch it for live updates.
   path.join(homeDirectory, '.config/hypr/colors.conf'),
 ]
 
 const OMARCHY_THEME_PATHS = getOmarchyThemePaths(homedir())
 const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
-const HYPRLAND_CONFIG_PATHS = getHyprlandConfigPaths(homedir())
+const HYPRLAND_LUA_PATH = getHyprlandLuaPath(homedir())
+const HYPRLAND_CONF_PATH = getHyprlandConfPath(homedir())
 
 const stripComments = (source: string): string => source.replace(/^\s*(?:#|--).*$/gm, '')
+
+// Inlines `source = path` lines the way Hyprland does, so only files the config
+// actually loads contribute colours.
+export const readHyprlangConfig = (filePath: string, depth = 0): string => {
+  const source = depth > MAX_SOURCE_DEPTH ? null : readText(filePath)
+  if (source === null) return ''
+  return stripComments(source).replace(/^\s*source\s*=\s*(.+)$/gm, (_, target: string) =>
+    readHyprlangConfig(
+      path.resolve(path.dirname(filePath), target.trim().replace(/^~(?=\/)/, homedir())),
+      depth + 1,
+    ),
+  )
+}
 
 const resolveHyprlangVariables = (source: string): string => {
   const variables = new Map(
@@ -29,10 +52,14 @@ const resolveHyprlangVariables = (source: string): string => {
       value.trim(),
     ]),
   )
-  return source.replace(
-    /\$(\w+)\b(?!\s*=)/g,
-    (reference, name: string) => variables.get(name) ?? reference,
-  )
+  const resolve = (value: string, depth: number): string =>
+    depth > variables.size
+      ? value
+      : value.replace(/\$(\w+)\b(?!\s*=)/g, (reference, name: string) => {
+          const definition = variables.get(name)
+          return definition === undefined ? reference : resolve(definition, depth + 1)
+        })
+  return resolve(source, 0)
 }
 
 const parseHyprColor = (value: string | undefined): string | undefined => {
@@ -158,14 +185,14 @@ const readFirstPalette = (
   return null
 }
 
-// Read the user's config files together so variables and colours split across
-// hyprland.conf and a sourced colors.conf resolve as one config.
 const readHyprlandConfigPalette = (): SystemThemePalette | null =>
-  parseHyprlandTheme(HYPRLAND_CONFIG_PATHS.map((filePath) => readText(filePath) ?? '').join('\n'))
+  parseHyprlandTheme(
+    `${readText(HYPRLAND_LUA_PATH) ?? ''}\n${readHyprlangConfig(HYPRLAND_CONF_PATH)}`,
+  )
 
 export const hyprlandThemeProvider = {
   matches: (desktop: string) => desktop.includes('hyprland') || desktop.includes('omarchy'),
-  watchPaths: [...getOmarchyWatchPaths(homedir()), ...HYPRLAND_CONFIG_PATHS],
+  watchPaths: [...getOmarchyWatchPaths(homedir()), ...getHyprlandWatchPaths(homedir())],
   readPalette: () =>
     readFirstPalette(OMARCHY_THEME_PATHS, parseOmarchyTheme) ??
     readFirstPalette(OMARCHY_HYPRLAND_PATHS, parseHyprlandTheme) ??

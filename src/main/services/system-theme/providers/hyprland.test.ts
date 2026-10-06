@@ -1,9 +1,12 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { describe, expect, it } from 'vite-plus/test'
-import { getHyprlandConfigPaths, parseHyprlandTheme } from './hyprland'
+import { getHyprlandWatchPaths, parseHyprlandTheme, readHyprlangConfig } from './hyprland'
 
-describe('getHyprlandConfigPaths', () => {
-  it('reads the Lua and hyprlang configs plus a sourced colors file', () => {
-    expect(getHyprlandConfigPaths('/home/user')).toEqual([
+describe('getHyprlandWatchPaths', () => {
+  it('watches the Lua and hyprlang configs plus the usual sourced colors file', () => {
+    expect(getHyprlandWatchPaths('/home/user')).toEqual([
       '/home/user/.config/hypr/hyprland.lua',
       '/home/user/.config/hypr/hyprland.conf',
       '/home/user/.config/hypr/colors.conf',
@@ -94,6 +97,18 @@ general {
     expect(theme).toEqual(expect.objectContaining({ primary: '#89b4fa', border: '#595959' }))
   })
 
+  it('resolves chained hyprlang variables', () => {
+    const theme = parseHyprlandTheme(`
+$red = rgb(ff0000)
+$border = $red
+general {
+    col.active_border = $border
+}
+`)
+
+    expect(theme).toEqual(expect.objectContaining({ primary: '#ff0000' }))
+  })
+
   it('does not borrow a nearby color for an undefined variable', () => {
     const theme = parseHyprlandTheme(`
 general {
@@ -125,5 +140,22 @@ $muted = rgb(585b70)
 
   it('rejects Lua without usable colors', () => {
     expect(parseHyprlandTheme('hl.config({ decoration = { rounding = 8 } })')).toBeNull()
+  })
+})
+
+describe('readHyprlangConfig', () => {
+  it('inlines sourced files and skips files the config does not source', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'hypr-'))
+    try {
+      writeFileSync(path.join(directory, 'hyprland.conf'), 'source = ./theme.conf\n')
+      writeFileSync(path.join(directory, 'theme.conf'), '$accent = rgb(89b4fa)\n')
+      writeFileSync(path.join(directory, 'colors.conf'), '$accent = rgb(ff0000)\n')
+
+      expect(parseHyprlandTheme(readHyprlangConfig(path.join(directory, 'hyprland.conf')))).toEqual(
+        expect.objectContaining({ primary: '#89b4fa' }),
+      )
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
   })
 })
