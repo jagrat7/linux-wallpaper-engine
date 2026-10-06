@@ -54,7 +54,7 @@ export function StatusBar({ className }: StatusBarProps) {
   const stopPlaylistMutation = trpc.playlist.stop.useMutation()
   const pauseMutation = trpc.wallpaper.pause.useMutation()
   const resumeMutation = trpc.wallpaper.resume.useMutation()
-  const [pauseError, setPauseError] = useState<string | null>(null)
+  const [pauseFailure, setPauseFailure] = useState<{ key: string; message: string } | null>(null)
   const updateSettingsMutation = trpc.settings.update.useMutation()
   const utils = trpc.useUtils()
   const navigate = useNavigate()
@@ -72,6 +72,11 @@ export function StatusBar({ className }: StatusBarProps) {
   // Playlist driving the shown wallpaper's screen, if any
   const activePlaylist = activePlaylists.find((entry) => entry.screen === activeWallpaper?.screen)
   const isPaused = activeWallpaper?.paused ?? false
+  // A pause/resume failure only describes the wallpaper and state it happened in
+  const pauseKey = activeWallpaper
+    ? `${activeWallpaper.screen}|${activeWallpaper.wallpaper.backgroundId}|${isPaused}`
+    : null
+  const pauseError = pauseFailure?.key === pauseKey ? pauseFailure.message : null
 
   const hasMultipleScreens = displays.length > 1
   const otherActiveCount = activeWallpapers.filter(
@@ -116,11 +121,16 @@ export function StatusBar({ className }: StatusBarProps) {
 
   // Active-state queries refresh from the service's paused/resumed invalidation events
   const handlePauseToggle = async () => {
-    if (!activeWallpaper) return
+    if (!activeWallpaper || !pauseKey) return
     const mutation = isPaused ? resumeMutation : pauseMutation
     const result = await mutation.mutateAsync({ screen: activeWallpaper.screen })
-    setPauseError(
-      result.success ? null : (result.error ?? `Failed to ${isPaused ? 'resume' : 'pause'}`),
+    setPauseFailure(
+      result.success
+        ? null
+        : {
+            key: pauseKey,
+            message: result.error ?? `Failed to ${isPaused ? 'resume' : 'pause'}`,
+          },
     )
   }
 
