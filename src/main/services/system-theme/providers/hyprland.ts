@@ -2,71 +2,37 @@ import { homedir } from 'node:os'
 import path from 'node:path'
 import type { DesktopThemeProvider, SystemThemePalette } from '../system-theme.types'
 import { inferScheme, readText, subtleSidebarColor } from '../system-theme.utils'
+import {
+  getOmarchyHyprlandPaths,
+  getOmarchyThemePaths,
+  getOmarchyWatchPaths,
+  parseOmarchyTheme,
+} from './omarchy'
 
-const HEX_COLOR_PATTERN = /^#[\da-f]{6}(?:[\da-f]{2})?$/i
-
-export const getVanillaHyprlandPaths = (homeDirectory: string): string[] => [
+export const getHyprlandConfigPaths = (homeDirectory: string): string[] => [
+  path.join(homeDirectory, '.config/hypr/hyprland.lua'),
   path.join(homeDirectory, '.config/hypr/hyprland.conf'),
+  // Conventional home for colour variables sourced by hyprland.conf.
   path.join(homeDirectory, '.config/hypr/colors.conf'),
 ]
 
-export const getPywalThemePaths = (homeDirectory: string): string[] => [
-  path.join(homeDirectory, '.cache/wal/colors.sh'),
-]
+const OMARCHY_THEME_PATHS = getOmarchyThemePaths(homedir())
+const OMARCHY_HYPRLAND_PATHS = getOmarchyHyprlandPaths(homedir())
+const HYPRLAND_CONFIG_PATHS = getHyprlandConfigPaths(homedir())
 
-export const getHyprlandWatchPaths = (homeDirectory: string): string[] => [
-  ...getPywalThemePaths(homeDirectory),
-  ...getVanillaHyprlandPaths(homeDirectory),
-]
+const stripComments = (source: string): string => source.replace(/^\s*(?:#|--).*$/gm, '')
 
-const PYWAL_THEME_PATHS = getPywalThemePaths(homedir())
-const VANILLA_HYPRLAND_PATHS = getVanillaHyprlandPaths(homedir())
-const HYPRLAND_WATCH_PATHS = getHyprlandWatchPaths(homedir())
-
-export const parseKeyValueTheme = (source: string): SystemThemePalette | null => {
-  const colors = Object.fromEntries(
-    Array.from(source.matchAll(/^\s*([\w]+)\s*=\s*["']([^"']+)["']/gm))
-      .filter(([, , value]) => HEX_COLOR_PATTERN.test(value))
-      .map(([, key, value]) => [key, value]),
-  ) as Record<string, string>
-
-  if (colors.background === undefined || colors.foreground === undefined) return null
-  const accent = colors.accent ?? colors.blue ?? colors.color4
-  const selection = colors.selection ?? colors.selection_background ?? accent
-  const selectionForeground =
-    colors.selection_foreground ?? colors.bright_foreground ?? colors.color15 ?? colors.foreground
-  const surface =
-    colors.lighter_background ?? colors.color0 ?? colors.dark_background ?? colors.background
-  const mutedForeground =
-    colors.muted ?? colors.dark_foreground ?? colors.color7 ?? colors.color8 ?? colors.foreground
-  return {
-    background: colors.background,
-    foreground: colors.foreground,
-    card: surface,
-    cardForeground: colors.foreground,
-    primary: accent,
-    primaryForeground: colors.background,
-    secondary: surface,
-    secondaryForeground: colors.foreground,
-    muted: surface,
-    mutedForeground,
-    accent: selection,
-    accentForeground: selectionForeground,
-    destructive: colors.red ?? colors.color1,
-    border: colors.muted ?? colors.color8,
-    input: surface,
-    success: colors.green ?? colors.color2,
-    warning: colors.yellow ?? colors.color3,
-    ring: accent,
-    sidebar: colors.background,
-    sidebarForeground: colors.foreground,
-    sidebarPrimary: subtleSidebarColor(accent, colors.background),
-    sidebarPrimaryForeground: colors.foreground,
-    sidebarAccent: selection,
-    sidebarAccentForeground: selectionForeground,
-    sidebarBorder: colors.muted ?? colors.color8,
-    sidebarRing: accent,
-  }
+const resolveHyprlangVariables = (source: string): string => {
+  const variables = new Map(
+    Array.from(source.matchAll(/^\s*\$(\w+)\s*=\s*(.+)$/gm), ([, name, value]) => [
+      name,
+      value.trim(),
+    ]),
+  )
+  return source.replace(
+    /\$(\w+)\b(?!\s*=)/g,
+    (reference, name: string) => variables.get(name) ?? reference,
+  )
 }
 
 const parseHyprColor = (value: string | undefined): string | undefined => {
@@ -107,17 +73,20 @@ const findLuaAssignedColor = (source: string, keys: string[]): string | undefine
       const resolved = findLuaVariableColor(source, [variable])
       if (resolved !== undefined) return resolved
     }
+    // Only look past the line for a multi-line table, not an unresolved reference.
+    if (!assignment[1].trim().startsWith('{')) continue
     const fromTable = parseHyprColor(source.slice(assignment.index, (assignment.index ?? 0) + 500))
     if (fromTable !== undefined) return fromTable
   }
   return undefined
 }
 
-export const parseHyprlandTheme = (source: string): SystemThemePalette | null => {
+export const parseHyprlandTheme = (rawSource: string): SystemThemePalette | null => {
+  const source = resolveHyprlangVariables(stripComments(rawSource))
   const namedColors = Object.fromEntries(
     Array.from(
       source.matchAll(
-        /^\s*(background|bg|surface|surface_alt|foreground|fg|accent|active|border|muted)\s*=\s*["']([^"']+)["']/gim,
+        /^\s*\$?(background|bg|surface|surface_alt|foreground|fg|accent|active|border|muted)\s*=\s*["']?([^"'\n]+)/gim,
       ),
     )
       .map(([, key, value]) => [key.toLowerCase(), parseHyprColor(value)])
@@ -176,7 +145,7 @@ export const parseHyprlandTheme = (source: string): SystemThemePalette | null =>
   }
 }
 
-export const readFirstPalette = (
+const readFirstPalette = (
   filePaths: readonly string[],
   parse: (source: string) => SystemThemePalette | null,
 ): SystemThemePalette | null => {
@@ -189,10 +158,16 @@ export const readFirstPalette = (
   return null
 }
 
+// Read the user's config files together so variables and colours split across
+// hyprland.conf and a sourced colors.conf resolve as one config.
+const readHyprlandConfigPalette = (): SystemThemePalette | null =>
+  parseHyprlandTheme(HYPRLAND_CONFIG_PATHS.map((filePath) => readText(filePath) ?? '').join('\n'))
+
 export const hyprlandThemeProvider = {
-  matches: (desktop: string) => desktop.includes('hyprland'),
-  watchPaths: HYPRLAND_WATCH_PATHS,
+  matches: (desktop: string) => desktop.includes('hyprland') || desktop.includes('omarchy'),
+  watchPaths: [...getOmarchyWatchPaths(homedir()), ...HYPRLAND_CONFIG_PATHS],
   readPalette: () =>
-    readFirstPalette(PYWAL_THEME_PATHS, parseKeyValueTheme) ??
-    readFirstPalette(VANILLA_HYPRLAND_PATHS, parseHyprlandTheme),
+    readFirstPalette(OMARCHY_THEME_PATHS, parseOmarchyTheme) ??
+    readFirstPalette(OMARCHY_HYPRLAND_PATHS, parseHyprlandTheme) ??
+    readHyprlandConfigPalette(),
 } satisfies DesktopThemeProvider

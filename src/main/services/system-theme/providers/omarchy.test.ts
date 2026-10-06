@@ -7,7 +7,7 @@ import {
 } from './omarchy'
 
 describe('getOmarchyThemePaths', () => {
-  it('uses Omarchy theme files and the Hyprland child for everything else', () => {
+  it('prefers current Omarchy state and falls back to its legacy config path', () => {
     expect(getOmarchyThemePaths('/home/user')).toEqual([
       '/home/user/.local/state/omarchy/current/theme/colors.toml',
       '/home/user/.config/omarchy/current/theme/colors.toml',
