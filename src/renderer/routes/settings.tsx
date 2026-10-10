@@ -47,6 +47,8 @@ const windowGeometrySchema = z.object({
     ),
 })
 type WindowGeometryForm = z.infer<typeof windowGeometrySchema>
+const STARTUP_TRAY_CONTENT_ID = 'startup-tray-options'
+const WINDOW_GEOMETRY_CONTENT_ID = 'window-geometry-options'
 
 const DENSITY_ICONS: Record<WallpaperGridDensity, typeof Grid3x3> = {
   compact: Grid3x3,
@@ -153,12 +155,14 @@ function SettingsPage() {
         <SettingsSection icon={Settings} title="General" description="App behavior and startup">
           <SettingRow label="Pause on fullscreen apps">
             <Switch
+              aria-label="Pause on fullscreen apps"
               checked={settings.pauseOnFullscreen}
               onCheckedChange={(checked) => updateSetting('pauseOnFullscreen', checked)}
             />
           </SettingRow>
           <SettingRow label="Launch on startup">
             <Switch
+              aria-label="Launch on startup"
               checked={settings.launchOnLogin}
               onCheckedChange={(checked) => updateSetting('launchOnLogin', checked)}
             />
@@ -168,8 +172,12 @@ function SettingsPage() {
               <span className="inline-flex items-center gap-1">
                 Enable system tray{' '}
                 <Button
+                  type="button"
                   variant="ghost"
                   size="icon"
+                  aria-label="Toggle advanced tray options"
+                  aria-expanded={startupTrayOpen}
+                  aria-controls={STARTUP_TRAY_CONTENT_ID}
                   onClick={() => setStartupTrayOpen((o) => !o)}
                   className="text-muted-foreground hover:text-foreground size-6"
                   title="Advanced tray options"
@@ -183,37 +191,38 @@ function SettingsPage() {
             className={!startupTrayOpen ? 'border-b-0' : ''}
           >
             <Switch
+              aria-label="Enable system tray"
               checked={settings.enableSystemTray}
               onCheckedChange={(checked) => updateSetting('enableSystemTray', checked)}
             />
           </SettingRow>
-          {startupTrayOpen && (
-            <Collapsible open={startupTrayOpen} onOpenChange={setStartupTrayOpen}>
-              <CollapsibleContent>
-                <div className="divide-border bg-muted/30 divide-y">
-                  <SettingRow
-                    label="Minimize on startup"
-                    disabled={!settings.launchOnLogin || !settings.enableSystemTray}
-                  >
-                    <Switch
-                      checked={settings.minimizeOnStartup}
-                      onCheckedChange={(checked) => updateSetting('minimizeOnStartup', checked)}
-                    />
-                  </SettingRow>
-                  <SettingRow
-                    label="Minimize on close"
-                    disabled={!settings.enableSystemTray}
-                    className="border-b-0"
-                  >
-                    <Switch
-                      checked={settings.minimizeOnClose}
-                      onCheckedChange={(checked) => updateSetting('minimizeOnClose', checked)}
-                    />
-                  </SettingRow>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+          <Collapsible open={startupTrayOpen} onOpenChange={setStartupTrayOpen}>
+            <CollapsibleContent id={STARTUP_TRAY_CONTENT_ID} forceMount hidden={!startupTrayOpen}>
+              <div className="divide-border bg-muted/30 divide-y">
+                <SettingRow
+                  label="Minimize on startup"
+                  disabled={!settings.launchOnLogin || !settings.enableSystemTray}
+                >
+                  <Switch
+                    aria-label="Minimize on startup"
+                    checked={settings.minimizeOnStartup}
+                    onCheckedChange={(checked) => updateSetting('minimizeOnStartup', checked)}
+                  />
+                </SettingRow>
+                <SettingRow
+                  label="Minimize on close"
+                  disabled={!settings.enableSystemTray}
+                  className="border-b-0"
+                >
+                  <Switch
+                    aria-label="Minimize on close"
+                    checked={settings.minimizeOnClose}
+                    onCheckedChange={(checked) => updateSetting('minimizeOnClose', checked)}
+                  />
+                </SettingRow>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </SettingsSection>
 
         {/* Compatibility Scan Section */}
@@ -225,6 +234,7 @@ function SettingsPage() {
           <CompatibilityScanRow />
           <SettingRow label="Debug mode">
             <Switch
+              aria-label="Debug mode"
               checked={settings.debugMode}
               onCheckedChange={(v) => updateSetting('debugMode', v)}
             />
@@ -235,8 +245,12 @@ function SettingsPage() {
               <span className="inline-flex items-center gap-1">
                 Run in window mode
                 <Button
+                  type="button"
                   variant="ghost"
                   size="icon"
+                  aria-label="Toggle window geometry options"
+                  aria-expanded={windowGeometryOpen}
+                  aria-controls={WINDOW_GEOMETRY_CONTENT_ID}
                   onClick={() => setWindowGeometryOpen((o) => !o)}
                   className="text-muted-foreground hover:text-foreground size-6"
                   title="Window geometry"
@@ -250,62 +264,66 @@ function SettingsPage() {
             className={!windowGeometryOpen && !isFlatpakEnv ? 'border-b-0' : ''}
           >
             <Switch
+              aria-label="Run in window mode"
               checked={settings.windowMode}
               onCheckedChange={(v) => updateSetting('windowMode', v)}
             />
           </SettingRow>
 
-          {windowGeometryOpen && (
-            <Collapsible open={windowGeometryOpen} onOpenChange={setWindowGeometryOpen}>
-              <CollapsibleContent>
-                <div className="bg-muted/30">
-                  <SettingRow
-                    label={
-                      <span>
-                        Window size{' '}
-                        <span className="text-muted-foreground">
-                          - optional backend window size
-                        </span>
-                      </span>
-                    }
-                    disabled={!settings.windowMode}
-                    className={!isFlatpakEnv ? 'border-b-0' : ''}
-                  >
-                    <form className="flex flex-col items-end gap-1" onSubmit={submitWindowGeometry}>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          {...windowGeometryForm.register('windowGeometry')}
-                          placeholder="1920x1080"
-                          disabled={!settings.windowMode}
-                          aria-invalid={!!windowGeometryForm.formState.errors.windowGeometry}
-                          className="w-28"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          type="submit"
-                          disabled={!settings.windowMode || updateMutation.isPending}
-                          title="Save window size"
-                          className="bg-transparent"
-                        >
-                          <Check className="size-4" />
-                        </Button>
-                      </div>
-                      {windowGeometryForm.formState.errors.windowGeometry?.message && (
-                        <p className="text-destructive max-w-56 text-right text-xs">
-                          {windowGeometryForm.formState.errors.windowGeometry.message}
-                        </p>
-                      )}
-                    </form>
-                  </SettingRow>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+          <Collapsible open={windowGeometryOpen} onOpenChange={setWindowGeometryOpen}>
+            <CollapsibleContent
+              id={WINDOW_GEOMETRY_CONTENT_ID}
+              forceMount
+              hidden={!windowGeometryOpen}
+            >
+              <div className="bg-muted/30">
+                <SettingRow
+                  label={
+                    <span>
+                      Window size{' '}
+                      <span className="text-muted-foreground">- optional backend window size</span>
+                    </span>
+                  }
+                  disabled={!settings.windowMode}
+                  className={!isFlatpakEnv ? 'border-b-0' : ''}
+                >
+                  <form className="flex flex-col items-end gap-1" onSubmit={submitWindowGeometry}>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        {...windowGeometryForm.register('windowGeometry')}
+                        placeholder="1920x1080"
+                        disabled={!settings.windowMode}
+                        aria-invalid={!!windowGeometryForm.formState.errors.windowGeometry}
+                        aria-label="Window size"
+                        className="w-28"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        type="submit"
+                        disabled={!settings.windowMode || updateMutation.isPending}
+                        aria-label="Save window size"
+                        title="Save window size"
+                        className="bg-transparent"
+                      >
+                        <Check className="size-4" />
+                      </Button>
+                    </div>
+                    {windowGeometryForm.formState.errors.windowGeometry?.message && (
+                      <p className="text-destructive max-w-56 text-right text-xs">
+                        {windowGeometryForm.formState.errors.windowGeometry.message}
+                      </p>
+                    )}
+                  </form>
+                </SettingRow>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {isFlatpakEnv && (
             <SettingRow label="Bypass Flatpak sandbox" className="border-b-0">
               <Switch
+                aria-label="Bypass Flatpak sandbox"
                 checked={settings.flatpakBypass}
                 onCheckedChange={(v) => updateSetting('flatpakBypass', v)}
               />
@@ -326,18 +344,21 @@ function SettingsPage() {
           </SettingRow>
           <SettingRow label="Mute audio">
             <Switch
+              aria-label="Mute audio"
               checked={settings.silent}
               onCheckedChange={(checked) => updateSetting('silent', checked)}
             />
           </SettingRow>
           <SettingRow label="Don't mute when other apps play audio">
             <Switch
+              aria-label="Don't mute when other apps play audio"
               checked={settings.noAutomute}
               onCheckedChange={(checked) => updateSetting('noAutomute', checked)}
             />
           </SettingRow>
           <SettingRow label="Audio reactive effects" className="border-b-0">
             <Switch
+              aria-label="Audio reactive effects"
               checked={settings.audioProcessing}
               onCheckedChange={(checked) => updateSetting('audioProcessing', checked)}
             />
@@ -371,18 +392,21 @@ function SettingsPage() {
           </SettingRow>
           <SettingRow label="Disable mouse interaction">
             <Switch
+              aria-label="Disable mouse interaction"
               checked={settings.disableMouse}
               onCheckedChange={(checked) => updateSetting('disableMouse', checked)}
             />
           </SettingRow>
           <SettingRow label="Disable parallax effect">
             <Switch
+              aria-label="Disable parallax effect"
               checked={settings.disableParallax}
               onCheckedChange={(checked) => updateSetting('disableParallax', checked)}
             />
           </SettingRow>
           <SettingRow label="Disable particle effects" className="border-b-0">
             <Switch
+              aria-label="Disable particle effects"
               checked={settings.disableParticles}
               onCheckedChange={(checked) => updateSetting('disableParticles', checked)}
             />
@@ -409,6 +433,7 @@ function SettingsPage() {
           </SettingRow>
           <SettingRow label="Show compatibility dot">
             <Switch
+              aria-label="Show compatibility dot"
               checked={settings.showCompatibilityDot}
               onCheckedChange={(checked) => updateSetting('showCompatibilityDot', checked)}
             />
@@ -443,12 +468,14 @@ function SettingsPage() {
           </SettingRow>
           <SettingRow label="Show status bar">
             <Switch
+              aria-label="Show status bar"
               checked={settings.showStatusBar}
               onCheckedChange={(checked) => updateSetting('showStatusBar', checked)}
             />
           </SettingRow>
           <SettingRow label="Dynamic background" className="border-b-0">
             <Switch
+              aria-label="Dynamic background"
               checked={settings.dynamicBackground}
               onCheckedChange={(checked) => updateSetting('dynamicBackground', checked)}
             />

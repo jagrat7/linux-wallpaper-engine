@@ -17,6 +17,7 @@ export function UnsubscribeButton({ onClick, disabled = false }: UnsubscribeButt
           className="hover:bg-destructive/10 hover:text-destructive shrink-0"
           onClick={onClick}
           disabled={disabled}
+          aria-label="Unsubscribe from wallpaper"
         >
           <Trash2 className="size-4" />
         </Button>
