@@ -33,8 +33,10 @@ export function SettingRow({
         {children}
         {changed && onClear && !disabled && (
           <button
+            type="button"
+            aria-label="Reset to global default"
             onClick={onClear}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
             title="Reset to global default"
           >
             <X className="size-3.5" />
