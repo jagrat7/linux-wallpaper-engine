@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Verification harness for Linux Wallpaper Engine. See ../SKILL.md.
-#   lwe setup                     install playwright-core into the tools cache (once)
+# Verification harness for Linux Wallpaper Engine. Agent docs: .agents/skills/verify-linux-wallpaper-engine/SKILL.md, feature map: docs/features/.
+#   lwe setup                     install playwright-core into dev/verify/.tools (once, nothing global)
 #   lwe launch [web|desktop]      start an isolated dev instance + CDP endpoint, wait until ready
 #   lwe doctor                    read-only health check of the current run
-#   lwe drive <cmd> [flags]       drive the UI over CDP (see bin/drive.mjs)
+#   lwe drive <cmd> [flags]       drive the UI over CDP (see drive.mjs)
 #   lwe store [settings|active-wallpapers|wallpaper-overrides]   print the run's isolated store JSON
 #   lwe backends                  list linux-wallpaperengine processes (ours vs pre-existing)
 #   lwe steam-config [path|diff|restore]   the shared Steam config.json that holds playlists
 #   lwe cleanup                   kill what this run started, delete scratch, keep artifacts
 set -euo pipefail
 
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPO_DIR="$(cd "$SKILL_DIR/../../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ROOT="${LWE_VERIFY_ROOT:-/tmp/lwe-verify}"
-export LWE_TOOLS_DIR="${LWE_TOOLS_DIR:-$SKILL_DIR/.tools}"
+export LWE_TOOLS_DIR="${LWE_TOOLS_DIR:-$SCRIPT_DIR/.tools}"
 PLAYWRIGHT_VERSION=1.58.2
 DEV_BACKEND_PORT=5180 # src/shared/constants/development.ts
 STORE_DIR_NAME='Linux Wallpaper Engine'
@@ -193,7 +193,7 @@ cmd_doctor() {
 
 cmd_drive() {
   load_state
-  node "$SKILL_DIR/bin/drive.mjs" "http://127.0.0.1:$CDP_PORT" "$APP_URL" "$@"
+  node "$SCRIPT_DIR/drive.mjs" "http://127.0.0.1:$CDP_PORT" "$APP_URL" "$@"
 }
 
 cmd_store() {

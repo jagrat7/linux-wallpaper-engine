@@ -1,6 +1,6 @@
 # Linux Wallpaper Engine verification map
 
-This directory is the maintained source for verifying what users can do in Linux Wallpaper Engine. Read the index before driving the app, then follow the matching feature file as the recipe. Harness commands come from `../SKILL.md` (`$LWE` = `.agents/skills/verify-linux-wallpaper-engine/bin/lwe`).
+This directory is the maintained source for verifying what users can do in Linux Wallpaper Engine. Read the index before driving the app, then follow the matching feature file as the recipe. Harness commands come from `.agents/skills/verify-linux-wallpaper-engine/SKILL.md` (`$LWE` = `dev/verify/lwe`).
 
 ## Baseline preconditions
 

@@ -6,9 +6,9 @@ import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
 
-// playwright-core lives in the skill's own .tools/ (installed by `lwe setup`), not globally
+// playwright-core lives in dev/verify/.tools/ next to this file (installed by `lwe setup`), not globally
 const cacheDir =
-  process.env.LWE_TOOLS_DIR ?? path.join(path.dirname(new URL(import.meta.url).pathname), '..', '.tools')
+  process.env.LWE_TOOLS_DIR ?? path.join(path.dirname(new URL(import.meta.url).pathname), '.tools')
 const require = createRequire(path.join(cacheDir, 'package.json'))
 const { chromium } = require('playwright-core')
 

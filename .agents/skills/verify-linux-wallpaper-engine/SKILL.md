@@ -7,10 +7,10 @@ description: Launch and drive the Linux Wallpaper Engine Electron app (React UI 
 
 The app is an Electron app: `src/main` (backend services and tRPC routes), `src/renderer` (React, TanStack hash router), `src/preload`. The surface you drive is the renderer UI. Electron main runs the real backend, so it reads your real Steam library and spawns real `linux-wallpaperengine` processes.
 
-Everything goes through one helper: `.agents/skills/verify-linux-wallpaper-engine/bin/lwe` (call it `$LWE` below). It wraps the repo's own dev command (`electron-forge start` with `DEV_TARGET`, which is what `bun dev` / `bun run dev:desktop` run) and drives the UI over CDP with `playwright-core`.
+Everything goes through one helper: `dev/verify/lwe` (call it `$LWE` below). It wraps the repo's own dev command (`electron-forge start` with `DEV_TARGET`, which is what `bun dev` / `bun run dev:desktop` run) and drives the UI over CDP with `playwright-core`.
 
 ```bash
-LWE=.agents/skills/verify-linux-wallpaper-engine/bin/lwe   # from the repo root
+LWE=dev/verify/lwe   # from the repo root
 ```
 
 ## Targets
@@ -27,14 +27,14 @@ Both targets render the same renderer code and call the same tRPC router. In the
 - **Isolated:** the electron-store files `settings.json`, `active-wallpapers.json` and `wallpaper-overrides.json`. Launch sets `XDG_CONFIG_HOME=$RUN/config`, so the store lives in `$RUN/config/Linux Wallpaper Engine/` and the user's `~/.config/Linux Wallpaper Engine/` is never touched. Each run starts from default settings.
 - **Shared, read-only:** the Steam library (`~/.local/share/Steam/...workshop/content/431960`). The Installed grid shows the user's real wallpapers.
 - **Shared and writable: playlists.** They live in Steam's `steamapps/common/wallpaper_engine/config.json`, the same file the user's real app uses. Launch copies it to `$RUN/artifacts/steam-config.before.json`. `$LWE steam-config diff` shows what changed, and cleanup warns if the file differs. Only create playlists named `lwe-verify-<something>` and delete them through the UI before cleanup. `$LWE steam-config restore` exists, but it overwrites the live file. Use it only when this run made the only change.
-- **Shared and system-wide: wallpaper processes.** Applying a wallpaper spawns `linux-wallpaperengine` on the real monitor. It first `pkill`s any backend already on that screen, so it takes over the user's real desktop wallpaper. Two stop paths run `pkill -9 -f linux-wallpaperengine` and **kill every backend on the machine**, including ones the user started: any Stop while Settings → `Run in window mode` is on, and the tray's `Stop Wallpaper`. Per-screen Stop with window mode off kills only backends on that screen, but that can still be the user's. Read `features/wallpaper-apply.md` before touching Apply, Stop, Pause, Mute or Random.
+- **Shared and system-wide: wallpaper processes.** Applying a wallpaper spawns `linux-wallpaperengine` on the real monitor. It first `pkill`s any backend already on that screen, so it takes over the user's real desktop wallpaper. Two stop paths run `pkill -9 -f linux-wallpaperengine` and **kill every backend on the machine**, including ones the user started: any Stop while Settings → `Run in window mode` is on, and the tray's `Stop Wallpaper`. Per-screen Stop with window mode off kills only backends on that screen, but that can still be the user's. Read `docs/features/wallpaper-apply.md` before touching Apply, Stop, Pause, Mute or Random.
 - **One web instance at a time.** Port `5180` is hardcoded (`src/shared/constants/development.ts`). If anything else holds it, such as the user's own `bun dev`, launch refuses. Never drive an instance this run didn't start; use `desktop` or ask the user instead. The Vite port and the CDP port are picked automatically.
 - The user may have their own instance running from the repo, an Electron process whose cwd is the repo root. Leave it alone; it uses the real config dir.
 
 ## Launch
 
 ```bash
-$LWE setup              # once per checkout: installs playwright-core@1.58.2 into the skill's own .tools/ (nothing global)
+$LWE setup              # once per checkout: installs playwright-core@1.58.2 into dev/verify/.tools/ (nothing global)
 $LWE launch web         # or: $LWE launch desktop
 ```
 
@@ -107,4 +107,4 @@ Run cleanup after every failed attempt too, then relaunch. Confirm afterwards th
 
 ## Feature map
 
-`features/README.md` indexes one recipe per user-facing feature: preconditions, every entry point, exact drive commands, the observable end state, and gotchas. Read the matching file before driving. A proof that covers one entry point while the map lists others is incomplete. Keep the map current with `/maintain-verification-skill`.
+`docs/features/README.md` indexes one recipe per user-facing feature: preconditions, every entry point, exact drive commands, the observable end state, and gotchas. Read the matching file before driving. A proof that covers one entry point while the map lists others is incomplete. Keep the map current with `/maintain-verification-skill`.
