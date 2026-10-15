@@ -7,7 +7,9 @@ description: Launch and drive the Linux Wallpaper Engine Electron app (React UI 
 
 The app is an Electron app: `src/main` (backend services and tRPC routes), `src/renderer` (React, TanStack hash router), `src/preload`. The surface you drive is the renderer UI. Electron main runs the real backend, so it reads your real Steam library and spawns real `linux-wallpaperengine` processes.
 
-Everything goes through one helper: `dev/verify/lwe` (call it `$LWE` below). It wraps the repo's own dev command (`electron-forge start` with `DEV_TARGET`, which is what `bun dev` / `bun run dev:desktop` run) and drives the UI over CDP with `playwright-core`.
+Use `dev/verify/lwe` (call it `$LWE` below) to launch, health-check, and clean up the verification instance. It wraps the repo's own dev command (`electron-forge start` with `DEV_TARGET`, which is what `bun dev` / `bun run dev:desktop` run) and drives the UI over CDP with `playwright-core`.
+
+If the CLI provides sufficient evidence that the relevant behavior works, verification is complete. If its controls or observations are insufficient, use direct browser automation against the same instance. Both approaches must meet the Evidence section's requirements: capture the action and result, verify relevant saved state or side effects, and check persistence where applicable.
 
 ```bash
 LWE=dev/verify/lwe   # from the repo root
