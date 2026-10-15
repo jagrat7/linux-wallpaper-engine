@@ -9,8 +9,6 @@ The app is an Electron app: `src/main` (backend services and tRPC routes), `src/
 
 Use `dev/verify/lwe` (call it `$LWE` below) to launch, health-check, and clean up the verification instance. It wraps the repo's own dev command (`electron-forge start` with `DEV_TARGET`, which is what `bun dev` / `bun run dev:desktop` run) and drives the UI over CDP with `playwright-core`.
 
-If the CLI provides sufficient evidence that the relevant behavior works, verification is complete. If its controls or observations are insufficient, use direct browser automation against the same instance. Both approaches must meet the Evidence section's requirements: capture the action and result, verify relevant saved state or side effects, and check persistence where applicable.
-
 ```bash
 LWE=dev/verify/lwe   # from the repo root
 ```
@@ -57,6 +55,8 @@ Doctor is read-only. It checks the dev and browser process groups are alive, the
 The dev server hot-reloads renderer edits. Main-process edits (`src/main/**`) need a relaunch: cleanup, then launch.
 
 ## Drive
+
+Use browser automation when you think `drive` cannot test the change or leaves gaps in the evidence. It replaces only `drive`; keep using the other CLI commands and the same test backend and data.
 
 `$LWE drive <command> [flags]`: one action per call, attached over CDP. The page state persists between calls.
 
