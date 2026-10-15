@@ -85,7 +85,7 @@ cmd_setup() {
 
 cmd_launch() {
   local target="${1:-web}"
-  [[ "$target" == web || "$target" == desktop ]] || die "target must be web or desktop"
+  [[ "$target" == web || "$target" == desktop ]] || die "usage: $0 launch [web|desktop]   (to stop a run: $0 cleanup)"
   cmd_setup >/dev/null
   command -v bun >/dev/null || die "bun not on PATH"
   [[ -d "$REPO_DIR/node_modules" ]] || die "run 'bun install --frozen-lockfile' in $REPO_DIR first"
@@ -93,7 +93,7 @@ cmd_launch() {
   if [[ -L "$ROOT/current" ]] && [[ -f "$ROOT/current/state.env" ]]; then
     # shellcheck disable=SC1091
     ( source "$ROOT/current/state.env"; group_alive "$DEV_PGID" ) &&
-      die "a run is already active at $(readlink -f "$ROOT/current") — 'lwe cleanup' it first"
+      die "a run is already active at $(readlink -f "$ROOT/current") — run: $0 cleanup"
   fi
   if [[ "$target" == web ]] && port_busy "$DEV_BACKEND_PORT"; then
     die "port $DEV_BACKEND_PORT (web dev backend) is taken by another 'bun dev' — not ours, refusing to double-drive. Use 'lwe launch desktop' or stop that instance."
