@@ -1,6 +1,6 @@
 {
   "name": "linux-wallpaper-engine",
-  "version": "0.4.11",
+  "version": "0.4.12",
   "description": "A linux implementation of Wallpaper Engine — browse, manage, and apply your wallpapers.",
   "keywords": [
     "animated-wallpaper",

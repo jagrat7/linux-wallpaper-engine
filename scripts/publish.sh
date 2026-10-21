@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
 FORGE_CLI="$PROJECT_ROOT/node_modules/.bin/electron-forge"
-BUN_BIN="$(command -v bun || true)"
+NODE_BIN="$(command -v node || true)"
 FORGE_COMMAND="${1:-publish}"
 WRAPPER_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/linux-wallpaper-engine-rpm.XXXXXX")"
 WRAPPER_BIN="$WRAPPER_ROOT/bin"
@@ -33,8 +33,10 @@ if [[ ! -x "$FORGE_CLI" ]]; then
   exit 1
 fi
 
-if [[ -z "$BUN_BIN" ]]; then
-  echo "Bun is not installed." >&2
+# Forge must run on Node: Vite+ core is ESM-only, and Bun's require(esm) marks the
+# namespace as __esModule, so plugin-vite's `vite.default.build` resolves to undefined.
+if [[ -z "$NODE_BIN" ]]; then
+  echo "Node.js is not installed." >&2
   exit 1
 fi
 
@@ -103,4 +105,4 @@ export PATH="$WRAPPER_BIN:$PATH"
 export DEBUG="${DEBUG:-$DEBUG_NAMESPACES}"
 
 cd "$PROJECT_ROOT"
-"$BUN_BIN" "$FORGE_CLI" "$FORGE_COMMAND"
+"$NODE_BIN" "$FORGE_CLI" "$FORGE_COMMAND"
