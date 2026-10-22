@@ -68,6 +68,8 @@ jobs:
 
           # Keep the repo's pkgrel for packaging-only fixes; reset it on a new version.
           published_version="$(sed -n 's/^pkgver=//p' PKGBUILD 2>/dev/null || true)"
+          # Mirror the repo's package dir, so files deleted there are deleted here too.
+          git rm -rq --ignore-unmatch .
           cp -r "$HOME/pkg/." .
           sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
           if [[ "$published_version" != "$VERSION" ]]; then
@@ -77,8 +79,8 @@ jobs:
           makepkg --printsrcinfo > .SRCINFO
 
           # Only packaging files; updpkgsums leaves the downloaded sources here too.
-          git add PKGBUILD .SRCINFO
-          git add -- *.install 2>/dev/null || true
+          git add .SRCINFO
+          (cd "$HOME/pkg" && ls -A) | while read -r file; do git add -- "$file"; done
           if git diff --cached --quiet; then
             echo "AUR package already matches v$VERSION"
             exit 0
