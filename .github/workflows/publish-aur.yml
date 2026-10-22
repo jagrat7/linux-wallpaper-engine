@@ -54,7 +54,8 @@ jobs:
       - name: Update AUR package
         run: |
           version="${RELEASE_TAG#v}"
-          install -m644 -o builder -g builder "distro/aur/$AUR_PACKAGE/PKGBUILD" /home/builder/PKGBUILD
+          cp -r "distro/aur/$AUR_PACKAGE" /home/builder/pkg
+          chown -R builder:builder /home/builder/pkg
           sudo -u builder -H AUR_REPO="$AUR_REPO" AUR_PACKAGE="$AUR_PACKAGE" VERSION="$version" \
             bash -euo pipefail <<'EOF'
           export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
@@ -67,7 +68,7 @@ jobs:
 
           # Keep the repo's pkgrel for packaging-only fixes; reset it on a new version.
           published_version="$(sed -n 's/^pkgver=//p' PKGBUILD 2>/dev/null || true)"
-          cp "$HOME/PKGBUILD" PKGBUILD
+          cp -r "$HOME/pkg/." .
           sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
           if [[ "$published_version" != "$VERSION" ]]; then
             sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
@@ -75,7 +76,9 @@ jobs:
           updpkgsums
           makepkg --printsrcinfo > .SRCINFO
 
+          # Only packaging files; updpkgsums leaves the downloaded sources here too.
           git add PKGBUILD .SRCINFO
+          git add -- *.install 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "AUR package already matches v$VERSION"
             exit 0
