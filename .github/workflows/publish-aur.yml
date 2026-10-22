@@ -22,12 +22,15 @@ jobs:
     name: Publish AUR package
     runs-on: ubuntu-latest
     container: archlinux:base-devel
+    # Holds AUR_SSH_PRIVATE_KEY; requires approval and only runs from main or v* tags.
+    environment: aur
 
     steps:
       - name: Checkout PKGBUILD
         uses: actions/checkout@v4
         with:
           sparse-checkout: distro/aur
+          persist-credentials: false
 
       - name: Set up environment
         run: |
@@ -62,9 +65,13 @@ jobs:
           git clone "$AUR_REPO" "$AUR_PACKAGE"
           cd "$AUR_PACKAGE"
 
+          # Keep the repo's pkgrel for packaging-only fixes; reset it on a new version.
+          published_version="$(sed -n 's/^pkgver=//p' PKGBUILD 2>/dev/null || true)"
           cp "$HOME/PKGBUILD" PKGBUILD
           sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
-          sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+          if [[ "$published_version" != "$VERSION" ]]; then
+            sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+          fi
           updpkgsums
           makepkg --printsrcinfo > .SRCINFO
 
