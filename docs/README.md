@@ -26,7 +26,7 @@ You need to own and install [Wallpaper Engine](https://store.steampowered.com/ap
 > If you use Arch btw, you can install everything with the command below and you can skip steps 2 & 3. It will install [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) which will take a few minutes to build.
 >
 > ```bash
-> yay -S linux-wallpaper-engine-ux
+> yay -S wallpaperx-bin
 > ```
 
 ### 2. Install linux-wallpaperengine
@@ -89,7 +89,7 @@ Recommended OS-specific installations:
 #### Arch Linux (AUR)
 
 ```bash
-yay -S linux-wallpaper-engine-ux
+yay -S wallpaperx-bin
 ```
 
 #### Nix / NixOS (Flakes)

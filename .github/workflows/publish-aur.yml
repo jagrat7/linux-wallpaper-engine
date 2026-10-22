@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 env:
-  AUR_PACKAGE: linux-wallpaper-engine-ux
-  AUR_REPO: ssh://aur@aur.archlinux.org/linux-wallpaper-engine-ux.git
+  AUR_PACKAGE: wallpaperx-bin
+  AUR_REPO: ssh://aur@aur.archlinux.org/wallpaperx-bin.git
   RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
@@ -24,6 +24,11 @@ jobs:
     container: archlinux:base-devel
 
     steps:
+      - name: Checkout PKGBUILD
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: distro/aur
+
       - name: Set up environment
         run: |
           pacman -Sy --noconfirm git openssh pacman-contrib
@@ -46,6 +51,7 @@ jobs:
       - name: Update AUR package
         run: |
           version="${RELEASE_TAG#v}"
+          install -m644 -o builder -g builder "distro/aur/$AUR_PACKAGE/PKGBUILD" /home/builder/PKGBUILD
           sudo -u builder -H AUR_REPO="$AUR_REPO" AUR_PACKAGE="$AUR_PACKAGE" VERSION="$version" \
             bash -euo pipefail <<'EOF'
           export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
@@ -56,17 +62,18 @@ jobs:
           git clone "$AUR_REPO" "$AUR_PACKAGE"
           cd "$AUR_PACKAGE"
 
+          cp "$HOME/PKGBUILD" PKGBUILD
           sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
           sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
           updpkgsums
           makepkg --printsrcinfo > .SRCINFO
 
-          if git diff --quiet; then
+          git add PKGBUILD .SRCINFO
+          if git diff --cached --quiet; then
             echo "AUR package already matches v$VERSION"
             exit 0
           fi
 
-          git add PKGBUILD .SRCINFO
           git commit -m "Release $VERSION"
-          git push
+          git push origin HEAD:master
           EOF
