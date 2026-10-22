@@ -23,11 +23,13 @@ This app aims to be a fully functional linux implementation of [Wallpaper Engine
 
 You need to own and install [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/) on Steam. Open Wallpaper Engine via Steam so the wallpapers are downloaded to your system.
 > [!NOTE]
-> If you use Arch btw, you can install everything with the command below and you can skip steps 2 & 3. It will install [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) which will take a few minutes to build.
+> If you use Arch btw, you can install everything with the command below and you can skip steps 2 & 3. It installs a prebuilt build of this app, plus [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine), which will take a few minutes to build.
 >
 > ```bash
 > yay -S wallpaperx-bin
 > ```
+>
+> Coming from `linux-wallpaper-engine-ux`? Run the same command and answer `y` when it asks to remove the old package.
 
 ### 2. Install linux-wallpaperengine
 
@@ -79,8 +81,8 @@ flatpak install --user ./com.github.jagrat7.LinuxWallpaperEngine_stable_x86_64.f
 
 ```bash
 # Extract the archive (use your preferred tool: unzip, 7z, etc.)
-unzip linux-wallpaper-engine-<version>-linux-x64.zip
-cd linux-wallpaper-engine-linux-x64
+unzip Linux.Wallpaper.Engine-linux-x64-<version>.zip
+cd "Linux Wallpaper Engine-linux-x64"
 ./linux-wallpaper-engine
 ```
 
@@ -91,6 +93,8 @@ Recommended OS-specific installations:
 ```bash
 yay -S wallpaperx-bin
 ```
+
+This installs the prebuilt release, so nothing is compiled except the backend. Launch it as **wallpaperX** from your app launcher, or run `wallpaperx`. The old `linux-wallpaper-engine-ux` package is no longer maintained; the command above replaces it.
 
 #### Nix / NixOS (Flakes)
 
