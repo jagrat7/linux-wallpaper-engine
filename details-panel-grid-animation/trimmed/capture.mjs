@@ -1,0 +1,34 @@
+import {createRequire} from 'node:module';
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const require=createRequire('/tmp/lwe-pr121-sol/dev/verify/.tools/package.json');
+const {chromium}=require('playwright-core');
+const variant=process.argv[2]; const rate=Number(process.argv[3]||1);
+const out='/tmp/lwe-pr121-trim-evidence/'+variant; fs.mkdirSync(out,{recursive:true});
+const browser=await chromium.connectOverCDP('http://127.0.0.1:9350');
+const page=browser.contexts()[0].pages().find(p=>p.url().startsWith('http://localhost:5174'));
+await page.setViewportSize({width:1600,height:1000}); await page.goto('http://localhost:5174/#/'); await page.reload();
+await page.getByRole('textbox',{name:'Search wallpapers...'}).fill('Green Flames');
+const card=page.getByRole('heading',{level:3,name:'Green Flames -Roronoa Zoro - 4K',exact:true}); await card.waitFor();
+await page.waitForTimeout(800);
+const cdp=await page.context().newCDPSession(page); await cdp.send('Emulation.setCPUThrottlingRate',{rate});
+const frames=[],actions=[]; cdp.on('Page.screencastFrame',async e=>{const file=String(frames.length).padStart(5,'0')+'.jpg'; frames.push({ts:e.metadata.timestamp,file}); fs.writeFileSync(out+'/'+file,Buffer.from(e.data,'base64')); await cdp.send('Page.screencastFrameAck',{sessionId:e.sessionId});});
+await page.screenshot({path:out+'/before.png'});
+await page.evaluate(()=>{window.geometry=[];window.captureGeometry=true;function sample(){const input=document.querySelector('input[placeholder="Search wallpapers..."]');const r=input.parentElement.getBoundingClientRect();window.geometry.push({t:performance.now(),searchHeight:r.height,searchY:r.y,backgrounds:document.querySelectorAll('img[alt=""]').length,panels:document.querySelectorAll('#wallpaper-details').length});if(window.captureGeometry)requestAnimationFrame(sample)}requestAnimationFrame(sample)});
+await cdp.send('Page.startScreencast',{format:'jpeg',quality:95,everyNthFrame:1});
+await page.waitForTimeout(300);
+for(let i=0;i<3;i++){
+ actions.push({kind:'open',t:Date.now()/1000}); await card.click(); await page.waitForTimeout(1300);
+ assert.equal(await page.locator('#wallpaper-details').count(),1); assert.equal(await page.locator('img[alt=""]').count(),1);
+ if(i===0)await page.screenshot({path:out+'/open.png'});
+ actions.push({kind:'close',t:Date.now()/1000}); await page.locator('#wallpaper-details button').first().click(); await page.waitForTimeout(1300);
+ assert.equal(await page.locator('#wallpaper-details').count(),0); assert.equal(await page.locator('img[alt=""]').count(),0);
+}
+await page.screenshot({path:out+'/closed.png'}); await cdp.send('Page.stopScreencast');
+const geometry=await page.evaluate(()=>{window.captureGeometry=false;return window.geometry});
+assert(geometry.every(r=>r.backgrounds<=1&&r.panels<=1));
+assert.equal(new Set(geometry.map(r=>r.searchHeight)).size,1);
+assert.equal(new Set(geometry.map(r=>r.searchY)).size,1);
+fs.writeFileSync(out+'/capture.json',JSON.stringify({variant,rate,frames,actions,geometry},null,2));
+console.log(JSON.stringify({variant,rate,frames:frames.length,searchHeights:[...new Set(geometry.map(r=>r.searchHeight))],searchY:[...new Set(geometry.map(r=>r.searchY))],cycles:3,assertions:'passed'}));
+await cdp.send('Emulation.setCPUThrottlingRate',{rate:1}); await browser.close();

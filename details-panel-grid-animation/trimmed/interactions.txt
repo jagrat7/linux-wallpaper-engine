@@ -1,0 +1,4 @@
+rapid reopen: one panel and background
+scroll {"before":{"scroll":1500,"overflow":false,"images":10},"open":{"scroll":1500,"overflow":false,"images":8},"closed":{"scroll":1500,"overflow":false,"images":10}}
+Scroll to top: passed
+1920x1080 open/close: passed

@@ -1,0 +1,63 @@
+preservation { common: 24, preserved: 24 }
+delayed close 0 0
+switch [4K] Cyberpunk City [ Real Time Day / Night Cycle + Clock] 1
+- main:
+  - heading "Settings" [level=1]
+  - paragraph: Configure global application preferences
+  - button "Reset to Defaults"
+  - heading "General" [level=2]
+  - paragraph: App behavior and startup
+  - text: Pause on fullscreen apps
+  - switch [checked]
+  - text: Launch on startup
+  - switch
+  - text: Enable system tray
+  - button "Advanced tray options"
+  - switch
+  - heading "Compatibility" [level=2]
+  - paragraph: Test wallpapers for Linux compatibility
+  - paragraph: Scan all wallpapers
+  - paragraph: Test each wallpaper for compatibility issues
+  - button "Scan"
+  - text: Debug mode
+  - switch
+  - text: Run in window mode
+  - button "Window geometry"
+  - switch
+  - heading "Audio" [level=2]
+  - paragraph: Volume and audio processing
+  - text: Volume
+  - slider: "100"
+  - text: 100% Mute audio
+  - switch
+  - text: Don't mute when other apps play audio
+  - switch
+  - text: Audio reactive effects
+  - switch [checked]
+  - heading "Display" [level=2]
+  - paragraph: Default display behavior
+  - text: Maximum FPS
+  - combobox: 60 FPS
+  - text: Default scaling
+  - combobox: Fill
+  - text: Disable mouse interaction
+  - switch
+  - text: Disable parallax effect
+  - switch
+  - text: Disable particle effects
+  - switch
+  - heading "Appearance" [level=2]
+  - paragraph: Theme and visual preferences
+  - text: Theme
+  - combobox: System
+  - text: Show compatibility dot
+  - switch [checked]
+  - text: Grid size
+  - radiogroup "Grid size":
+    - radio "Compact"
+    - radio "Medium" [checked]
+    - radio "Large"
+  - text: Show status bar
+  - switch [checked]
+  - text: Dynamic background
+  - switch [checked]
