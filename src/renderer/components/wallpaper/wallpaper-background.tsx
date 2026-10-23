@@ -33,9 +33,13 @@ export function WallpaperBackground() {
             key={staticUrl}
             src={staticUrl}
             alt=""
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.4 }}
-            exit={{ opacity: 0 }}
+            // Keep the fade in Motion's frame loop. Native opacity animations
+            // can expose the previous inline opacity when their effect ends,
+            // flashing the outgoing image before React removes it.
+            style={{ opacity: 'var(--background-opacity)' }}
+            initial={{ '--background-opacity': 0 }}
+            animate={{ '--background-opacity': 0.4 }}
+            exit={{ '--background-opacity': 0 }}
             transition={{ duration: 0.6, ease: 'easeInOut' }}
             className="absolute inset-0 size-full scale-110 object-cover blur-2xl saturate-[0.5]"
           />

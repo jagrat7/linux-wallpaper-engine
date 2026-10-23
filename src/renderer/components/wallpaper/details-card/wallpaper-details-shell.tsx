@@ -28,9 +28,12 @@ export function WallpaperDetailsShell({
   return (
     <motion.div
       id="wallpaper-details"
-      initial={{ opacity: 0, x: 32 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0 }}
+      // Match the background fade: keep the final opacity committed through
+      // animation completion instead of letting a native effect revert it.
+      style={{ opacity: 'var(--details-opacity)' }}
+      initial={{ '--details-opacity': 0, x: 32 }}
+      animate={{ '--details-opacity': 1, x: 0 }}
+      exit={{ '--details-opacity': 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className={cn(
         'border-border bg-card scrollbar-thin sticky top-0 max-h-[calc(100vh_-_var(--status-bar-h,0rem)_-_2rem)] w-full shrink-0 overflow-y-auto rounded-xl border',

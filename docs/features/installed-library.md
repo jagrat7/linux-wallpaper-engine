@@ -34,6 +34,8 @@ Preconditions:
 
 ## Gotchas
 
+- Background fade regression: after `lwe launch web`, run `node dev/verify/background-fade.mjs <cdp-url> <app-url> "<installed title>" "$A/background-fade.json"` with the printed CDP/app URLs. Use a bright preview such as Zoro when available. This opens and closes it three times and checks every animation frame for an opacity reversal, including the last frame before removal. It requires dynamic backgrounds on and no applied wallpaper. Inspect a recording too: a final screenshot or widely spaced frame strip cannot rule out a one-frame flash.
+
 - The grid is virtualized (`@tanstack/react-virtual`): offscreen cards aren't in the DOM. Search for a title before asserting it exists. Don't scroll and count.
 - Default age-rating filter `G` hides R and PG13 wallpapers. A wallpaper missing from the grid may just be filtered out.
 - A heading is both the card title and the panel title once the panel is open. Use `--exact`, and scope to the panel when asserting it opened.
