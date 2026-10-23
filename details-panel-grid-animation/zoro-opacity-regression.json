@@ -1,0 +1,211 @@
+{
+  "wallpaper": "Green Flames -Roronoa Zoro - 4K",
+  "baseline_commit": "4ae097e",
+  "fixed_commit": "2abef31755c9fa2770bf769fea3ee07b8a7e7ede",
+  "measurements": {
+    "before": [
+      {
+        "action": "open-0",
+        "reversals": {
+          "background": [
+            {
+              "ms": 779,
+              "from": 0.399854,
+              "to": 0.0
+            }
+          ],
+          "preview": [
+            {
+              "ms": 429,
+              "from": 0.9996,
+              "to": 0
+            }
+          ]
+        }
+      },
+      {
+        "action": "close-0",
+        "reversals": {
+          "background": [
+            {
+              "ms": 661,
+              "from": 0.000203134,
+              "to": 0.4
+            }
+          ],
+          "preview": [
+            {
+              "ms": 345,
+              "from": 0.00266248,
+              "to": 1
+            }
+          ]
+        }
+      },
+      {
+        "action": "open-1",
+        "reversals": {
+          "background": [
+            {
+              "ms": 704,
+              "from": 0.399997,
+              "to": 0.0
+            }
+          ],
+          "preview": [
+            {
+              "ms": 404,
+              "from": 0.99997,
+              "to": 0
+            }
+          ]
+        }
+      },
+      {
+        "action": "close-1",
+        "reversals": {
+          "background": [
+            {
+              "ms": 656,
+              "from": 5.05979e-05,
+              "to": 0.4
+            }
+          ],
+          "preview": [
+            {
+              "ms": 339,
+              "from": 0.00182989,
+              "to": 1
+            }
+          ]
+        }
+      },
+      {
+        "action": "open-2",
+        "reversals": {
+          "background": [
+            {
+              "ms": 659,
+              "from": 0.399919,
+              "to": 0.0
+            }
+          ],
+          "preview": [
+            {
+              "ms": 376,
+              "from": 0.999211,
+              "to": 0
+            }
+          ]
+        }
+      },
+      {
+        "action": "close-2",
+        "reversals": {
+          "background": [
+            {
+              "ms": 662,
+              "from": 6.61218e-05,
+              "to": 0.4
+            }
+          ],
+          "preview": [
+            {
+              "ms": 345,
+              "from": 0.00182989,
+              "to": 1
+            }
+          ]
+        }
+      }
+    ],
+    "final": [
+      {
+        "action": "open-0",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "close-0",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "open-1",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "close-1",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "open-2",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "close-2",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      }
+    ],
+    "final-slow": [
+      {
+        "action": "open-0",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "close-0",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "open-1",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "close-1",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "open-2",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      },
+      {
+        "action": "close-2",
+        "reversals": {
+          "background": [],
+          "preview": []
+        }
+      }
+    ]
+  }
+}
