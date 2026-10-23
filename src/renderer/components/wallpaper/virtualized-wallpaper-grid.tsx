@@ -1,5 +1,4 @@
 import {
-  useId,
   useImperativeHandle,
   useLayoutEffect,
   useRef,
@@ -9,7 +8,6 @@ import {
 } from 'react'
 import { FolderOpen, type LucideIcon } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { LayoutGroup, motion } from 'framer-motion'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/empty-state'
 import { WallpaperCard } from './wallpaper-card'
@@ -19,7 +17,6 @@ import type { WallpaperGridDensity } from '../../../shared/constants/grid'
 import { WALLPAPER_GRID_GAP, WALLPAPER_GRID_SKELETON_COUNT } from '../../../shared/constants/grid'
 import { findScrollParent, columnsForWidth } from '@/lib/utils'
 import { useGlass } from '@/hooks/use-glass'
-import { WALLPAPER_GRID_TRANSITION } from './wallpaper-grid-shell'
 
 const OVERSCAN = 3 // rows rendered beyond the viewport to smooth scrolling
 
@@ -62,7 +59,6 @@ export function VirtualizedWallpaperGrid({
   ref,
 }: VirtualizedWallpaperGridProps) {
   const parentRef = useRef<HTMLDivElement>(null)
-  const layoutGroupId = useId()
   // Resolved once for the whole grid — cards must not subscribe individually.
   const glass = useGlass()
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null)
@@ -142,52 +138,43 @@ export function VirtualizedWallpaperGrid({
   )
 
   const rows = (
-    <LayoutGroup id={layoutGroupId}>
-      <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
-        {virtualizer.getVirtualItems().map((virtualRow) => {
-          const start = virtualRow.index * columns
-          const rowItems = wallpapers.slice(start, start + columns)
-          return (
-            <div
-              key={virtualRow.key}
-              data-index={virtualRow.index}
-              ref={virtualizer.measureElement}
-              className="grid gap-4"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
-                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                paddingBottom: WALLPAPER_GRID_GAP,
-              }}
-            >
-              {rowItems.map((wallpaper) => (
-                <motion.div
-                  key={wallpaper.id}
-                  layout
-                  layoutId={wallpaper.id}
-                  transition={WALLPAPER_GRID_TRANSITION}
-                  className="relative"
-                  data-wallpaper-path={wallpaper.path}
-                >
-                  <WallpaperCard
-                    wallpaper={wallpaper}
-                    selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
-                    onClick={onCardClick}
-                    compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
-                    showCompatibilityDot={showCompatibilityDot}
-                    glassClassName={glass}
-                  />
-                  {renderCardOverlay?.(wallpaper)}
-                </motion.div>
-              ))}
-            </div>
-          )
-        })}
-      </div>
-    </LayoutGroup>
+    <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+      {virtualizer.getVirtualItems().map((virtualRow) => {
+        const start = virtualRow.index * columns
+        const rowItems = wallpapers.slice(start, start + columns)
+        return (
+          <div
+            key={virtualRow.key}
+            data-index={virtualRow.index}
+            ref={virtualizer.measureElement}
+            className="grid gap-4"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+              gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+              paddingBottom: WALLPAPER_GRID_GAP,
+            }}
+          >
+            {rowItems.map((wallpaper) => (
+              <div key={wallpaper.id} className="relative" data-wallpaper-path={wallpaper.path}>
+                <WallpaperCard
+                  wallpaper={wallpaper}
+                  selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+                  onClick={onCardClick}
+                  compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
+                  showCompatibilityDot={showCompatibilityDot}
+                  glassClassName={glass}
+                />
+                {renderCardOverlay?.(wallpaper)}
+              </div>
+            ))}
+          </div>
+        )
+      })}
+    </div>
   )
 
   // The parentRef div is now always mounted so the layout effects above can
