@@ -1,0 +1,37 @@
+{
+  "before": {
+    "frames": 235,
+    "crop": [
+      600,
+      300,
+      1000,
+      700
+    ],
+    "oneFrameExcursionsOver10": [
+      36,
+      65,
+      141,
+      214
+    ]
+  },
+  "after": {
+    "frames": 215,
+    "crop": [
+      600,
+      300,
+      1000,
+      700
+    ],
+    "oneFrameExcursionsOver10": []
+  },
+  "after-dark": {
+    "frames": 217,
+    "crop": [
+      600,
+      300,
+      1000,
+      700
+    ],
+    "oneFrameExcursionsOver10": []
+  }
+}

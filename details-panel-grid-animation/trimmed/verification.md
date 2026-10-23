@@ -1,3 +1,5 @@
+> Superseded conclusion: later light-theme captures reproduced visible flashes on 59b6639. See [the correction](../light-theme/verification.md). These older dark-theme results remain historical evidence only.
+
 # PR 121 trimmed-change verification
 
 Product SHA: 59b6639eb4a6f3311c46c0a49aaed5d758d73e0b
