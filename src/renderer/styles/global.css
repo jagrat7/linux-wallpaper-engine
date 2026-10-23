@@ -225,7 +225,8 @@
 @utility glass {
   background: oklch(from var(--background) l c h / 0.6);
   backdrop-filter: blur(20px);
-  border: 1px solid oklch(from var(--foreground) l c h / 0.08);
+  /* Surfaces own their border width: toggling glass must not change geometry. */
+  border-color: oklch(from var(--foreground) l c h / 0.08);
   box-shadow:
     inset 0 1px 0 0 oklch(from var(--foreground) l c h / 0.06),
     0 0 0 0.5px oklch(from var(--background) l c h / 0.3);

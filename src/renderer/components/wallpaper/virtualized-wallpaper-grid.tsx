@@ -38,6 +38,8 @@ interface VirtualizedWallpaperGridProps {
   emptySubMessage?: string
   renderCardOverlay?: (wallpaper: Wallpaper) => ReactNode
   columns?: number
+  /** Available width from the shell, updated in the same render as its columns. */
+  width?: number
   density?: WallpaperGridDensity
   ref?: Ref<VirtualizedWallpaperGridHandle>
 }
@@ -55,6 +57,7 @@ export function VirtualizedWallpaperGrid({
   emptySubMessage,
   renderCardOverlay,
   columns: columnsOverride,
+  width: widthOverride,
   density,
   ref,
 }: VirtualizedWallpaperGridProps) {
@@ -62,7 +65,7 @@ export function VirtualizedWallpaperGrid({
   // Resolved once for the whole grid — cards must not subscribe individually.
   const glass = useGlass()
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null)
-  const [width, setWidth] = useState(0)
+  const [measuredWidth, setWidth] = useState(0)
   const [scrollMargin, setScrollMargin] = useState(0)
 
   // Resolve the scroll container once mounted.
@@ -93,6 +96,9 @@ export function VirtualizedWallpaperGrid({
 
   // Breakpoints are applied to the container width (not the viewport), so the
   // column count adapts when side panels narrow the grid.
+  // Use the shell's width immediately, even if its column count stays the same.
+  // Waiting for ResizeObserver would paint a frame with the old row geometry.
+  const width = widthOverride ?? measuredWidth
   const columns = columnsOverride ?? columnsForWidth(width, density)
   const cardWidth = columns > 0 ? (width - WALLPAPER_GRID_GAP * (columns - 1)) / columns : 0
   const rowHeight = cardWidth + WALLPAPER_GRID_GAP // cards are square (aspect-square)
@@ -139,40 +145,34 @@ export function VirtualizedWallpaperGrid({
 
   const rows = (
     <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
-      {virtualizer.getVirtualItems().map((virtualRow) => {
+      {virtualizer.getVirtualItems().flatMap((virtualRow) => {
         const start = virtualRow.index * columns
         const rowItems = wallpapers.slice(start, start + columns)
-        return (
+        // Keep cards in one keyed sibling list. Nesting them under row keys
+        // remounts thumbnails whenever a column change moves a card to a new row.
+        return rowItems.map((wallpaper, column) => (
           <div
-            key={virtualRow.key}
-            data-index={virtualRow.index}
-            ref={virtualizer.measureElement}
-            className="grid gap-4"
+            key={wallpaper.id}
+            data-wallpaper-path={wallpaper.path}
             style={{
               position: 'absolute',
               top: 0,
-              left: 0,
-              width: '100%',
+              left: column * (cardWidth + WALLPAPER_GRID_GAP),
+              width: cardWidth,
               transform: `translateY(${virtualRow.start - scrollMargin}px)`,
-              gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-              paddingBottom: WALLPAPER_GRID_GAP,
             }}
           >
-            {rowItems.map((wallpaper) => (
-              <div key={wallpaper.id} className="relative" data-wallpaper-path={wallpaper.path}>
-                <WallpaperCard
-                  wallpaper={wallpaper}
-                  selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
-                  onClick={onCardClick}
-                  compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
-                  showCompatibilityDot={showCompatibilityDot}
-                  glassClassName={glass}
-                />
-                {renderCardOverlay?.(wallpaper)}
-              </div>
-            ))}
+            <WallpaperCard
+              wallpaper={wallpaper}
+              selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+              onClick={onCardClick}
+              compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
+              showCompatibilityDot={showCompatibilityDot}
+              glassClassName={glass}
+            />
+            {renderCardOverlay?.(wallpaper)}
           </div>
-        )
+        ))
       })}
     </div>
   )

@@ -1,14 +1,13 @@
 import { useLayoutEffect, useRef, useState, type Key, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import { cn, columnsForWidth } from '@/lib/utils'
 import { trpc } from '@/lib/trpc'
 import { DEFAULT_WALLPAPER_GRID_DENSITY, WALLPAPER_GRID_GAP } from '../../../shared/constants/grid'
 
 const WALLPAPER_DETAILS_MIN_WIDTH = 320 // matches the original Installed w-80 panel
-const WALLPAPER_DETAILS_TRANSITION = { duration: 0.3, ease: 'easeOut' } as const
 
 interface WallpaperGridShellProps {
-  children: (columns: number) => ReactNode
+  children: (columns: number, gridWidth: number) => ReactNode
   details: ReactNode | null
   detailsKey?: Key
 }
@@ -47,7 +46,7 @@ export function WallpaperGridShell({ children, details, detailsKey }: WallpaperG
 
   return (
     <div ref={shellRef} className="flex flex-1 items-start">
-      <div className="h-fit min-w-0 flex-1">{children(gridColumns)}</div>
+      <div className="h-fit min-w-0 flex-1">{children(gridColumns, gridWidth)}</div>
 
       <aside
         className={cn(
@@ -64,16 +63,12 @@ export function WallpaperGridShell({ children, details, detailsKey }: WallpaperG
       >
         <AnimatePresence initial={false} mode="wait">
           {details && (
-            <motion.div
+            <div
               key={detailsKey ?? 'wallpaper-details'}
               style={{ width: WALLPAPER_DETAILS_MIN_WIDTH }}
-              initial={{ opacity: 0, x: 32 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0 }}
-              transition={WALLPAPER_DETAILS_TRANSITION}
             >
               {details}
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
       </aside>

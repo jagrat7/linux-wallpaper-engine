@@ -12,19 +12,22 @@ export function WallpaperBackground() {
   const staticUrl = useStaticFrame(backgroundUrl)
   const setPainted = useSetAtom(wallpaperBackgroundPaintedAtom)
 
-  // Tracks the frame rather than the exit animation: glass lands only once
-  // there is an image to sit on, but lifts as soon as the wallpaper starts
-  // going, ahead of the fade-out finishing. `staticUrl` holds the outgoing
-  // frame until the incoming one decodes, so a swap never blips it off.
+  // Keep surfaces stable through the fade-out. Removing their glass while the
+  // background is still visible makes the whole page flash opaque on close.
   useEffect(() => {
-    setPainted(staticUrl !== null)
+    if (staticUrl !== null) setPainted(true)
   }, [staticUrl, setPainted])
 
   useEffect(() => () => setPainted(false), [setPainted])
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence
+        mode="popLayout"
+        onExitComplete={() => {
+          if (staticUrl === null) setPainted(false)
+        }}
+      >
         {staticUrl && (
           <motion.img
             key={staticUrl}
