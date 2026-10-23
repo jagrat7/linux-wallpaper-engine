@@ -33,9 +33,12 @@ export function WallpaperBackground() {
             key={staticUrl}
             src={staticUrl}
             alt=""
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.4 }}
-            exit={{ opacity: 0 }}
+            // Avoid the compositor flash seen when native opacity effects finish.
+            // A custom property keeps this fade in Motion's JavaScript frame loop.
+            style={{ opacity: 'var(--background-opacity)' }}
+            initial={{ '--background-opacity': 0 }}
+            animate={{ '--background-opacity': 0.4 }}
+            exit={{ '--background-opacity': 0 }}
             transition={{ duration: 0.6, ease: 'easeInOut' }}
             className="absolute inset-0 size-full scale-110 object-cover blur-2xl saturate-[0.5]"
           />
