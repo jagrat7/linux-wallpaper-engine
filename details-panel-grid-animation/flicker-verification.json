@@ -1,0 +1,170 @@
+{
+  "before": {
+    "open": {
+      "sampled_thumbnail_remounts": 4,
+      "layouts_including_initial": 4,
+      "preview_styles": [
+        [
+          false,
+          "none"
+        ],
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "close": {
+      "sampled_thumbnail_remounts": 4,
+      "layouts_including_initial": 3,
+      "preview_styles": [
+        [
+          false,
+          "none"
+        ],
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "reopen": {
+      "sampled_thumbnail_remounts": 4,
+      "layouts_including_initial": 3,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "switch": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 1,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "close-again": {
+      "sampled_thumbnail_remounts": 4,
+      "layouts_including_initial": 3,
+      "preview_styles": [
+        [
+          false,
+          "none"
+        ],
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    }
+  },
+  "after": {
+    "open": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 2,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "close": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 2,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "reopen": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 2,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "switch": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 1,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "close-again": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 2,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    }
+  },
+  "after-wide": {
+    "open": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 2,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "close": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 2,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "reopen": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 2,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "switch": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 1,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    },
+    "close-again": {
+      "sampled_thumbnail_remounts": 0,
+      "layouts_including_initial": 2,
+      "preview_styles": [
+        [
+          true,
+          "blur(20px)"
+        ]
+      ]
+    }
+  }
+}
