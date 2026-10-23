@@ -174,7 +174,7 @@ export function WallpaperGrid() {
           ) : null
         }
       >
-        {(columns) => (
+        {(columns, width) => (
           <VirtualizedWallpaperGrid
             wallpapers={wallpapers}
             isLoading={isLoading}
@@ -183,6 +183,7 @@ export function WallpaperGrid() {
             selectedId={selectedWallpaper?.id}
             onCardClick={toggleWallpaper}
             columns={columns}
+            width={width}
             emptyIcon={FolderOpen}
             emptyMessage="No wallpapers found"
             emptySubMessage={

@@ -1,5 +1,4 @@
-import { useId, type ReactNode } from 'react'
-import { LayoutGroup } from 'framer-motion'
+import { type ReactNode } from 'react'
 import { FolderOpen, type LucideIcon } from 'lucide-react'
 
 import { Skeleton } from '@/components/ui/skeleton'
@@ -41,7 +40,6 @@ export function WallpaperGridLayout({
 }: WallpaperGridLayoutProps) {
   // Resolved once for the whole grid — cards must not subscribe individually.
   const glass = useGlass()
-  const layoutGroupId = useId()
   const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
 
   if (isLoading) {
@@ -59,21 +57,19 @@ export function WallpaperGridLayout({
   }
 
   return (
-    <LayoutGroup id={layoutGroupId}>
-      <div className="grid gap-4" style={gridStyle}>
-        {wallpapers.map((wallpaper) => (
-          <WallpaperGridCardItem
-            key={wallpaper.id}
-            wallpaper={wallpaper}
-            selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
-            onClick={onCardClick}
-            compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
-            showCompatibilityDot={showCompatibilityDot}
-            glassClassName={glass}
-            overlay={renderCardOverlay?.(wallpaper)}
-          />
-        ))}
-      </div>
-    </LayoutGroup>
+    <div className="grid gap-4" style={gridStyle}>
+      {wallpapers.map((wallpaper) => (
+        <WallpaperGridCardItem
+          key={wallpaper.id}
+          wallpaper={wallpaper}
+          selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+          onClick={onCardClick}
+          compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
+          showCompatibilityDot={showCompatibilityDot}
+          glassClassName={glass}
+          overlay={renderCardOverlay?.(wallpaper)}
+        />
+      ))}
+    </div>
   )
 }

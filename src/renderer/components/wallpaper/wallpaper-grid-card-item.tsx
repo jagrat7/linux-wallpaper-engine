@@ -1,9 +1,7 @@
 import { memo, type ReactNode } from 'react'
-import { motion } from 'framer-motion'
 import { WallpaperCard } from './wallpaper-card'
 import type { Wallpaper } from '../../../shared/constants/wallpaper'
 import type { CompatibilityStatus } from '../../../shared/constants/compatibility'
-import { WALLPAPER_GRID_TRANSITION } from './wallpaper-grid-shell'
 
 interface WallpaperGridCardItemProps {
   wallpaper: Wallpaper
@@ -27,13 +25,7 @@ export const WallpaperGridCardItem = memo(function WallpaperGridCardItem({
   overlay,
 }: WallpaperGridCardItemProps) {
   return (
-    <motion.div
-      layout
-      layoutId={wallpaper.id}
-      transition={WALLPAPER_GRID_TRANSITION}
-      className="relative"
-      data-wallpaper-path={wallpaper.path}
-    >
+    <div className="relative" data-wallpaper-path={wallpaper.path}>
       <WallpaperCard
         wallpaper={wallpaper}
         selected={selected}
@@ -43,6 +35,6 @@ export const WallpaperGridCardItem = memo(function WallpaperGridCardItem({
         glassClassName={glassClassName}
       />
       {overlay}
-    </motion.div>
+    </div>
   )
 })

@@ -1,5 +1,4 @@
 import {
-  useId,
   useImperativeHandle,
   useLayoutEffect,
   useRef,
@@ -9,7 +8,6 @@ import {
 } from 'react'
 import { FolderOpen, type LucideIcon } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { LayoutGroup, motion } from 'framer-motion'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/empty-state'
 import { WallpaperCard } from './wallpaper-card'
@@ -19,7 +17,6 @@ import type { WallpaperGridDensity } from '../../../shared/constants/grid'
 import { WALLPAPER_GRID_GAP, WALLPAPER_GRID_SKELETON_COUNT } from '../../../shared/constants/grid'
 import { findScrollParent, columnsForWidth } from '@/lib/utils'
 import { useGlass } from '@/hooks/use-glass'
-import { WALLPAPER_GRID_TRANSITION } from './wallpaper-grid-shell'
 
 const OVERSCAN = 3 // rows rendered beyond the viewport to smooth scrolling
 
@@ -41,6 +38,8 @@ interface VirtualizedWallpaperGridProps {
   emptySubMessage?: string
   renderCardOverlay?: (wallpaper: Wallpaper) => ReactNode
   columns?: number
+  /** Available width from the shell, updated in the same render as its columns. */
+  width?: number
   density?: WallpaperGridDensity
   ref?: Ref<VirtualizedWallpaperGridHandle>
 }
@@ -58,15 +57,15 @@ export function VirtualizedWallpaperGrid({
   emptySubMessage,
   renderCardOverlay,
   columns: columnsOverride,
+  width: widthOverride,
   density,
   ref,
 }: VirtualizedWallpaperGridProps) {
   const parentRef = useRef<HTMLDivElement>(null)
-  const layoutGroupId = useId()
   // Resolved once for the whole grid — cards must not subscribe individually.
   const glass = useGlass()
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null)
-  const [width, setWidth] = useState(0)
+  const [measuredWidth, setWidth] = useState(0)
   const [scrollMargin, setScrollMargin] = useState(0)
 
   // Resolve the scroll container once mounted.
@@ -97,6 +96,9 @@ export function VirtualizedWallpaperGrid({
 
   // Breakpoints are applied to the container width (not the viewport), so the
   // column count adapts when side panels narrow the grid.
+  // Use the shell's width immediately, even if its column count stays the same.
+  // Waiting for ResizeObserver would paint a frame with the old row geometry.
+  const width = widthOverride ?? measuredWidth
   const columns = columnsOverride ?? columnsForWidth(width, density)
   const cardWidth = columns > 0 ? (width - WALLPAPER_GRID_GAP * (columns - 1)) / columns : 0
   const rowHeight = cardWidth + WALLPAPER_GRID_GAP // cards are square (aspect-square)
@@ -142,52 +144,37 @@ export function VirtualizedWallpaperGrid({
   )
 
   const rows = (
-    <LayoutGroup id={layoutGroupId}>
-      <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
-        {virtualizer.getVirtualItems().map((virtualRow) => {
-          const start = virtualRow.index * columns
-          const rowItems = wallpapers.slice(start, start + columns)
-          return (
-            <div
-              key={virtualRow.key}
-              data-index={virtualRow.index}
-              ref={virtualizer.measureElement}
-              className="grid gap-4"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
-                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                paddingBottom: WALLPAPER_GRID_GAP,
-              }}
-            >
-              {rowItems.map((wallpaper) => (
-                <motion.div
-                  key={wallpaper.id}
-                  layout
-                  layoutId={wallpaper.id}
-                  transition={WALLPAPER_GRID_TRANSITION}
-                  className="relative"
-                  data-wallpaper-path={wallpaper.path}
-                >
-                  <WallpaperCard
-                    wallpaper={wallpaper}
-                    selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
-                    onClick={onCardClick}
-                    compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
-                    showCompatibilityDot={showCompatibilityDot}
-                    glassClassName={glass}
-                  />
-                  {renderCardOverlay?.(wallpaper)}
-                </motion.div>
-              ))}
-            </div>
-          )
-        })}
-      </div>
-    </LayoutGroup>
+    <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+      {virtualizer.getVirtualItems().flatMap((virtualRow) => {
+        const start = virtualRow.index * columns
+        const rowItems = wallpapers.slice(start, start + columns)
+        // Keep cards in one keyed sibling list. Nesting them under row keys
+        // remounts thumbnails whenever a column change moves a card to a new row.
+        return rowItems.map((wallpaper, column) => (
+          <div
+            key={wallpaper.id}
+            data-wallpaper-path={wallpaper.path}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: column * (cardWidth + WALLPAPER_GRID_GAP),
+              width: cardWidth,
+              transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+            }}
+          >
+            <WallpaperCard
+              wallpaper={wallpaper}
+              selected={isSelected?.(wallpaper) ?? selectedId === wallpaper.id}
+              onClick={onCardClick}
+              compatibilityStatus={compatibilityMap?.[wallpaper.path ?? '']}
+              showCompatibilityDot={showCompatibilityDot}
+              glassClassName={glass}
+            />
+            {renderCardOverlay?.(wallpaper)}
+          </div>
+        ))
+      })}
+    </div>
   )
 
   // The parentRef div is now always mounted so the layout effects above can

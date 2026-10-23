@@ -22,7 +22,7 @@ export function SearchInput({
     <div className={className}>
       <div
         className={cn(
-          'group ring-foreground/10 hover:ring-foreground/30 focus-within:ring-foreground/40 relative flex-1 rounded-xl ring-1 focus-within:shadow-sm',
+          'group ring-foreground/10 hover:ring-foreground/30 focus-within:ring-foreground/40 relative flex-1 rounded-xl border border-transparent ring-1 focus-within:shadow-sm',
           glass,
         )}
       >
