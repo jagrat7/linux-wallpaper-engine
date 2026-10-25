@@ -9,6 +9,8 @@ import { WallpaperBackground } from '@/components/wallpaper/wallpaper-background
 import { UpdateReminderBanner } from '@/components/update-reminder-banner'
 import { ScanReminderBanner } from '@/components/scan-reminder-banner'
 
+const MAIN_CONTENT_ID = 'main-content'
+
 interface AppShellProps {
   children: React.ReactNode
   className?: string
@@ -27,6 +29,18 @@ export function AppShell({ children, className }: AppShellProps) {
           } as React.CSSProperties
         }
       >
+        <a
+          href={`#${MAIN_CONTENT_ID}`}
+          onClick={(event) => {
+            event.preventDefault()
+            const main = document.getElementById(MAIN_CONTENT_ID)
+            main?.focus()
+            main?.scrollIntoView({ block: 'start' })
+          }}
+          className="bg-primary text-primary-foreground focus:ring-ring focus:ring-offset-background absolute top-3 left-3 z-50 -translate-y-16 rounded-md px-3 py-2 text-sm font-medium shadow-md transition-transform focus:translate-y-0 focus:ring-2 focus:ring-offset-2 focus:outline-none"
+        >
+          Skip to content
+        </a>
         {settings?.dynamicBackground && <WallpaperBackground />}
         <div className="relative z-10 flex min-h-0 flex-1">
           <Sidebar className="z-10" />
@@ -36,8 +50,10 @@ export function AppShell({ children, className }: AppShellProps) {
               <ScanReminderBanner />
             </div>
             <main
+              id={MAIN_CONTENT_ID}
+              tabIndex={-1}
               className={cn(
-                'scrollbar-styled min-h-0 flex-1 overflow-auto px-[2.5%] pb-4',
+                'scrollbar-styled focus-visible:ring-ring min-h-0 flex-1 overflow-auto px-[2.5%] pb-4 outline-none focus-visible:ring-2 focus-visible:ring-inset',
                 className,
               )}
             >
