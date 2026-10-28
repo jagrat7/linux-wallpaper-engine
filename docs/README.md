@@ -13,10 +13,26 @@ This app aims to be a fully functional linux implementation of [Wallpaper Engine
 
 - [Installation](#-installation)
 - [Features](#-features)
+- [Launching the app](#launching-the-app)
 - [Future Features](#-future-features)
 - [Contributing & Feedback](#-contributing--feedback)
 
 ---
+## Launching the app
+
+Launching `wallpaperx` again shows and focuses the running window, including when it is minimized or hidden in the system tray.
+
+Use `--page` to open a specific page on startup or in the running app:
+
+```bash
+wallpaperx --page workshop
+wallpaperx --page=installed
+```
+
+Supported pages: `installed`, `workshop`, `playlists`, `displays`, and `settings`. With no valid page argument, a fresh start opens Installed and a running app keeps its current page. Invalid or missing values are ignored; if several valid page arguments are supplied, the first wins. A fresh start still respects the minimize-on-startup setting; launching again reveals the window.
+
+For other packages, pass the same arguments to their executable (for example, `linux-wallpaper-engine --page workshop`).
+
 ## 📦 Installation
 
 ### 1. Wallpaper Engine (Steam)
