@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Verification harness for Linux Wallpaper Engine. Agent docs: .agents/skills/verify-linux-wallpaper-engine/SKILL.md, feature map: docs/features/.
 #   lwe setup                     install playwright-core into dev/verify/.tools (once, nothing global)
-#   lwe launch [web|desktop]      start an isolated dev instance + CDP endpoint, wait until ready
+#   lwe launch [web|desktop] [args...]   start an isolated dev instance; desktop accepts app arguments
 #   lwe doctor                    read-only health check of the current run
 #   lwe drive <cmd> [flags]       drive the UI over CDP (see drive.mjs)
 #   lwe store [settings|active-wallpapers|wallpaper-overrides]   print the run's isolated store JSON
@@ -85,7 +85,9 @@ cmd_setup() {
 
 cmd_launch() {
   local target="${1:-web}"
+  if [[ $# -gt 0 ]]; then shift; fi
   [[ "$target" == web || "$target" == desktop ]] || die "usage: $0 launch [web|desktop]   (to stop a run: $0 cleanup)"
+  [[ "$target" == desktop || $# == 0 ]] || die "app arguments require the desktop target"
   cmd_setup >/dev/null
   command -v bun >/dev/null || die "bun not on PATH"
   [[ -d "$REPO_DIR/node_modules" ]] || die "run 'bun install --frozen-lockfile' in $REPO_DIR first"
@@ -113,11 +115,12 @@ cmd_launch() {
 
   # forge exits when stdin hits EOF, so feed it a stdin that never closes.
   # setsid puts forge + vite + electron in one process group we own.
-  local electron_args=""
-  [[ "$target" == desktop ]] && electron_args="-- --remote-debugging-port=$cdp_port"
+  local electron_args=()
+  [[ "$target" == desktop ]] && electron_args=(-- "--remote-debugging-port=$cdp_port" "$@")
   (
     cd "$REPO_DIR"
-    setsid bash -c "sleep infinity | XDG_CONFIG_HOME='$run/config' DEV_TARGET=$target exec node_modules/.bin/electron-forge start $electron_args" \
+    setsid bash -c 'sleep infinity | XDG_CONFIG_HOME="$1/config" DEV_TARGET="$2" exec node_modules/.bin/electron-forge start "${@:3}"' \
+      lwe-verify "$run" "$target" "${electron_args[@]}" \
       > "$run/logs/dev.log" 2>&1 < /dev/null &
     echo $! > "$run/dev.pgid"
   )
