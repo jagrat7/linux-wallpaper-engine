@@ -1,0 +1,27 @@
+[
+  {
+    "name": "packaged-fresh-workshop",
+    "pid": 1602604,
+    "url": "file:///home/jagrat/dev/linux-wallpaper-engine/out/Linux%20Wallpaper%20Engine-linux-x64/resources/app.asar/.vite/renderer/main_window/index.html#/workshop"
+  },
+  {
+    "name": "packaged-second-settings",
+    "pid": 1602604,
+    "url": "file:///home/jagrat/dev/linux-wallpaper-engine/out/Linux%20Wallpaper%20Engine-linux-x64/resources/app.asar/.vite/renderer/main_window/index.html#/settings",
+    "sameRenderer": true,
+    "windows": 1
+  },
+  {
+    "name": "packaged-started-in-tray",
+    "pid": 1602877,
+    "url": "file:///home/jagrat/dev/linux-wallpaper-engine/out/Linux%20Wallpaper%20Engine-linux-x64/resources/app.asar/.vite/renderer/main_window/index.html#/workshop",
+    "mappedWindows": 0
+  },
+  {
+    "name": "packaged-revealed-from-startup",
+    "pid": 1602877,
+    "url": "file:///home/jagrat/dev/linux-wallpaper-engine/out/Linux%20Wallpaper%20Engine-linux-x64/resources/app.asar/.vite/renderer/main_window/index.html#/settings",
+    "visibility": "visible",
+    "focused": true
+  }
+]

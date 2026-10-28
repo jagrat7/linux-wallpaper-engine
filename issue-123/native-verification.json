@@ -1,0 +1,147 @@
+[
+  {
+    "name": "03-before-navigation",
+    "pid": 1587376,
+    "windows": [
+      {
+        "id": 1,
+        "url": "http://localhost:5173/#/settings",
+        "visible": true,
+        "focused": false,
+        "minimized": false
+      }
+    ]
+  },
+  {
+    "name": "page-installed",
+    "url": "http://localhost:5173/#/",
+    "timeOrigin": 1793223178393.3
+  },
+  {
+    "name": "page-workshop",
+    "url": "http://localhost:5173/#/workshop",
+    "timeOrigin": 1793223178393.3
+  },
+  {
+    "name": "page-playlists",
+    "url": "http://localhost:5173/#/playlists",
+    "timeOrigin": 1793223178393.3
+  },
+  {
+    "name": "page-displays",
+    "url": "http://localhost:5173/#/displays",
+    "timeOrigin": 1793223178393.3
+  },
+  {
+    "name": "page-settings",
+    "url": "http://localhost:5173/#/settings",
+    "timeOrigin": 1793223178393.3
+  },
+  {
+    "name": "04-after-navigation",
+    "pid": 1587376,
+    "windows": [
+      {
+        "id": 1,
+        "url": "http://localhost:5173/#/settings",
+        "visible": true,
+        "focused": true,
+        "minimized": false
+      }
+    ]
+  },
+  {
+    "name": "preserve-page",
+    "args": [],
+    "url": "http://localhost:5173/#/settings"
+  },
+  {
+    "name": "preserve-page",
+    "args": [
+      "--page",
+      "invalid"
+    ],
+    "url": "http://localhost:5173/#/settings"
+  },
+  {
+    "name": "preserve-page",
+    "args": [
+      "--page"
+    ],
+    "url": "http://localhost:5173/#/settings"
+  },
+  {
+    "name": "preserve-page",
+    "args": [
+      "--page=constructor"
+    ],
+    "url": "http://localhost:5173/#/settings"
+  },
+  {
+    "name": "preserve-page",
+    "args": [
+      "--page=workshop';alert(1)//"
+    ],
+    "url": "http://localhost:5173/#/settings"
+  },
+  {
+    "name": "hidden-after-native-close",
+    "pid": 1587376,
+    "windows": [
+      {
+        "id": 1,
+        "url": "http://localhost:5173/#/settings",
+        "visible": false,
+        "focused": false,
+        "minimized": false
+      }
+    ]
+  },
+  {
+    "name": "05-revealed-from-tray",
+    "pid": 1587376,
+    "windows": [
+      {
+        "id": 1,
+        "url": "http://localhost:5173/#/workshop",
+        "visible": true,
+        "focused": true,
+        "minimized": false
+      }
+    ]
+  },
+  {
+    "name": "minimized",
+    "pid": 1587376,
+    "windows": [
+      {
+        "id": 1,
+        "url": "http://localhost:5173/#/workshop",
+        "visible": false,
+        "focused": false,
+        "minimized": true
+      }
+    ]
+  },
+  {
+    "name": "06-restored",
+    "pid": 1587376,
+    "windows": [
+      {
+        "id": 1,
+        "url": "http://localhost:5173/#/workshop",
+        "visible": true,
+        "focused": true,
+        "minimized": false
+      }
+    ]
+  },
+  {
+    "name": "result",
+    "status": "passed",
+    "compositor": "Hyprland",
+    "initialPid": 1587376,
+    "initialWindowId": 1,
+    "rendererTimeOrigin": 1793223178393.3
+  }
+]
