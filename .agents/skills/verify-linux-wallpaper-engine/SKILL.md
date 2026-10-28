@@ -52,6 +52,8 @@ $LWE doctor
 
 Doctor is read-only. It checks the dev and browser process groups are alive, the renderer URL answers, CDP has a page on the app origin, `:5180` is owned by our process group (web), Electron main's `XDG_CONFIG_HOME` is the run's isolated dir, and the renderer has mounted. It also lists `linux-wallpaperengine` processes split into "started by this run" and "existed before launch (never touch)", and prints the git rev the run was built from next to the current HEAD. Run it first, and again whenever anything looks off. If it prints `UNHEALTHY`, run `$LWE cleanup` and relaunch. Don't drive a half-dead instance.
 
+Doctor also rejects fatal errors in the run's Electron and Chromium logs. A healthy running instance does not prove a clean shutdown: cleanup must succeed too.
+
 The dev server hot-reloads renderer edits. Main-process edits (`src/main/**`) need a relaunch: cleanup, then launch.
 
 ## Drive
@@ -103,7 +105,9 @@ Proof standards:
 $LWE cleanup
 ```
 
-Cleanup kills `linux-wallpaperengine` processes this run spawned: children of our Electron, plus pids recorded during the run. It never touches backends listed as pre-existing. It then TERMs (and after 10 s KILLs) the browser and dev process groups this run created, deletes `$RUN/config` and `$RUN/chrome`, and removes the `current` symlink. It keeps `$RUN/artifacts/` and `$RUN/logs/`, and warns if the Steam playlists file changed or ports are still bound. Never kill by process name: the user's own Electron instance and wallpapers share the names.
+Cleanup kills `linux-wallpaperengine` processes this run spawned: children of our Electron, plus pids recorded during the run. It never touches backends listed as pre-existing. It first sends TERM to the Electron main process and the headless Chromium parent individually, allowing each parent to stop its own helpers. Only after those parents stop does it terminate remaining processes in this run's groups. Never terminate the whole group first: killing Chromium's GPU/network helpers alongside its parent can make the parent crash during shutdown.
+
+Cleanup deletes `$RUN/config` and `$RUN/chrome`, removes the `current` symlink, and preserves `$RUN/artifacts/` and `$RUN/logs/`, including `logs/cleanup.log`. A forced shutdown, fatal Electron/Chromium log entry, or port still bound makes cleanup return nonzero even though it finishes removing scratch data. Treat that as failed verification; don't report the run as passing. Successful cleanup prints `shutdown verified: no fatal errors or forced termination`. Never kill by process name: the user's own Electron instance and wallpapers share the names.
 
 Run cleanup after every failed attempt too, then relaunch. Confirm afterwards that `ls <run dir>/artifacts` still shows your proof.
 
