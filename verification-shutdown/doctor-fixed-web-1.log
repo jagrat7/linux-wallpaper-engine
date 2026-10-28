@@ -1,0 +1,4 @@
+stopping Electron parent 1650590 (helpers remain alive during shutdown)
+stopping Chromium parent 1650708 (helpers remain alive during shutdown)
+cleaned up run doctor-fixed-web-1; evidence kept in /tmp/lwe-verify/doctor-fixed-web-1/artifacts and /tmp/lwe-verify/doctor-fixed-web-1/logs
+shutdown verified: no fatal errors or forced termination

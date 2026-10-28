@@ -1,0 +1,10 @@
+$ vp test
+
+ RUN  v5.0.1 /home/jagrat/dev/linux-wallpaper-engine
+
+
+ Test Files  20 passed (20)
+      Tests  191 passed (191)
+   Start at  17:55:21
+   Duration  6.76s (tests 78%, transform 12%, import 9%, worker 1%)
+

@@ -1,0 +1,3 @@
+stopping Electron parent 1656570 (helpers remain alive during shutdown)
+cleaned up run doctor-fixed-desktop; evidence kept in /tmp/lwe-verify/doctor-fixed-desktop/artifacts and /tmp/lwe-verify/doctor-fixed-desktop/logs
+shutdown verified: no fatal errors or forced termination
