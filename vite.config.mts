@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
-import { DEV_BACKEND_PORT } from './src/shared/constants/development.ts'
+import { devBackendPort } from './src/shared/constants/development.ts'
 
 const alias = (directory: string) => ({
   '@': path.resolve(import.meta.dirname, directory),
@@ -39,7 +39,7 @@ export default defineConfig((env: ForgeConfigEnv) => {
     server: {
       watch: { ignored: ['**/.vite/**', '**/out/**'] },
       // Browser tabs reach the dev backend in Electron main (src/main/development/gateway.ts)
-      proxy: { '/api': { target: `http://127.0.0.1:${DEV_BACKEND_PORT}`, ws: true } },
+      proxy: { '/api': { target: `http://127.0.0.1:${devBackendPort(process.env)}`, ws: true } },
     },
     resolve: { alias: alias('./src/renderer') },
     test: {

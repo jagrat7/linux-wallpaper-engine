@@ -3,11 +3,7 @@ import { WebSocketServer } from 'ws'
 import { applyWSSHandler } from '@trpc/server/adapters/ws'
 import { appRouter } from '../trpc/router.ts'
 import { createTrpcContext } from '../trpc/context.ts'
-import {
-  DEV_API_PATH,
-  DEV_BACKEND_PORT,
-  DEV_MEDIA_PATH,
-} from '../../shared/constants/development.ts'
+import { DEV_API_PATH, DEV_MEDIA_PATH, devBackendPort } from '../../shared/constants/development.ts'
 import { serveMedia } from './media.ts'
 
 // Dev only: lets the renderer dev server opened in a browser tab use this backend.
@@ -37,6 +33,6 @@ export async function startDevGateway(devServerUrl: string) {
   applyWSSHandler({ wss, router: appRouter, createContext: () => createTrpcContext() })
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
-    server.listen(DEV_BACKEND_PORT, '127.0.0.1', resolve)
+    server.listen(devBackendPort(process.env), '127.0.0.1', resolve)
   })
 }
