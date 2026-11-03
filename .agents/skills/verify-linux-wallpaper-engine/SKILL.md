@@ -17,8 +17,8 @@ LWE=dev/verify/lwe   # from the repo root
 
 | Target | Command | What runs | Use for |
 | --- | --- | --- | --- |
-| `web` (default) | `$LWE launch web` | `DEV_TARGET=web`: Electron main with no window plus the dev WS backend on `127.0.0.1:5180`. Headless Chromium opens the printed `Web preview:` URL. | Almost everything. Invisible and needs no window manager. |
-| `desktop` | `$LWE launch desktop` | `DEV_TARGET=desktop`: the real Electron window with `--remote-debugging-port`. | Native-only paths: tray, window close/minimize, IPC transport. **It opens a visible window on the user's screen.** |
+| `web` (default) | `$LWE launch web` | `DEV_TARGET=web`: Electron main with no window plus the dev WS backend on `127.0.0.1`, port 5180 or the next free one. Headless Chromium opens the printed `Web preview:` URL. | Almost everything, including when the user's own `bun dev` is running. Invisible and needs no window manager. |
+| `desktop` | `$LWE launch desktop` | `DEV_TARGET=desktop`: the real Electron window with `--remote-debugging-port`. | Native-only paths: tray, window close/minimize, IPC transport. **It opens a visible window on the user's screen.** Never use it as a fallback for `web`. |
 
 Both targets render the same renderer code and call the same tRPC router. In the browser target tRPC runs over WebSocket instead of IPC (`src/main/development/gateway.ts`).
 
@@ -28,7 +28,7 @@ Both targets render the same renderer code and call the same tRPC router. In the
 - **Shared, read-only:** the Steam library (`~/.local/share/Steam/...workshop/content/431960`). The Installed grid shows the user's real wallpapers.
 - **Shared and writable: playlists.** They live in Steam's `steamapps/common/wallpaper_engine/config.json`, the same file the user's real app uses. Launch copies it to `$RUN/artifacts/steam-config.before.json`. `$LWE steam-config diff` shows what changed, and cleanup warns if the file differs. Only create playlists named `lwe-verify-<something>` and delete them through the UI before cleanup. `$LWE steam-config restore` exists, but it overwrites the live file. Use it only when this run made the only change.
 - **Shared and system-wide: wallpaper processes.** Applying a wallpaper spawns `linux-wallpaperengine` on the real monitor. It first `pkill`s any backend already on that screen, so it takes over the user's real desktop wallpaper. Two stop paths run `pkill -9 -f linux-wallpaperengine` and **kill every backend on the machine**, including ones the user started: any Stop while Settings → `Run in window mode` is on, and the tray's `Stop Wallpaper`. Per-screen Stop with window mode off kills only backends on that screen, but that can still be the user's. Read `docs/features/wallpaper-apply.md` before touching Apply, Stop, Pause, Mute or Random.
-- **One web instance at a time.** Port `5180` is hardcoded (`src/shared/constants/development.ts`). If anything else holds it, such as the user's own `bun dev`, launch refuses. Never drive an instance this run didn't start; use `desktop` or ask the user instead. The Vite port and the CDP port are picked automatically.
+- **Ports.** The user's own `bun dev` keeps the default backend port `5180`. Launch picks the next free one and passes it as `DEV_BACKEND_PORT`, and Vite and CDP ports are picked automatically too, so a web run works beside the user's instance. Never drive an instance this run didn't start.
 - The user may have their own instance running from the repo, an Electron process whose cwd is the repo root. Leave it alone; it uses the real config dir.
 
 ## Launch
@@ -50,7 +50,7 @@ The current run is the symlink `/tmp/lwe-verify/current`. Set `LWE_RUN=/tmp/lwe-
 $LWE doctor
 ```
 
-Doctor is read-only. It checks the dev and browser process groups are alive, the renderer URL answers, CDP has a page on the app origin, `:5180` is owned by our process group (web), Electron main's `XDG_CONFIG_HOME` is the run's isolated dir, and the renderer has mounted. It also lists `linux-wallpaperengine` processes split into "started by this run" and "existed before launch (never touch)", and prints the git rev the run was built from next to the current HEAD. Run it first, and again whenever anything looks off. If it prints `UNHEALTHY`, run `$LWE cleanup` and relaunch. Don't drive a half-dead instance.
+Doctor is read-only. It checks the dev and browser process groups are alive, the renderer URL answers, CDP has a page on the app origin, the run's backend port is owned by our process group (web), Electron main's `XDG_CONFIG_HOME` is the run's isolated dir, and the renderer has mounted. It also lists `linux-wallpaperengine` processes split into "started by this run" and "existed before launch (never touch)", and prints the git rev the run was built from next to the current HEAD. Run it first, and again whenever anything looks off. If it prints `UNHEALTHY`, run `$LWE cleanup` and relaunch. Don't drive a half-dead instance.
 
 The dev server hot-reloads renderer edits. Main-process edits (`src/main/**`) need a relaunch: cleanup, then launch.
 
