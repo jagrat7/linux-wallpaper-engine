@@ -15,7 +15,7 @@ REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ROOT="${LWE_VERIFY_ROOT:-/tmp/lwe-verify}"
 export LWE_TOOLS_DIR="${LWE_TOOLS_DIR:-$SCRIPT_DIR/.tools}"
 PLAYWRIGHT_VERSION=1.58.2
-DEV_BACKEND_PORT=5180 # src/shared/constants/development.ts
+DEFAULT_BACKEND_PORT=5180 # DEV_BACKEND_PORT in src/shared/constants/development.ts
 STORE_DIR_NAME='Linux Wallpaper Engine'
 
 die() { echo "lwe: $*" >&2; exit 1; }
@@ -31,6 +31,7 @@ load_state() {
   RUN="$(run_dir)"
   # shellcheck disable=SC1091
   source "$RUN/state.env"
+  BACKEND_PORT="${BACKEND_PORT:-$DEFAULT_BACKEND_PORT}" # runs launched before the port was recorded
 }
 
 port_busy() { ss -ltnH "( sport = :$1 )" 2>/dev/null | grep -q .; }
@@ -150,15 +151,14 @@ cmd_launch() {
     ( source "$ROOT/current/state.env"; group_alive "$DEV_PGID" ) &&
       die "a run is already active at $(readlink -f "$ROOT/current") — run: $0 cleanup"
   fi
-  if [[ "$target" == web ]] && port_busy "$DEV_BACKEND_PORT"; then
-    die "port $DEV_BACKEND_PORT (web dev backend) is taken by another 'bun dev' — not ours, refusing to double-drive. Use 'lwe launch desktop' or stop that instance."
-  fi
 
   local run_id="${LWE_RUN_ID:-$(date +%Y%m%d-%H%M%S)-$target}"
   local run="$ROOT/$run_id"
   mkdir -p "$run/config" "$run/artifacts" "$run/logs"
   ln -sfn "$run" "$ROOT/current"
   local cdp_port; cdp_port="$(free_port 9333)"
+  # The user's own `bun dev` holds 5180, so web runs take the next free port instead
+  local backend_port=""; [[ "$target" == web ]] && backend_port="$(free_port "$DEFAULT_BACKEND_PORT")"
 
   local steam_config; steam_config="$(steam_config_path || true)"
   [[ -n "$steam_config" ]] && cp "$steam_config" "$run/artifacts/steam-config.before.json"
@@ -172,7 +172,7 @@ cmd_launch() {
   [[ "$target" == desktop ]] && electron_args="-- --remote-debugging-port=$cdp_port"
   (
     cd "$REPO_DIR"
-    setsid bash -c "sleep infinity | XDG_CONFIG_HOME='$run/config' DEV_TARGET=$target exec node_modules/.bin/electron-forge start $electron_args" \
+    setsid bash -c "sleep infinity | XDG_CONFIG_HOME='$run/config' DEV_TARGET=$target DEV_BACKEND_PORT=$backend_port exec node_modules/.bin/electron-forge start $electron_args" \
       > "$run/logs/dev.log" 2>&1 < /dev/null &
     echo $! > "$run/dev.pgid"
   )
@@ -213,6 +213,7 @@ RUN_ID=$run_id
 TARGET=$target
 APP_URL=$url
 CDP_PORT=$cdp_port
+BACKEND_PORT=$backend_port
 DEV_PGID=$dev_pgid
 BROWSER_PGID=$browser_pgid
 STORE_DIR='$run/config/$STORE_DIR_NAME'
@@ -235,8 +236,8 @@ cmd_doctor() {
   check "renderer answers at $APP_URL" 'curl -sf -o /dev/null "$APP_URL/"'
   check "CDP :$CDP_PORT has a page on $APP_URL" 'curl -sf "http://127.0.0.1:$CDP_PORT/json/list" | grep -q "${APP_URL#http://}"'
   if [[ "$TARGET" == web ]]; then
-    local owner; owner="$(ss -ltnpH "( sport = :$DEV_BACKEND_PORT )" 2>/dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)"
-    check "backend :$DEV_BACKEND_PORT owned by our group" '[[ -n "$owner" && "$(ps -o pgid= -p "$owner" | tr -d " ")" == "$DEV_PGID" ]]'
+    local owner; owner="$(ss -ltnpH "( sport = :$BACKEND_PORT )" 2>/dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)"
+    check "backend :$BACKEND_PORT owned by our group" '[[ -n "$owner" && "$(ps -o pgid= -p "$owner" | tr -d " ")" == "$DEV_PGID" ]]'
   fi
   local electron_main; electron_main="$(electron_main_pid)"
   check "Electron main uses isolated XDG_CONFIG_HOME" '[[ -n "$electron_main" ]] && tr "\0" "\n" < /proc/$electron_main/environ | grep -qx "XDG_CONFIG_HOME=$RUN/config"'
@@ -335,8 +336,8 @@ cleanup_run() {
     echo "FAIL CDP port $CDP_PORT still listening"
     status=1
   fi
-  if [[ "$TARGET" == web ]] && port_busy "$DEV_BACKEND_PORT"; then
-    echo "FAIL :$DEV_BACKEND_PORT still listening"
+  if [[ "$TARGET" == web ]] && port_busy "$BACKEND_PORT"; then
+    echo "FAIL :$BACKEND_PORT still listening"
     status=1
   fi
   if [[ "$status" == 0 ]]; then echo "shutdown verified: no fatal errors or forced termination"; fi
