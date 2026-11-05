@@ -43,6 +43,61 @@ free_port() {
 
 group_alive() { [[ -n "${1:-}" ]] && kill -0 -- "-$1" 2>/dev/null; }
 
+# A zombie cannot receive signals and is already stopped; its parent will reap it.
+process_running() {
+  [[ -n "${1:-}" ]] && ps -p "$1" -o stat= 2>/dev/null | grep -qv '^[[:space:]]*Z'
+}
+
+group_running() {
+  [[ -n "${1:-}" ]] && ps -g "$1" -o stat= 2>/dev/null | grep -qv '^[[:space:]]*Z'
+}
+
+electron_main_pid() {
+  local pid arg is_main
+  local -a argv
+  for pid in $(pgrep -g "$DEV_PGID" -f 'electron/dist/electron' || true); do
+    [[ -r "/proc/$pid/cmdline" ]] || continue
+    mapfile -d '' -t argv < "/proc/$pid/cmdline" || continue
+    [[ "${argv[0]:-}" == "$REPO_DIR/node_modules/electron/dist/electron" ]] || continue
+    is_main=true
+    for arg in "${argv[@]}"; do
+      [[ "$arg" == --type=* ]] && is_main=false
+    done
+    if [[ "$is_main" == true ]]; then echo "$pid"; return; fi
+  done
+}
+
+fatal_run_errors() {
+  local file
+  local -a logs=()
+  for file in "$RUN/logs/dev.log" "$RUN/logs/browser.log"; do
+    [[ -f "$file" ]] && logs+=("$file")
+  done
+  [[ ${#logs[@]} -gt 0 ]] || return 1
+  grep -nEi 'FATAL:|GPU process isn.t usable|Segmentation fault|core dumped|Trace/breakpoint trap' \
+    "${logs[@]}"
+}
+
+# Signal only the parent first. Killing Chromium helpers alongside it can make
+# the still-running parent attempt GPU restarts and deliberately crash.
+stop_parent() {
+  local pid="${1:-}" label="$2" i
+  process_running "$pid" || return 0
+  echo "stopping $label parent $pid (helpers remain alive during shutdown)"
+  kill -TERM "$pid" 2>/dev/null || true
+  for i in $(seq 1 50); do
+    process_running "$pid" || return 0
+    sleep 0.1
+  done
+  echo "FAIL $label parent $pid did not stop after 5 s; forcing shutdown"
+  kill -KILL "$pid" 2>/dev/null || true
+  for i in $(seq 1 20); do
+    process_running "$pid" || break
+    sleep 0.1
+  done
+  return 1
+}
+
 find_browser() {
   local candidate
   for candidate in "${LWE_BROWSER:-}" chromium google-chrome-stable google-chrome chromium-browser; do
@@ -183,10 +238,11 @@ cmd_doctor() {
     local owner; owner="$(ss -ltnpH "( sport = :$DEV_BACKEND_PORT )" 2>/dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)"
     check "backend :$DEV_BACKEND_PORT owned by our group" '[[ -n "$owner" && "$(ps -o pgid= -p "$owner" | tr -d " ")" == "$DEV_PGID" ]]'
   fi
-  local electron_main; electron_main="$(pgrep -g "$DEV_PGID" -f 'electron/dist/electron' | head -1 || true)"
+  local electron_main; electron_main="$(electron_main_pid)"
   check "Electron main uses isolated XDG_CONFIG_HOME" '[[ -n "$electron_main" ]] && tr "\0" "\n" < /proc/$electron_main/environ | grep -qx "XDG_CONFIG_HOME=$RUN/config"'
   check "isolated store dir exists" '[[ -d "$STORE_DIR" ]]'
   check "renderer mounted (Installed nav visible)" 'LWE_RUN="$RUN" "$0" drive wait --role button --name Installed --timeout 5000 >/dev/null 2>&1'
+  check "no fatal errors in Electron / Chromium logs" '! fatal_run_errors'
   cmd_backends | sed 's/^/     /'
   [[ $ok == 1 ]] && echo "healthy" || { echo "UNHEALTHY — fix or 'lwe cleanup' and relaunch"; return 1; }
 }
@@ -230,12 +286,21 @@ cmd_steam_config() {
 
 cmd_cleanup() {
   load_state
+  cleanup_run 2>&1 | tee "$RUN/logs/cleanup.log"
+}
+
+cleanup_run() {
+  local status=0 electron_main
+  electron_main="$(electron_main_pid)"
   # Remember backend children before killing their parent (they reparent afterwards)
   our_backends >> "$RUN/backends.ours" || true
   local pid
   for pid in $(sort -u "$RUN/backends.ours" 2>/dev/null); do
     kill -9 "$pid" 2>/dev/null && echo "killed backend $pid (started by this run)"
   done
+  # Let each browser parent shut down its own helpers before touching its group.
+  stop_parent "$electron_main" Electron || status=1
+  stop_parent "$BROWSER_PGID" Chromium || status=1
   local group
   for group in "$BROWSER_PGID" "$DEV_PGID"; do
     [[ -z "$group" ]] && continue
@@ -243,12 +308,20 @@ cmd_cleanup() {
   done
   local i
   for i in $(seq 1 10); do
-    group_alive "$BROWSER_PGID" || group_alive "$DEV_PGID" || break
+    group_running "$BROWSER_PGID" || group_running "$DEV_PGID" || break
     sleep 1
   done
   for group in "$BROWSER_PGID" "$DEV_PGID"; do
-    group_alive "$group" && kill -KILL -- "-$group" 2>/dev/null || true
+    if group_running "$group"; then
+      echo "FAIL process group $group did not stop; forcing shutdown"
+      kill -KILL -- "-$group" 2>/dev/null || true
+      status=1
+    fi
   done
+  if fatal_run_errors; then
+    echo "FAIL fatal errors were recorded during this verification run"
+    status=1
+  fi
   # Scratch goes; artifacts/ and logs/ stay as evidence
   rm -rf "$RUN/config" "$RUN/chrome"
   [[ "$(readlink -f "$ROOT/current" 2>/dev/null)" == "$RUN" ]] && rm -f "$ROOT/current"
@@ -258,9 +331,16 @@ cmd_cleanup() {
     echo "warning: Steam playlists config changed during this run: $STEAM_CONFIG"
     echo "         inspect with: diff <(jq -S . '$RUN/artifacts/steam-config.before.json') <(jq -S . '$STEAM_CONFIG')"
   fi
-  port_busy "$CDP_PORT" && echo "warning: CDP port $CDP_PORT still listening"
-  [[ "$TARGET" == web ]] && port_busy "$DEV_BACKEND_PORT" && echo "warning: :$DEV_BACKEND_PORT still listening"
-  return 0
+  if port_busy "$CDP_PORT"; then
+    echo "FAIL CDP port $CDP_PORT still listening"
+    status=1
+  fi
+  if [[ "$TARGET" == web ]] && port_busy "$DEV_BACKEND_PORT"; then
+    echo "FAIL :$DEV_BACKEND_PORT still listening"
+    status=1
+  fi
+  if [[ "$status" == 0 ]]; then echo "shutdown verified: no fatal errors or forced termination"; fi
+  return "$status"
 }
 
 sub="${1:-}"; shift || true
