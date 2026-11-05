@@ -38,6 +38,7 @@ Each feature file starts with an H1 title and one paragraph describing the behav
 
 ## Features
 
+- [Launching](./launch.md): one instance, page arguments, and revealing hidden or minimized windows. Requires the desktop target.
 - [Installed library](./installed-library.md): browse, search, filter, sort and open the details panel for local wallpapers.
 - [Settings](./settings.md): global preferences that persist to the store, plus reset to defaults.
 - [Apply wallpaper](./wallpaper-apply.md): apply, stop, pause, mute and per-wallpaper overrides, from the details panel, the status bar and Displays. Spawns real backend processes.

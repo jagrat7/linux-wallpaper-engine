@@ -15,6 +15,7 @@ import { APP_NAME } from '../../shared/constants/app'
 import { isPlaybackInvalidationKey } from '../../shared/constants/wallpaper'
 import { resolveAssetPath } from './assets'
 import { createTrayStartupRetry, type TrayStartupRetry } from './tray-startup'
+import { showMainWindow } from './launch'
 
 export interface AppTray {
   /** Create the tray (with the StatusNotifier startup retry). No-op if it already exists. */
@@ -74,14 +75,6 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
   let trayStartupRetry: TrayStartupRetry | null = null
   const trayIcon = appIcon.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE })
 
-  const toggleMainWindow = (): void => {
-    if (!mainWindow.isVisible()) {
-      mainWindow.show()
-    } else if (!mainWindow.isFocused()) {
-      mainWindow.focus()
-    }
-  }
-
   // Tray menu reflects live playback state; rebuilt whenever it changes.
   // Pause/resume/stop work for playlists too — a playlist runs as the same
   // tracked backend process, so freezing it halts rendering and rotation.
@@ -96,7 +89,7 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
       {
         label: 'Toggle App',
         icon: trayMenuIcon('toggle-app'),
-        click: () => toggleMainWindow(),
+        click: () => showMainWindow(mainWindow),
       },
       { type: 'separator' },
       {
@@ -147,7 +140,7 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
 
     tray.setToolTip(mainWindow.title)
     tray.setContextMenu(buildTrayContextMenu())
-    tray.on('click', () => toggleMainWindow())
+    tray.on('click', () => showMainWindow(mainWindow))
   }
 
   const ensure = (): void => {
