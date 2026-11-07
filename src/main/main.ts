@@ -180,21 +180,10 @@ app.on('before-quit', () => {
 })
 
 // Backends die with the app; the next launch restores them from saved state.
-// Quit waits for the kill, but never longer than BACKEND_SHUTDOWN_TIMEOUT_MS
-const BACKEND_SHUTDOWN_TIMEOUT_MS = 2000
-let backendsStopped = false
-app.on('will-quit', (event) => {
-  if (backendsStopped || !isPrimaryInstance) return
-  event.preventDefault()
-  backendsStopped = true
-  const timeout = new Promise((resolve) => setTimeout(resolve, BACKEND_SHUTDOWN_TIMEOUT_MS))
-  void Promise.race([wallpaperService.shutdown(), timeout]).finally(() => app.quit())
+// Electron routes SIGTERM, SIGINT and SIGHUP through this same quit sequence
+app.on('will-quit', () => {
+  if (isPrimaryInstance) wallpaperService.shutdown()
 })
-
-// systemctl stop and Ctrl+C go through the same quit path, so backends die too
-for (const signal of ['SIGTERM', 'SIGINT'] as const) {
-  process.on(signal, () => app.quit())
-}
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

@@ -2,7 +2,12 @@ import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 const { mockHost } = vi.hoisted(() => ({
-  mockHost: { hostSpawn: vi.fn(), hostExecFileAsync: vi.fn(), shouldUseFlatpakSpawn: vi.fn() },
+  mockHost: {
+    hostSpawn: vi.fn(),
+    hostExecFileAsync: vi.fn(),
+    hostExecFileSync: vi.fn(),
+    shouldUseFlatpakSpawn: vi.fn(),
+  },
 }))
 
 vi.mock('./host', () => mockHost)
@@ -116,13 +121,26 @@ describe('backendSupervisor.shutdown', () => {
     expect(onExit).not.toHaveBeenCalled()
   })
 
-  it('sends SIGTERM under Flatpak so flatpak-spawn forwards it to the host backend', async () => {
+  it('kills host patterns only under Flatpak', async () => {
+    const supervisor = await loadSupervisor()
+
+    supervisor.shutdown(['--screen-root eDP-1'])
+
+    expect(mockHost.hostExecFileSync).not.toHaveBeenCalled()
+  })
+
+  it('under Flatpak, sends SIGTERM for flatpak-spawn to forward and kills host patterns', async () => {
     const supervisor = await loadSupervisor()
     mockHost.shouldUseFlatpakSpawn.mockReturnValue(true)
     supervisor.spawn([], { stdio: 'ignore' })
 
-    supervisor.shutdown()
+    supervisor.shutdown(['--screen-root eDP-1'])
 
     expect(spawned[0].kill).toHaveBeenCalledWith('SIGTERM')
+    expect(mockHost.hostExecFileSync).toHaveBeenCalledWith('pkill', [
+      '-9',
+      '-f',
+      '--screen-root eDP-1',
+    ])
   })
 })

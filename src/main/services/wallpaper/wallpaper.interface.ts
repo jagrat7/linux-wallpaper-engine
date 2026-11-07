@@ -28,7 +28,7 @@ export interface IWallpaperService {
   restore(): Promise<MutationResult>
 
   /** Kill every backend this instance owns as the app quits, keeping saved wallpapers. */
-  shutdown(): Promise<void>
+  shutdown(): void
 
   // Apply a wallpaper or reapply all
   apply(target: ApplyTarget): Promise<MutationResult>

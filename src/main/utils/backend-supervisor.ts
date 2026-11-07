@@ -1,5 +1,5 @@
 import type { ChildProcess, StdioOptions } from 'node:child_process'
-import { hostExecFileAsync, hostSpawn, shouldUseFlatpakSpawn } from './host'
+import { hostExecFileAsync, hostExecFileSync, hostSpawn, shouldUseFlatpakSpawn } from './host'
 
 interface BackendSpawnOptions {
   stdio: StdioOptions
@@ -58,12 +58,19 @@ class BackendSupervisor {
     }
   }
 
-  /** Kill every tracked backend and refuse new ones. Saved wallpaper state is left alone. */
-  shutdown(): void {
+  /**
+   * Kill every tracked backend and refuse new ones. Saved wallpaper state is
+   * left alone. Synchronous, so it finishes inside Electron's quit sequence:
+   * pausing that sequence for async work leaves a signal-driven quit hanging.
+   *
+   * @param hostPatterns Also killed by command line under Flatpak, where a
+   *   handle only reaches flatpak-spawn and not the host backend behind it
+   */
+  shutdown(hostPatterns: string[] = []): void {
     this.stopping = true
-    // Under Flatpak the handle is flatpak-spawn, which forwards SIGTERM to the
-    // host backend but would die alone on SIGKILL
-    const signal = shouldUseFlatpakSpawn() ? 'SIGTERM' : 'SIGKILL'
+    const flatpak = shouldUseFlatpakSpawn()
+    // flatpak-spawn forwards SIGTERM to the host backend but would die alone on SIGKILL
+    const signal = flatpak ? 'SIGTERM' : 'SIGKILL'
     for (const proc of this.live) {
       try {
         proc.kill(signal)
@@ -72,6 +79,10 @@ class BackendSupervisor {
       }
     }
     this.live.clear()
+    if (!flatpak) return
+    for (const pattern of hostPatterns) {
+      hostExecFileSync('pkill', ['-9', '-f', pattern])
+    }
   }
 }
 

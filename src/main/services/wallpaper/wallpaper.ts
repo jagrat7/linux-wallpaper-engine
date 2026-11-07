@@ -11,7 +11,6 @@ import {
   hostExecFileAsync,
   hostCommandExists,
   isFlatpak,
-  shouldUseFlatpakSpawn,
 } from '../../utils/host'
 import { backendSupervisor } from '../../utils/backend-supervisor'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
@@ -93,7 +92,7 @@ class WallpaperService implements IWallpaperService {
       this.getWallpapers(),
       this.checkBackendInstalled(),
     ])
-    await this.backends.run(() => this.pruneDeadRestoredScreens())
+    await this.pruneDeadRestoredScreens()
     const active = await this.getActiveWithTitles(wallpapers)
     return { wallpapers, backendInstalled, active, appliedHistory: this.state.getAppliedHistory() }
   }
@@ -128,15 +127,12 @@ class WallpaperService implements IWallpaperService {
    * Kill every backend this instance owns as the app quits. Saved wallpapers
    * are kept so the next launch restores them.
    */
-  async shutdown(): Promise<void> {
-    const screens = [...this.state.getActive().keys()]
-    this.backends.shutdown()
-    // Under Flatpak a handle only reaches flatpak-spawn, so also kill by pattern on the host
-    if (shouldUseFlatpakSpawn()) {
-      await this.backends.killMatching(
-        screens.flatMap((screen) => this.screenSignalPattern(screen) ?? []),
-      )
-    }
+  shutdown(): void {
+    this.backends.shutdown(
+      [...this.state.getActive().keys()].flatMap(
+        (screen) => this.screenSignalPattern(screen) ?? [],
+      ),
+    )
   }
 
   // ── Apply ──────────────────────────────────────────────────────────────
