@@ -8,11 +8,12 @@ import { settingsService, type AppSettings } from '../settings'
 import { storeService } from '../store'
 import {
   backendArgPattern,
-  hostSpawn,
   hostExecFileAsync,
   hostCommandExists,
   isFlatpak,
+  shouldUseFlatpakSpawn,
 } from '../../utils/host'
+import { backendSupervisor } from '../../utils/backend-supervisor'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import {
   BACKEND_NOT_INSTALLED_ERROR_MESSAGE,
@@ -62,6 +63,7 @@ class WallpaperService implements IWallpaperService {
   private fsWatchers: fsSync.FSWatcher[] = []
   private reapplyTimer: ReturnType<typeof setTimeout> | null = null
   private state = wallpaperStateManager
+  private backends = backendSupervisor
 
   private constructor() {}
 
@@ -91,7 +93,7 @@ class WallpaperService implements IWallpaperService {
       this.getWallpapers(),
       this.checkBackendInstalled(),
     ])
-    await this.pruneDeadRestoredScreens()
+    await this.backends.run(() => this.pruneDeadRestoredScreens())
     const active = await this.getActiveWithTitles(wallpapers)
     return { wallpapers, backendInstalled, active, appliedHistory: this.state.getAppliedHistory() }
   }
@@ -106,68 +108,82 @@ class WallpaperService implements IWallpaperService {
   /**
    * Bring back the wallpapers saved from the last run. Called once from main
    * after this instance holds the single-instance lock, so a second launch
-   * never restores on top of the first.
+   * never restores on top of the first. Backends a crashed run left behind are
+   * killed and respawned rather than left running untracked, so every
+   * backend on screen has a handle this instance can stop.
    */
-  async restore(): Promise<void> {
-    if (this.state.getActive().size === 0) return
+  restore(): Promise<MutationResult> {
+    return this.backends.run(async () => {
+      if (this.state.getActive().size === 0) return { success: true }
+      await this.backends.killMatching(
+        [...this.state.getActive().keys()].flatMap(
+          (screen) => this.screenSignalPattern(screen) ?? [],
+        ),
+      )
+      return this.reapplyAll()
+    })
+  }
 
-    try {
-      const settings = await settingsService.loadSettings()
-      const processes = await listBackendProcesses()
-
-      if (settings.windowMode) {
-        if (processes.length === 0) {
-          await this.reapplyAll()
-        }
-        return
-      }
-
-      for (const screen of this.state.getActive().keys()) {
-        if (!isScreenBackendRunning(screen, processes)) {
-          await this.reapplyAll()
-          return
-        }
-      }
-    } catch {
-      await this.reapplyAll()
+  /**
+   * Kill every backend this instance owns as the app quits. Saved wallpapers
+   * are kept so the next launch restores them.
+   */
+  async shutdown(): Promise<void> {
+    const screens = [...this.state.getActive().keys()]
+    this.backends.shutdown()
+    // Under Flatpak a handle only reaches flatpak-spawn, so also kill by pattern on the host
+    if (shouldUseFlatpakSpawn()) {
+      await this.backends.killMatching(
+        screens.flatMap((screen) => this.screenSignalPattern(screen) ?? []),
+      )
     }
   }
 
   // ── Apply ──────────────────────────────────────────────────────────────
 
-  async apply(target: ApplyTarget): Promise<MutationResult> {
-    switch (target.kind) {
-      case 'wallpaper':
-        return this.applyWallpaper(target.options)
-      case 'register':
-        this.registerProcess(
-          target.screens ?? [target.screen ?? 'default'],
-          target.proc,
-          target.args,
-          target.options,
-        )
-        return { success: true, screens: target.screens ?? [target.screen ?? 'default'] }
-      case 'reapply':
-        return this.reapplyAll()
-    }
-    throw new Error('Unsupported wallpaper apply target', { cause: target satisfies never })
+  apply(target: ApplyTarget): Promise<MutationResult> {
+    return this.backends.run(() => {
+      switch (target.kind) {
+        case 'wallpaper':
+          return this.applyWallpaper(target.options)
+        case 'reapply':
+          return this.reapplyAll()
+      }
+      throw new Error('Unsupported wallpaper apply target', { cause: target satisfies never })
+    })
+  }
+
+  /** Start a playlist's backend on `screens`, replacing whatever they were running. */
+  startPlaylist(
+    playlistName: string,
+    screens: string[],
+    stampLastApplied: boolean,
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.backends.run(() =>
+      playlistService.startProcess(
+        playlistName,
+        screens,
+        stampLastApplied,
+        (screenKeys, proc, args, options) => this.registerProcess(screenKeys, proc, args, options),
+      ),
+    )
   }
 
   // ── Stop ───────────────────────────────────────────────────────────────
 
-  async stop(targetScreen?: string | string[]): Promise<MutationResult> {
+  stop(targetScreen?: string | string[]): Promise<MutationResult> {
+    return this.backends.run(() => this.stopScreens(targetScreen))
+  }
+
+  private async stopScreens(targetScreen?: string | string[]): Promise<MutationResult> {
     const settings = await settingsService.loadSettings()
     const screens = Array.isArray(targetScreen) ? targetScreen : targetScreen ? [targetScreen] : []
     if (screens.length > 0 && !settings.windowMode) {
       const { remaining, released } = this.state.releaseMany(screens)
       // Kill any orphaned processes for this screen
-      for (const screen of screens) {
-        try {
-          await hostExecFileAsync('pkill', ['-9', '-f', backendArgPattern('--screen-root', screen)])
-        } catch {
-          /* no process found is ok */
-        }
-      }
+      await this.backends.killMatching(
+        screens.map((screen) => backendArgPattern('--screen-root', screen)),
+      )
       // Respawn remaining screens that shared the process
       await this.respawnGrouped(remaining)
       invalidationService.emit('wallpaper.stopped')
@@ -187,12 +203,12 @@ class WallpaperService implements IWallpaperService {
 
   /** Freeze active wallpaper processes on the requested screens. */
   pause(screen?: string | string[]): Promise<MutationResult> {
-    return this.setPaused(screen, true)
+    return this.backends.run(() => this.setPaused(screen, true))
   }
 
   /** Resume wallpaper processes previously paused by the app. */
   resume(screen?: string | string[]): Promise<MutationResult> {
-    return this.setPaused(screen, false)
+    return this.backends.run(() => this.setPaused(screen, false))
   }
 
   /** Apply an installed wallpaper that is not already active when possible. */
@@ -204,7 +220,7 @@ class WallpaperService implements IWallpaperService {
     const pick = pickRandomWallpaper(wallpapers, activeIds)
     const settings = await settingsService.loadSettings()
     const options = buildApplyOptions(settings, { backgroundId: pick.path, screen })
-    const result = await this.apply({ kind: 'wallpaper', options })
+    const result = await this.backends.run(() => this.applyWallpaper(options))
     if (result.success && result.screens) playlistService.clearActivePlaylist(result.screens)
     return { ...result, wallpaperTitle: pick.title }
   }
@@ -310,7 +326,7 @@ class WallpaperService implements IWallpaperService {
         }
         this.overridesStore.set('overrides', all)
         if (this.state.isActive(mutation.wallpaperPath)) {
-          await this.reapplyAll()
+          await this.backends.run(() => this.reapplyAll())
         }
         return
       }
@@ -539,11 +555,10 @@ class WallpaperService implements IWallpaperService {
       }
     }
 
-    // Release screens from any shared processes, respawn remaining
-    for (const screen of targetScreens) {
-      const { remaining } = this.state.release(screen)
-      await this.respawnGrouped(remaining)
-    }
+    // Release the target screens in one go so screens sharing their process
+    // are respawned once, without first respawning a target with the old wallpaper
+    const { remaining } = this.state.releaseMany(targetScreens)
+    await this.respawnGrouped(remaining)
 
     const result = await this.spawnForScreens(targetScreens, options)
     if (result.success) {
@@ -597,13 +612,9 @@ class WallpaperService implements IWallpaperService {
 
     try {
       // Kill orphaned processes
-      for (const screen of screens) {
-        try {
-          await hostExecFileAsync('pkill', ['-9', '-f', backendArgPattern('--screen-root', screen)])
-        } catch {
-          /* no process found is ok */
-        }
-      }
+      await this.backends.killMatching(
+        screens.map((screen) => backendArgPattern('--screen-root', screen)),
+      )
 
       await new Promise((resolve) => setTimeout(resolve, 100))
 
@@ -625,20 +636,21 @@ class WallpaperService implements IWallpaperService {
 
   private spawn(args: string[], backgroundId: string) {
     const debugMode = settingsService.getSetting('debugMode')
-    const proc = hostSpawn('linux-wallpaperengine', args, {
-      detached: true,
+    const proc = this.backends.spawn(args, {
       stdio: debugMode ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'ignore', 'pipe'],
+      onExit: () => this.handleUnexpectedExit(proc),
     })
-    proc.unref()
     compatibilityService.monitorProcess(proc, backgroundId)
-    proc.once('exit', () => {
-      const { screens } = this.state.cleanupExitedProcess(proc)
-      if (screens.length > 0) {
-        playlistService.clearActivePlaylist(screens)
-        invalidationService.emit('wallpaper.stopped')
-      }
-    })
     return proc
+  }
+
+  // A backend exited without being stopped: drop the screens it still drove
+  private handleUnexpectedExit(proc: import('node:child_process').ChildProcess): void {
+    const { screens } = this.state.cleanupExitedProcess(proc)
+    if (screens.length > 0) {
+      playlistService.clearActivePlaylist(screens)
+      invalidationService.emit('wallpaper.stopped')
+    }
   }
 
   // Wait briefly to detect if the spawned process exits immediately (failed apply).
@@ -673,14 +685,9 @@ class WallpaperService implements IWallpaperService {
         this.state.release(screen)
       }
     }
-    proc.unref()
     compatibilityService.monitorProcess(proc, options.backgroundId)
     proc.once('exit', () => {
-      const { screens: releasedScreens } = this.state.cleanupExitedProcess(proc)
-      if (releasedScreens.length > 0) {
-        playlistService.clearActivePlaylist(releasedScreens)
-        invalidationService.emit('wallpaper.stopped')
-      }
+      if (!this.backends.isShuttingDown) this.handleUnexpectedExit(proc)
     })
     this.state.register(screens, proc, options)
     this.captureDebugLogs(proc, screens[0] ?? 'default', args)
@@ -879,7 +886,7 @@ class WallpaperService implements IWallpaperService {
   private debouncedReapply(): void {
     if (this.reapplyTimer) clearTimeout(this.reapplyTimer)
     this.reapplyTimer = setTimeout(() => {
-      void this.reapplyAll()
+      void this.backends.run(() => this.reapplyAll())
     }, 500)
   }
 

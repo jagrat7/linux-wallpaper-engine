@@ -51,7 +51,8 @@ beforeEach(() => {
   mockSettingsService.getSetting.mockReturnValue(false)
   mockPlaylistService.resolveWallpaperEngineAssetsDir.mockResolvedValue('/assets')
   mockHost.hostCommandExists.mockResolvedValue(true)
-  mockHost.hostSpawn.mockReturnValue(new EventEmitter())
+  // The backend supervisor unrefs every process it spawns
+  mockHost.hostSpawn.mockReturnValue(Object.assign(new EventEmitter(), { unref: vi.fn() }))
   mockHost.hostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
 })
 

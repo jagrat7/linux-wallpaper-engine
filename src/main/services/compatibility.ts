@@ -1,5 +1,6 @@
 import type { ChildProcess } from 'node:child_process'
-import { hostCommandExists, hostSpawn } from '../utils/host'
+import { hostCommandExists } from '../utils/host'
+import { backendSupervisor } from '../utils/backend-supervisor'
 import type { WallpaperOverrides } from '../../shared/constants/wallpaper'
 import {
   type CompatibilityStatus,
@@ -211,14 +212,9 @@ class CompatibilityService {
       this.scanProgress.current = wallpaper.title
 
       return new Promise<void>((resolve) => {
-        const proc = hostSpawn(
-          'linux-wallpaperengine',
-          ['--window', '0x0x1x1', '--silent', wallpaper.path],
-          {
-            detached: true,
-            stdio: ['ignore', 'ignore', 'pipe'],
-          },
-        )
+        const proc = backendSupervisor.spawn(['--window', '0x0x1x1', '--silent', wallpaper.path], {
+          stdio: ['ignore', 'ignore', 'pipe'],
+        })
 
         let stderrData = ''
         let resolved = false

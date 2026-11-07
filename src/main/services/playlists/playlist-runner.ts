@@ -1,12 +1,8 @@
 import type { ChildProcess } from 'node:child_process'
 import type { playlistService } from './playlist'
 import { settingsService } from '../settings'
-import {
-  backendArgPattern,
-  hostCommandExists,
-  hostExecFileAsync,
-  hostSpawn,
-} from '../../utils/host'
+import { backendArgPattern, hostCommandExists } from '../../utils/host'
+import { backendSupervisor } from '../../utils/backend-supervisor'
 import {
   BACKEND_NOT_INSTALLED_ERROR_MESSAGE,
   applyOverridesToSettings,
@@ -72,19 +68,14 @@ export async function startPlaylistProcess(
   try {
     // Kill orphaned processes so a restart can't double-spawn on a screen
     if (!settings.windowMode) {
-      for (const screen of screenKeys) {
-        try {
-          await hostExecFileAsync('pkill', ['-9', '-f', backendArgPattern('--screen-root', screen)])
-        } catch {
-          /* no process found is ok */
-        }
-      }
+      await backendSupervisor.killMatching(
+        screenKeys.map((screen) => backendArgPattern('--screen-root', screen)),
+      )
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
 
     const debugMode = settingsService.getSetting('debugMode')
-    const proc = hostSpawn('linux-wallpaperengine', args, {
-      detached: true,
+    const proc = backendSupervisor.spawn(args, {
       stdio: debugMode ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'ignore', 'pipe'],
     })
 
