@@ -130,6 +130,8 @@ void app.whenReady().then(() => {
     if (settings.getSetting('enableSystemTray')) appTray.ensure()
 
     app.on('second-instance', () => {
+      // The window is already gone while this instance is quitting
+      if (mainWindow.isDestroyed()) return
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.show()
       mainWindow.focus()
