@@ -26,6 +26,14 @@ import { DEV_TARGETS, type DevTarget } from '../shared/constants/development.ts'
 let appTray: AppTray | null = null
 let isQuitting = false
 
+// One instance owns every wallpaper backend. A second launch (autostart plus the
+// launcher, say) hands off to the first instead of restoring on top of it
+const isPrimaryInstance = app.requestSingleInstanceLock()
+if (!isPrimaryInstance) {
+  console.log('Linux Wallpaper Engine is already running, focusing that window instead')
+  app.quit()
+}
+
 systemThemeService.configureElectronPlatform(nativeTheme, systemPreferences)
 
 // Packaged builds always open the desktop window; `bun dev` scripts pick a target through DEV_TARGET
@@ -96,6 +104,8 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 void app.whenReady().then(() => {
+  if (!isPrimaryInstance) return
+
   // Sync flatpak bypass from saved settings
   setFlatpakBypass(settings.getSetting('flatpakBypass'))
 
@@ -118,6 +128,12 @@ void app.whenReady().then(() => {
     appTray = createAppTray({ mainWindow, appIcon, isQuitting: () => isQuitting })
 
     if (settings.getSetting('enableSystemTray')) appTray.ensure()
+
+    app.on('second-instance', () => {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+    })
 
     mainWindow.on('close', (e) => {
       if (shouldMinimizeOnClose() && !isQuitting) {
