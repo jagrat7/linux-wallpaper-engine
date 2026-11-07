@@ -52,6 +52,7 @@ class WallpaperStateManager implements IStateManager {
     const screenSet = new Set(screens)
     this.processScreenGroups.set(proc, screenSet)
     for (const screen of screens) {
+      this.detachFromPreviousProcess(screen, proc)
       this.runningProcesses.set(screen, proc)
       this.activeWallpapers.set(screen, { ...options, screen })
       this.screenGroups.set(screen, screens)
@@ -151,18 +152,18 @@ class WallpaperStateManager implements IStateManager {
     return { remaining, released }
   }
 
-  // Remove a process and all of its screens from the active state without
-  // killing it. Used when a process exits unexpectedly so it no longer shows
-  // as applied. No-op when state has already been released by an explicit stop.
+  // Remove a process and the screens it still drives from the active state
+  // without killing it. Used when a process exits unexpectedly so it no longer
+  // shows as applied. No-op when state has already been released by an explicit
+  // stop, and screens a newer process has taken over keep their state.
   cleanupExitedProcess(proc: ChildProcess): { screens: string[] } {
     const group = this.processScreenGroups.get(proc)
     if (!group) return { screens: [] }
 
     const cleanedScreens: string[] = []
     for (const screen of group) {
-      if (this.runningProcesses.get(screen) === proc) {
-        this.runningProcesses.delete(screen)
-      }
+      if (this.runningProcesses.get(screen) !== proc) continue
+      this.runningProcesses.delete(screen)
       this.forgetPauseState(screen)
       if (this.activeWallpapers.has(screen)) {
         this.activeWallpapers.delete(screen)
@@ -242,6 +243,16 @@ class WallpaperStateManager implements IStateManager {
       }
     }
     this.save()
+  }
+
+  // A screen moving to a new process leaves its old one's group, so the old
+  // process exiting later can't clear the screen's new state
+  private detachFromPreviousProcess(screen: string, next: ChildProcess): void {
+    const previous = this.runningProcesses.get(screen)
+    if (!previous || previous === next) return
+    const group = this.processScreenGroups.get(previous)
+    group?.delete(screen)
+    if (group?.size === 0) this.processScreenGroups.delete(previous)
   }
 
   // Pause state only describes a live process; drop it once the screen's
