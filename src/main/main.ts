@@ -18,6 +18,7 @@ import { setAutostart } from './utils/autostart.ts'
 import { resolveAssetPath } from './utils/assets.ts'
 import { createAppTray, type AppTray } from './utils/tray.ts'
 import { invalidationService } from './services/invalidation.ts'
+import { wallpaperService } from './services/wallpaper/wallpaper.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
 import { DEV_TARGETS, type DevTarget } from '../shared/constants/development.ts'
 
@@ -100,6 +101,9 @@ void app.whenReady().then(() => {
 
   // Write / delete autostart file from saved settings
   setAutostart(settings.getSetting('launchOnLogin'))
+
+  // Restore after the flatpak bypass is applied, since it decides how backends spawn
+  void wallpaperService.restore()
 
   // Register protocol handler for local files
   protocol.handle('local-file', (request) => {

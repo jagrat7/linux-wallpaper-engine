@@ -21,6 +21,9 @@ export interface IWallpaperService {
   // Catalog only: the same cached scan, without the backend check or active state
   catalog(): Promise<Wallpaper[]>
 
+  /** Bring back the wallpapers saved from the last run. Called once at launch. */
+  restore(): Promise<void>
+
   // Apply, register external process, or reapply all
   apply(target: ApplyTarget): Promise<MutationResult>
 
