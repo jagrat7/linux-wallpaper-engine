@@ -132,6 +132,17 @@ export const APP_VERSION = packageJson.version
 export const WALLPAPER_ENGINE_APP_ID = 431960
 export const GITHUB_REPO = 'jagrat7/linux-wallpaper-engine'
 
+/** Pages `--page <name>` can open, mapped to their hash routes. */
+export const APP_PAGE_ROUTES = {
+  installed: '/',
+  workshop: '/workshop',
+  playlists: '/playlists',
+  displays: '/displays',
+  settings: '/settings',
+} as const
+
+export type AppPage = keyof typeof APP_PAGE_ROUTES
+
 export const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 export const STEAM_ROOT_PATHS = [
