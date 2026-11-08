@@ -4,7 +4,6 @@
   runCommand,
   bun2nix,
 
-  zip,
   nodejs,
   imagemagick,
   makeWrapper,
@@ -38,19 +37,6 @@ let
     file
   ];
 
-  # for Forge offline hack
-  electronZipDir =
-    runCommand "electron-v${electron.version}-zip-dir"
-      { nativeBuildInputs = [ zip ]; }
-      ''
-        # bash
-        mkdir -p $out
-        TMP_DIR=$(mktemp -d)
-        cp -r ${electron}/libexec/electron/* $TMP_DIR/
-        chmod -R u+w $TMP_DIR
-        cd $TMP_DIR
-        zip -0 -r -y $out/electron-v${electron.version}-linux-x64.zip .
-      '';
 in
 bun2nix.mkDerivation rec {
   pname = package.name;
@@ -80,11 +66,6 @@ bun2nix.mkDerivation rec {
     # bash
     runHook preBuild
 
-    # Only way I found to bypass Forge connecting to the internet
-    # is by injecting a zipped version of Electron to Forge's config
-    export ELECTRON_ZIP_DIR="${electronZipDir}"
-    sed -i 's/packagerConfig: {/packagerConfig: { electronZipDir: process.env.ELECTRON_ZIP_DIR,/' forge.config.ts
-
     # Sanity check, should typically match already
     export ELECTRON_VER="${electron.version}"
     echo "Syncing Electron version to Nixpkgs' version (v$ELECTRON_VER)"
@@ -92,7 +73,14 @@ bun2nix.mkDerivation rec {
 
     export CI=true
     echo "Packaging..."
-    bun package
+    bun run build
+    # Pack with Nixpkgs' Electron instead of downloading one. electron-builder writes
+    # fuses into the Electron binary it copies, so hand it a writable copy.
+    cp -r ${electron}/libexec/electron "$TMPDIR/electron-dist"
+    chmod -R u+w "$TMPDIR/electron-dist"
+    node node_modules/.bin/electron-builder --dir \
+      -c.electronDist="$TMPDIR/electron-dist" \
+      -c.electronVersion=${electron.version}
 
     runHook postBuild
   '';
@@ -106,7 +94,7 @@ bun2nix.mkDerivation rec {
     mkdir -p $out/bin
 
     # Copy resources
-    cp -a out/*/resources/. $out/share/${pname}/
+    cp -a release/linux-unpacked/resources/. $out/share/${pname}/
 
     # Copy the icon so the .desktop file can find it
     cp assets/transparent-logo.png $out/share/pixmaps/${pname}.png
