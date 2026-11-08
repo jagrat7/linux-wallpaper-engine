@@ -163,7 +163,6 @@ Then simply consume the package:
 
   - Wouldn't be a linux experience without it not working on your system. Enter **debug mode** when applying a wallpaper to see what's happening:
 ![Debug Mode](debug-mode.png)
-![Flatpak Compatibility Settings](comp-add.png)
 <br />
 
 - **Multi-Monitor Support** — Detect all connected displays, apply different wallpapers per screen, and view your monitor layout at a glance

@@ -1,7 +1,6 @@
 import { app } from 'electron'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { isFlatpak, getFlatpakID } from './host'
 
 const BINARY_NAME = 'linux-wallpaper-engine'
 
@@ -22,9 +21,6 @@ const isBinaryInPath = (): boolean => {
 }
 
 const getLinuxExec = (): string => {
-  // If flatpak, run via the host command
-  if (isFlatpak()) return `flatpak run ${getFlatpakID()}`
-
   // If in PATH, use the binary name
   if (isBinaryInPath()) return BINARY_NAME
 
@@ -77,8 +73,6 @@ export const setAutostart = (enabled: boolean | undefined): void => {
     'X-GNOME-Autostart-enabled=true',
     'X-KDE-autostart-after=panel',
   ]
-
-  if (isFlatpak()) content.push(`X-Flatpak=${getFlatpakID()}`)
 
   try {
     fs.writeFileSync(desktopFile, content.join('\n') + '\n')

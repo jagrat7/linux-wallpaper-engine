@@ -7,7 +7,7 @@ import { glob } from 'glob'
 import { displayService } from '../display'
 import { settingsService, type AppSettings } from '../settings'
 import { storeService } from '../store'
-import { hostExecFileAsync, hostCommandExists, isFlatpak } from '../../utils/host'
+import { hostExecFileAsync, hostCommandExists } from '../../utils/host'
 import { supervisorService, type RemainingScreen } from '../supervisor/supervisor'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import {
@@ -853,9 +853,7 @@ class WallpaperService implements IWallpaperService {
     const debugMode = settingsService.getSetting('debugMode')
     if (!debugMode) return
 
-    const commandStr = isFlatpak()
-      ? `flatpak-spawn --host linux-wallpaperengine ${args.join(' ')}`
-      : `linux-wallpaperengine ${args.join(' ')}`
+    const commandStr = `linux-wallpaperengine ${args.join(' ')}`
 
     const logs: string[] = []
     this.debugLogs.set(debugKey, { command: commandStr, logs })

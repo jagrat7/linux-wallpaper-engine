@@ -3,13 +3,7 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/constants/ap
 
 // --- Mocks ---------------------------------------------------------------
 
-const {
-  mockSettingsService,
-  mockWallpaperService,
-  mockIsFlatpak,
-  mockSetFlatpakBypass,
-  mockSetAutostart,
-} = vi.hoisted(() => ({
+const { mockSettingsService, mockWallpaperService, mockSetAutostart } = vi.hoisted(() => ({
   mockSettingsService: {
     loadSettings: vi.fn(),
     saveSettings: vi.fn(),
@@ -19,8 +13,6 @@ const {
   mockWallpaperService: {
     apply: vi.fn(),
   },
-  mockIsFlatpak: vi.fn(),
-  mockSetFlatpakBypass: vi.fn(),
   mockSetAutostart: vi.fn(),
 }))
 
@@ -30,11 +22,6 @@ vi.mock('../../services/settings', () => ({
 
 vi.mock('../../services/wallpaper/wallpaper', () => ({
   wallpaperService: mockWallpaperService,
-}))
-
-vi.mock('../../utils/host', () => ({
-  isFlatpak: (...args: unknown[]) => mockIsFlatpak(...args),
-  setFlatpakBypass: (...args: unknown[]) => mockSetFlatpakBypass(...args),
 }))
 
 vi.mock('../../utils/autostart', () => ({
@@ -148,22 +135,6 @@ describe('settingsRouter', () => {
     })
 
     describe('side effects', () => {
-      it('should call setFlatpakBypass when flatpakBypass is updated', async () => {
-        mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
-
-        await caller.update({ flatpakBypass: true })
-
-        expect(mockSetFlatpakBypass).toHaveBeenCalledWith(true)
-      })
-
-      it('should NOT call setFlatpakBypass when flatpakBypass is not in input', async () => {
-        mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
-
-        await caller.update({ theme: 'dark' })
-
-        expect(mockSetFlatpakBypass).not.toHaveBeenCalled()
-      })
-
       it('should call setAutostart when launchOnLogin is updated', async () => {
         mockSettingsService.saveSettings.mockResolvedValue(makeSettings())
 
@@ -212,20 +183,6 @@ describe('settingsRouter', () => {
 
       const result = await caller.defaults()
       expect(result).toEqual(DEFAULT_SETTINGS)
-    })
-  })
-
-  describe('isFlatpak', () => {
-    it('should return true when running in flatpak', async () => {
-      mockIsFlatpak.mockReturnValue(true)
-      const result = await caller.isFlatpak()
-      expect(result).toEqual({ isFlatpak: true })
-    })
-
-    it('should return false when not in flatpak', async () => {
-      mockIsFlatpak.mockReturnValue(false)
-      const result = await caller.isFlatpak()
-      expect(result).toEqual({ isFlatpak: false })
     })
   })
 })

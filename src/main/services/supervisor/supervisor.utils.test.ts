@@ -4,7 +4,6 @@ import { backendArgPattern } from '../../utils/host'
 import type { ScreenRecords } from './supervisor.types'
 import {
   BACKEND_PROCESS_PATTERN,
-  killSignal,
   leaveGroup,
   listBackendProcesses,
   processesOf,
@@ -15,15 +14,13 @@ import {
   toSavedScreens,
 } from './supervisor.utils'
 
-const { mockHostExecFileAsync, mockShouldUseFlatpakSpawn } = vi.hoisted(() => ({
+const { mockHostExecFileAsync } = vi.hoisted(() => ({
   mockHostExecFileAsync: vi.fn(),
-  mockShouldUseFlatpakSpawn: vi.fn(),
 }))
 
 vi.mock('../../utils/host', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/host')>()),
   hostExecFileAsync: mockHostExecFileAsync,
-  shouldUseFlatpakSpawn: mockShouldUseFlatpakSpawn,
 }))
 
 // An unspawned handle: only its identity matters here
@@ -40,13 +37,6 @@ const sharedRecords = (proc: ChildProcess): ScreenRecords => {
     ],
   ])
 }
-
-describe('killSignal', () => {
-  it('sends SIGTERM under Flatpak for flatpak-spawn to forward, SIGKILL otherwise', () => {
-    expect(killSignal(true)).toBe('SIGTERM')
-    expect(killSignal(false)).toBe('SIGKILL')
-  })
-})
 
 describe('screensDrivenBy and processesOf', () => {
   it('maps between a backend and the screens it draws on', () => {
@@ -144,8 +134,6 @@ describe('signalBackend', () => {
 
   beforeEach(() => {
     mockHostExecFileAsync.mockReset()
-    mockShouldUseFlatpakSpawn.mockReset()
-    mockShouldUseFlatpakSpawn.mockReturnValue(false)
   })
 
   it('signals the tracked process handle and skips the host fallback', async () => {
@@ -160,26 +148,6 @@ describe('signalBackend', () => {
     expect(delivered).toBe(true)
     expect(kill).toHaveBeenCalledWith('SIGSTOP')
     expect(mockHostExecFileAsync).not.toHaveBeenCalled()
-  })
-
-  it('falls back to a host-side pkill when the handle wraps flatpak-spawn', async () => {
-    mockShouldUseFlatpakSpawn.mockReturnValue(true)
-    mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
-    const kill = vi.fn().mockReturnValue(true)
-
-    const delivered = await signalBackend(
-      'SIGSTOP',
-      withKill(kill),
-      'linux-wallpaperengine.*--screen-root.*eDP-1',
-    )
-
-    expect(delivered).toBe(true)
-    expect(kill).not.toHaveBeenCalled()
-    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', [
-      '-STOP',
-      '-f',
-      'linux-wallpaperengine.*--screen-root.*eDP-1',
-    ])
   })
 
   it('reports failure when kill returns false without throwing', async () => {

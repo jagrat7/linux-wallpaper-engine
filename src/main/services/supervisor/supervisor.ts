@@ -2,12 +2,7 @@ import type { ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 export type { RemainingScreen, ScreenRecord } from './supervisor.types'
 import { storeService } from '../store'
-import {
-  hostExecFileAsync,
-  hostExecFileSync,
-  hostSpawn,
-  shouldUseFlatpakSpawn,
-} from '../../utils/host'
+import { hostExecFileAsync, hostSpawn } from '../../utils/host'
 import type { ISupervisorService } from './supervisor.interface'
 import type {
   PauseResult,
@@ -19,7 +14,6 @@ import type {
   StopResult,
 } from './supervisor.types'
 import {
-  killSignal,
   leaveGroup,
   listBackendProcesses,
   processesOf,
@@ -166,7 +160,7 @@ class SupervisorService implements ISupervisorService {
     if (!keep) for (const screen of targets) this.records.delete(screen)
     if (stopped.length > 0) this.save()
 
-    // Also reaches a backend with no handle: a crashed run's, or the host side under Flatpak
+    // Also reaches a backend with no handle, such as a crashed run's
     await this.killMatching(patterns)
     return { stopped, remaining }
   }
@@ -219,7 +213,7 @@ class SupervisorService implements ISupervisorService {
     try {
       // A frozen process holds SIGTERM until it is resumed
       if (this.frozen.has(proc)) proc.kill('SIGCONT')
-      proc.kill(killSignal(shouldUseFlatpakSpawn()))
+      proc.kill('SIGKILL')
     } catch {
       /* already dead */
     }
@@ -229,12 +223,6 @@ class SupervisorService implements ISupervisorService {
     this.stopping = true
     for (const proc of this.live) this.kill(proc)
     this.live.clear()
-    // Under Flatpak a handle only reaches flatpak-spawn, so also kill the host backends
-    if (!shouldUseFlatpakSpawn()) return
-    for (const screen of this.records.keys()) {
-      const pattern = this.patternFor(screen)
-      if (pattern) hostExecFileSync('pkill', ['-9', '-f', pattern])
-    }
   }
 
   // ── Screens ────────────────────────────────────────────────────────────
