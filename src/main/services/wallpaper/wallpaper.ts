@@ -11,7 +11,6 @@ import {
   hostSpawn,
   hostExecFileAsync,
   hostCommandExists,
-  isFlatpak,
 } from '../../utils/host'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
 import {
@@ -930,9 +929,7 @@ class WallpaperService implements IWallpaperService {
     const debugMode = settingsService.getSetting('debugMode')
     if (!debugMode) return
 
-    const commandStr = isFlatpak()
-      ? `flatpak-spawn --host linux-wallpaperengine ${args.join(' ')}`
-      : `linux-wallpaperengine ${args.join(' ')}`
+    const commandStr = `linux-wallpaperengine ${args.join(' ')}`
 
     const logs: string[] = []
     this.state.setDebugLogs(debugKey, commandStr, logs)

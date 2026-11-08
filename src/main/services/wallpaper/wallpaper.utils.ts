@@ -9,7 +9,7 @@ import {
   type Wallpaper,
   type WallpaperType,
 } from '../../../shared/constants/wallpaper'
-import { backendArgPattern, hostExecFileAsync, shouldUseFlatpakSpawn } from '../../utils/host'
+import { backendArgPattern, hostExecFileAsync } from '../../utils/host'
 
 type ImageType = 'jpeg' | 'png' | 'bmp'
 export type TimedCache<T> = {
@@ -94,7 +94,7 @@ export const signalWallpaperProcess = async (
   proc: ChildProcess | undefined,
   pattern: string | null,
 ): Promise<boolean> => {
-  if (proc && !shouldUseFlatpakSpawn()) {
+  if (proc) {
     try {
       return proc.kill(signal)
     } catch {

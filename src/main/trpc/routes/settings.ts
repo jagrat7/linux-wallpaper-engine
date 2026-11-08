@@ -25,7 +25,6 @@ import {
   WALLPAPER_GRID_DENSITY_OPTIONS,
   type WallpaperGridDensity,
 } from '../../../shared/constants/grid'
-import { isFlatpak, setFlatpakBypass } from '../../utils/host'
 import { setAutostart } from '../../utils/autostart'
 import { systemThemeService } from '../../services/system-theme/system-theme'
 
@@ -97,11 +96,10 @@ const settingsSchema = z.object({
   dismissedScanReminder: z.boolean().optional(),
   dismissedUpdateVersion: z.string().nullable().optional(),
 
-  // Debug & Flatpak
+  // Debug
   debugMode: z.boolean().optional(),
   windowMode: z.boolean().optional(),
   windowGeometry: windowGeometrySchema.optional(),
-  flatpakBypass: z.boolean().optional(),
 
   // Persisted filter & sort preferences
   filterType: z
@@ -162,11 +160,6 @@ export const settingsRouter = trpc.router({
   update: trpc.procedure.input(settingsSchema).mutation(async ({ input }) => {
     const updated = await settingsService.saveSettings(input)
 
-    // Sync flatpak bypass state to the module
-    if (input.flatpakBypass !== undefined) {
-      setFlatpakBypass(input.flatpakBypass)
-    }
-
     // Write / delete autostart file on update
     if (input.launchOnLogin !== undefined) {
       setAutostart(input.launchOnLogin)
@@ -200,10 +193,5 @@ export const settingsRouter = trpc.router({
   // Get default settings
   defaults: trpc.procedure.query(() => {
     return settingsService.getDefaultSettings()
-  }),
-
-  // Check if running inside Flatpak
-  isFlatpak: trpc.procedure.query(() => {
-    return { isFlatpak: isFlatpak() }
   }),
 })

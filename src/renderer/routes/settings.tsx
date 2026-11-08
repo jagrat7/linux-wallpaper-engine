@@ -76,9 +76,6 @@ function SettingsPage() {
 
   const { mode, setMode } = useTheme()
 
-  const { data: flatpakData } = trpc.settings.isFlatpak.useQuery()
-  const isFlatpakEnv = flatpakData?.isFlatpak ?? false
-
   const [startupTrayOpen, setStartupTrayOpen] = useState(false)
   const [windowGeometryOpen, setWindowGeometryOpen] = useState(false)
 
@@ -247,7 +244,7 @@ function SettingsPage() {
                 </Button>
               </span>
             }
-            className={!windowGeometryOpen && !isFlatpakEnv ? 'border-b-0' : ''}
+            className={!windowGeometryOpen ? 'border-b-0' : ''}
           >
             <Switch
               checked={settings.windowMode}
@@ -269,7 +266,7 @@ function SettingsPage() {
                       </span>
                     }
                     disabled={!settings.windowMode}
-                    className={!isFlatpakEnv ? 'border-b-0' : ''}
+                    className="border-b-0"
                   >
                     <form className="flex flex-col items-end gap-1" onSubmit={submitWindowGeometry}>
                       <div className="flex items-center gap-2">
@@ -301,15 +298,6 @@ function SettingsPage() {
                 </div>
               </CollapsibleContent>
             </Collapsible>
-          )}
-
-          {isFlatpakEnv && (
-            <SettingRow label="Bypass Flatpak sandbox" className="border-b-0">
-              <Switch
-                checked={settings.flatpakBypass}
-                onCheckedChange={(v) => updateSetting('flatpakBypass', v)}
-              />
-            </SettingRow>
           )}
         </SettingsSection>
 

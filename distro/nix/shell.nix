@@ -12,8 +12,6 @@
   zip,
   dpkg,
   fakeroot,
-  flatpak,
-  flatpak-builder,
   elfutils,
 
   linux-wallpaperengine,
@@ -60,8 +58,6 @@ mkShell {
     zip
     dpkg
     fakeroot
-    flatpak
-    flatpak-builder
     elfutils
   ]
   ++ appRuntime;
