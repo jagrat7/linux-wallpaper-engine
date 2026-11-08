@@ -106,9 +106,9 @@ mkShell {
         if [ -n "\$SPEC_FILE" ]; then
             # electron-installer-redhat dumps our files in the 'BUILD/' folder.
             # Modern rpmbuild auto-enters a nested 'BUILD/app-version-build/' folder.
-            # We inject 'cd ..' right after the %install phase starts so the 
+            # We inject 'cd ..' (when not already beside usr/, as on older rpm) right after the %install phase starts so the 
             # hardcoded 'cp' commands can successfully find the 'usr/' folder.
-            sed -i 's/^%install.*/&\ncd ../g' "\$SPEC_FILE"
+            sed -i 's/^%install.*/&\n[ -d usr ] || cd ../g' "\$SPEC_FILE"
         fi
 
         # Execute the real rpmbuild, but force it to use our local, user-owned 
