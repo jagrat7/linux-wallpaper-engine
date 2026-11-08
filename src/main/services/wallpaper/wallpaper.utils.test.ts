@@ -12,15 +12,13 @@ import {
 } from './wallpaper.utils'
 import { backendArgPattern, escapeRegExp } from '../../utils/host'
 
-const { mockHostExecFileAsync, mockShouldUseFlatpakSpawn } = vi.hoisted(() => ({
+const { mockHostExecFileAsync } = vi.hoisted(() => ({
   mockHostExecFileAsync: vi.fn(),
-  mockShouldUseFlatpakSpawn: vi.fn(),
 }))
 
 vi.mock('../../utils/host', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/host')>()),
   hostExecFileAsync: mockHostExecFileAsync,
-  shouldUseFlatpakSpawn: mockShouldUseFlatpakSpawn,
 }))
 
 describe('pickRandomWallpaper', () => {
@@ -125,8 +123,6 @@ describe('signalWallpaperProcess', () => {
 
   beforeEach(() => {
     mockHostExecFileAsync.mockReset()
-    mockShouldUseFlatpakSpawn.mockReset()
-    mockShouldUseFlatpakSpawn.mockReturnValue(false)
   })
 
   it('signals the tracked process handle and skips the host fallback', async () => {
@@ -141,26 +137,6 @@ describe('signalWallpaperProcess', () => {
     expect(delivered).toBe(true)
     expect(kill).toHaveBeenCalledWith('SIGSTOP')
     expect(mockHostExecFileAsync).not.toHaveBeenCalled()
-  })
-
-  it('falls back to a host-side pkill when the handle wraps flatpak-spawn', async () => {
-    mockShouldUseFlatpakSpawn.mockReturnValue(true)
-    mockHostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
-    const kill = vi.fn().mockReturnValue(true)
-
-    const delivered = await signalWallpaperProcess(
-      'SIGSTOP',
-      makeProc(kill),
-      'linux-wallpaperengine.*--screen-root.*eDP-1',
-    )
-
-    expect(delivered).toBe(true)
-    expect(kill).not.toHaveBeenCalled()
-    expect(mockHostExecFileAsync).toHaveBeenCalledWith('pkill', [
-      '-STOP',
-      '-f',
-      'linux-wallpaperengine.*--screen-root.*eDP-1',
-    ])
   })
 
   it('reports failure when kill returns false without throwing', async () => {
@@ -261,7 +237,7 @@ describe('BACKEND_PROCESS_PATTERN', () => {
   })
 
   it('ignores processes that only mention the backend in their arguments', () => {
-    expect(pattern.test('flatpak-spawn --host linux-wallpaperengine --bg /wp')).toBe(false)
+    expect(pattern.test('sh -c linux-wallpaperengine --bg /wp')).toBe(false)
     expect(pattern.test('vim linux-wallpaperengine.log')).toBe(false)
   })
 })
