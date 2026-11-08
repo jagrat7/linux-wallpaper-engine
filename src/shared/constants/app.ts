@@ -130,6 +130,24 @@ export const APP_VERSION = packageJson.version
 export const WALLPAPER_ENGINE_APP_ID = 431960
 export const GITHUB_REPO = 'jagrat7/linux-wallpaper-engine'
 
+/** Result of checking GitHub releases for a newer version */
+export interface UpdateCheck {
+  hasUpdate: boolean
+  latestVersion: string | null
+  releaseUrl: string | null
+  /** Only the AppImage can download and install updates itself */
+  canAutoUpdate: boolean
+}
+
+/** Progress of an AppImage downloading its update */
+export type UpdateDownloadState = 'idle' | 'downloading' | 'ready' | 'failed'
+
+export interface UpdateDownloadStatus {
+  state: UpdateDownloadState
+  /** The version being downloaded or ready to install */
+  version: string | null
+}
+
 export const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 export const STEAM_ROOT_PATHS = [

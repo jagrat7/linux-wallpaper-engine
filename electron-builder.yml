@@ -86,5 +86,11 @@ rpm:
     - (mesa-libgbm or libgbm1)
     - libdrm
 
-# Releases are uploaded by CI, not by electron-builder
-publish: null
+# Where the AppImage looks for updates (src/main/services/updater.ts). electron-builder
+# writes app-update.yml into the app and latest-linux.yml next to the packages; the
+# Release workflow uploads them, so builds run with --publish never.
+# Keep this block last: scripts/ci/appimage-update-smoke.sh swaps it for a local feed.
+publish:
+  provider: github
+  owner: jagrat7
+  repo: linux-wallpaper-engine
