@@ -25,11 +25,9 @@ export function UpdateReminderBanner() {
   const installUpdate = trpc.app.installUpdate.useMutation()
 
   if (!settings || !update?.hasUpdate || !update.latestVersion) return null
-  // A dismissed banner stays hidden, unless a download the user started is in flight
+  // Closing the banner hides it for this version, whatever the download is doing
+  if (settings.dismissedUpdateVersion === update.latestVersion) return null
   const downloadState = download?.state ?? 'idle'
-  if (settings.dismissedUpdateVersion === update.latestVersion && downloadState === 'idle') {
-    return null
-  }
 
   const viewRelease = (
     <button
@@ -49,12 +47,7 @@ export function UpdateReminderBanner() {
       </>
     )
   } else if (downloadState === 'downloading') {
-    message = (
-      <>
-        <span className="font-medium">Downloading v{update.latestVersion}…</span> It installs when
-        you restart.
-      </>
-    )
+    message = <span className="font-medium">Downloading v{update.latestVersion}…</span>
   } else if (downloadState === 'ready') {
     message = (
       <>
