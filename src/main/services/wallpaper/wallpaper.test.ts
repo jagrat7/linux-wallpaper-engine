@@ -103,3 +103,36 @@ describe('wallpaperService.getActive', () => {
     ])
   })
 })
+
+describe('wallpaperService.getActive during restore', () => {
+  // A screen saved by the last run, with no process handle yet
+  const loadWithRestoredScreen = async () => {
+    mockStore.get.mockImplementation((key: string) => {
+      if (key === 'activeWallpapers') return { 'eDP-1': { backgroundId: wallpaperPath } }
+      return key === 'overrides' ? {} : undefined
+    })
+    vi.resetModules()
+    const { wallpaperService: service } = await import('./wallpaper')
+    const { backendSupervisor } = await import('../../utils/backend-supervisor')
+    return { service, backendSupervisor }
+  }
+
+  afterAll(() => {
+    mockStore.get.mockImplementation((key: string) =>
+      key === 'activeWallpapers' || key === 'overrides' ? {} : undefined,
+    )
+  })
+
+  it('keeps a restored screen while process work is running, then prunes it once idle', async () => {
+    const { service, backendSupervisor } = await loadWithRestoredScreen()
+    const restore = Promise.withResolvers<void>()
+    const restoring = backendSupervisor.run(() => restore.promise)
+
+    expect((await service.getActive()).map((entry) => entry.screen)).toEqual(['eDP-1'])
+
+    restore.resolve()
+    await restoring
+    // pgrep (mocked) finds no backend for eDP-1, so the idle prune drops it
+    expect(await service.getActive()).toEqual([])
+  })
+})

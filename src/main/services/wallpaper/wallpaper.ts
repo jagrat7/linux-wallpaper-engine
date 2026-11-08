@@ -103,7 +103,9 @@ class WallpaperService implements IWallpaperService {
    * wallpaper's project.json, so the UI shows what's running right after launch.
    */
   async getActive(): Promise<ActiveWallpaperEntry[]> {
-    await this.pruneDeadRestoredScreens()
+    // While restore or another task is spawning, a screen without a handle is
+    // about to get one, so only prune between tasks, holding the queue meanwhile
+    if (this.backends.isIdle) await this.backends.run(() => this.pruneDeadRestoredScreens())
     return this.getActiveWithTitles(this.wallpaperCacheEntry?.value ?? [])
   }
 

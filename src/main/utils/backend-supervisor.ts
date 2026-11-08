@@ -19,12 +19,21 @@ class BackendSupervisor {
   private live = new Set<ChildProcess>()
   private queue: Promise<unknown> = Promise.resolve()
   private stopping = false
+  private pending = 0
 
   /** Run `task` once every task queued before it has settled. */
   run<T>(task: () => Promise<T>): Promise<T> {
-    const result = this.queue.then(task)
+    this.pending++
+    const result = this.queue.then(task).finally(() => {
+      this.pending--
+    })
     this.queue = result.catch(() => undefined)
     return result
+  }
+
+  /** Whether no task is running or waiting in `run`. */
+  get isIdle(): boolean {
+    return this.pending === 0
   }
 
   /** Whether the app is quitting: new backends are refused and exits are expected. */
