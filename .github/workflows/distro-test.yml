@@ -1,0 +1,100 @@
+name: Distro tests
+
+# Builds the release packages, then installs and launches each one on the distro
+# it targets. The release workflow calls this before publishing.
+on:
+  pull_request:
+    paths:
+      - forge.config.ts
+      - package.json
+      - bun.lock
+      - distro/**
+      - scripts/**
+      - src/main/main.ts
+      - src/main/utils/autostart.ts
+      - .github/workflows/distro-test.yml
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: distro-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      # Forge must run on Node; on Node 26 it exits 0 without building anything.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install packaging tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq dpkg fakeroot rpm elfutils
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build deb, rpm and zip
+        run: bash scripts/publish.sh make
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: out/make
+          if-no-files-found: error
+
+  test:
+    name: Test on ${{ matrix.distro }}
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # debian: the .deb, fedora: the .rpm, arch: the AUR PKGBUILD built from the zip
+        distro: [debian, fedora, arch]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: out/make
+
+      - name: Install playwright-core
+        run: dev/verify/lwe setup
+
+      # Ubuntu 24.04 blocks unprivileged user namespaces, which Chromium's sandbox
+      # needs inside the test container. Desktop distros allow them.
+      - name: Allow user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Install, launch and drive the app
+        run: bash scripts/ci/distro-smoke.sh ${{ matrix.distro }} out/make smoke-output
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-${{ matrix.distro }}
+          path: smoke-output
+          if-no-files-found: ignore
