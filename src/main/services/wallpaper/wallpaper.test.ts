@@ -65,13 +65,13 @@ describe('wallpaperService catalog', () => {
   it('shares one library scan between callers that arrive while it runs', async () => {
     const results = await Promise.all([
       wallpaperService.catalog(),
-      wallpaperService.query(),
+      wallpaperService.catalog(),
       wallpaperService.catalog(),
     ])
 
     expect(mockPlaylistService.resolveSteamLibraryPaths).toHaveBeenCalledOnce()
-    expect(results[0].map((w) => w.title)).toEqual(['Forest Stream'])
-    expect(results[1].wallpapers).toBe(results[0])
+    expect(results[0].wallpapers.map((w) => w.title)).toEqual(['Forest Stream'])
+    expect(results[2].wallpapers).toBe(results[0].wallpapers)
   })
 
   it('scans again after the cache is invalidated', async () => {

@@ -21,8 +21,15 @@ const playlistSettingsSchema = z.object({
   overrides: engineOverridesSchema.optional(),
 })
 
-function startPlaylist(playlistName: string, screens: string[], stampLastApplied: boolean) {
-  return wallpaperService.startPlaylist(playlistName, screens, stampLastApplied)
+function startPlaylist(name: string, screens: string[], stampLastApplied: boolean) {
+  return wallpaperService.apply({ kind: 'playlist', name, screens, stampLastApplied })
+}
+
+// The playlist running on each screen that runs one
+async function activePlaylists(): Promise<{ name: string; screen: string }[]> {
+  return (await wallpaperService.getActive()).flatMap(({ screen, playlist }) =>
+    playlist ? [{ name: playlist, screen }] : [],
+  )
 }
 
 export const playlistRouter = trpc.router({
@@ -81,7 +88,7 @@ export const playlistRouter = trpc.router({
         .optional(),
     )
     .mutation(async ({ input }) => {
-      const active = wallpaperService.getActivePlaylists()
+      const active = await activePlaylists()
       const targetScreens = active
         .filter(
           (entry) =>
@@ -135,7 +142,5 @@ export const playlistRouter = trpc.router({
     }),
 
   // Get currently active playlist info
-  active: trpc.procedure.query(() => {
-    return wallpaperService.getActivePlaylists()
-  }),
+  active: trpc.procedure.query(() => activePlaylists()),
 })

@@ -6,7 +6,7 @@ import * as path from 'node:path'
 import { glob } from 'glob'
 import { displayService } from '../display'
 import { settingsService, type AppSettings } from '../settings'
-import { storeService, type ActivePlaylistInfo } from '../store'
+import { storeService } from '../store'
 import { hostExecFileAsync, hostCommandExists, isFlatpak } from '../../utils/host'
 import { supervisorService, type RemainingScreen } from '../supervisor/supervisor'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
@@ -32,11 +32,11 @@ import {
   pickRandomWallpaper,
   type TimedCache,
 } from './wallpaper.utils'
-import { listProperties } from './properties'
 import type { IWallpaperService } from './wallpaper.interface'
 import type {
   MutationResult,
   ActiveWallpaperEntry,
+  ApplyResult,
   ApplyTarget,
   OverrideMutation,
   ServiceAction,
@@ -66,34 +66,12 @@ class WallpaperService implements IWallpaperService {
     return WallpaperService.instance
   }
 
-  parseWindowGeometry = parseWindowGeometry
+  // ── Reads ──────────────────────────────────────────────────────────────
 
-  listProperties = listProperties
-
-  /** Resolve settings and per-call overrides into backend apply options. */
-  buildApplyOptions = buildApplyOptions
-
-  // ── Query ──────────────────────────────────────────────────────────────
-
-  /** Installed wallpapers and when each was last applied, for the library grid. */
-  async query(): Promise<{
-    wallpapers: Wallpaper[]
-    appliedHistory: Record<string, number>
-  }> {
-    const wallpapers = await this.getWallpapers()
-    return { wallpapers, appliedHistory: this.getAppliedHistory() }
+  async catalog(): Promise<{ wallpapers: Wallpaper[]; appliedHistory: Record<string, number> }> {
+    return { wallpapers: await this.getWallpapers(), appliedHistory: this.getAppliedHistory() }
   }
 
-  /** Installed wallpapers from the same cached scan as `query`. */
-  catalog(): Promise<Wallpaper[]> {
-    return this.getWallpapers()
-  }
-
-  /**
-   * Wallpapers active on each screen. Never waits on a library scan: titles
-   * come from the cached catalog when there is one, otherwise from each active
-   * wallpaper's project.json, so the UI shows what's running right after launch.
-   */
   async getActive(): Promise<ActiveWallpaperEntry[]> {
     // While restore or another task is spawning, a screen without a handle is
     // about to get one, so only prune between tasks, holding the queue meanwhile
@@ -103,69 +81,85 @@ class WallpaperService implements IWallpaperService {
     return this.getActiveWithTitles(this.wallpaperCacheEntry?.value ?? [])
   }
 
-  /** Whether the linux-wallpaperengine backend is on the host PATH. */
-  isBackendInstalled(): Promise<boolean> {
-    return this.checkBackendInstalled()
+  // ── Mutations ──────────────────────────────────────────────────────────
+
+  apply(target: ApplyTarget): Promise<ApplyResult> {
+    switch (target.kind) {
+      case 'wallpaper':
+        return this.supervisor.run(async () =>
+          this.applyWallpaper(
+            buildApplyOptions(await settingsService.loadSettings(), target.options),
+          ),
+        )
+      case 'random':
+        return this.applyRandom(target.screen)
+      case 'playlist':
+        return this.supervisor.run(() =>
+          this.startPlaylist(target.name, target.screens, target.stampLastApplied),
+        )
+      case 'reapply':
+        return this.supervisor.run(() => this.reapplyAll())
+      case 'restore':
+        return this.supervisor.run(() => this.restore())
+    }
+    throw new Error('Unsupported wallpaper apply target', { cause: target satisfies never })
   }
-
-  // ── Launch ─────────────────────────────────────────────────────────────
-
-  /**
-   * Bring back the wallpapers saved from the last run. Called once from main
-   * after this instance holds the single-instance lock, so a second launch
-   * never restores on top of the first. Backends a crashed run left behind are
-   * killed and respawned rather than left running untracked, so every
-   * backend on screen has a handle this instance can stop.
-   */
-  restore(): Promise<MutationResult> {
-    return this.supervisor.run(async () => {
-      if (this.supervisor.screens().size === 0) return { success: true }
-      await this.supervisor.stop({ keep: true })
-      return this.reapplyAll()
-    })
-  }
-
-  // ── Apply ──────────────────────────────────────────────────────────────
-
-  apply(target: ApplyTarget): Promise<MutationResult> {
-    return this.supervisor.run(() => {
-      switch (target.kind) {
-        case 'wallpaper':
-          return this.applyWallpaper(target.options)
-        case 'reapply':
-          return this.reapplyAll()
-      }
-      throw new Error('Unsupported wallpaper apply target', { cause: target satisfies never })
-    })
-  }
-
-  /** Start a playlist's backend on `screens`, replacing whatever they were running. */
-  startPlaylist(
-    playlistName: string,
-    screens: string[],
-    stampLastApplied: boolean,
-  ): Promise<{ success: boolean; error?: string }> {
-    return this.supervisor.run(async () => {
-      let started: string[] = []
-      const result = await playlistService.startProcess(
-        playlistName,
-        screens,
-        stampLastApplied,
-        async (screenKeys, args, options) => {
-          await this.launchPlaylist(screenKeys, args, options, playlistName)
-          started = screenKeys
-        },
-      )
-      // A playlist the user starts plays, even on a screen that was paused
-      if (started.length > 0) await this.setPaused(started, false)
-      return result
-    })
-  }
-
-  // ── Stop ───────────────────────────────────────────────────────────────
 
   stop(targetScreen?: string | string[]): Promise<MutationResult> {
     return this.supervisor.run(() => this.stopScreens(targetScreen))
+  }
+
+  setPaused(paused: boolean, screen?: string | string[]): Promise<MutationResult> {
+    return this.supervisor.run(() => this.pauseScreens(screen, paused))
+  }
+
+  // ── Private: apply kinds ───────────────────────────────────────────────
+
+  // Bring back the wallpapers saved from the last run. Main calls this once,
+  // after this instance holds the single-instance lock, so a second launch
+  // never restores on top of the first. Backends a crashed run left behind are
+  // killed and respawned rather than left running untracked
+  private async restore(): Promise<MutationResult> {
+    if (this.supervisor.screens().size === 0) return { success: true }
+    await this.supervisor.stop({ keep: true })
+    return this.reapplyAll()
+  }
+
+  // Start a playlist's backend on `screens`, replacing whatever they were running
+  private async startPlaylist(
+    playlistName: string,
+    screens: string[],
+    stampLastApplied: boolean,
+  ): Promise<MutationResult> {
+    let started: string[] = []
+    const result = await playlistService.startProcess(
+      playlistName,
+      screens,
+      stampLastApplied,
+      async (screenKeys, args, options) => {
+        await this.launchPlaylist(screenKeys, args, options, playlistName)
+        started = screenKeys
+      },
+    )
+    // A playlist the user starts plays, even on a screen that was paused
+    if (started.length > 0) await this.pauseScreens(started, false)
+    return result
+  }
+
+  // Apply an installed wallpaper, preferring one that is not already showing.
+  // The library scan happens outside the queue, so it never holds up process work
+  private async applyRandom(screen?: string): Promise<ApplyResult> {
+    const wallpapers = await this.getWallpapers()
+    if (wallpapers.length === 0) return { success: false, error: 'No wallpapers installed' }
+
+    const activeIds = new Set(
+      [...this.supervisor.screens().values()].map((active) => active.options.backgroundId),
+    )
+    const pick = pickRandomWallpaper(wallpapers, activeIds)
+    const settings = await settingsService.loadSettings()
+    const options = buildApplyOptions(settings, { backgroundId: pick.path, screen })
+    const result = await this.supervisor.run(() => this.applyWallpaper(options))
+    return { ...result, wallpaperTitle: pick.title }
   }
 
   private async stopScreens(targetScreen?: string | string[]): Promise<MutationResult> {
@@ -189,52 +183,14 @@ class WallpaperService implements IWallpaperService {
     return { success: true, screens: stopped.length > 0 ? stopped : requested }
   }
 
-  /** Freeze active wallpaper processes on the requested screens. */
-  pause(screen?: string | string[]): Promise<MutationResult> {
-    return this.supervisor.run(() => this.setPaused(screen, true))
-  }
-
-  /** Resume wallpaper processes previously paused by the app. */
-  resume(screen?: string | string[]): Promise<MutationResult> {
-    return this.supervisor.run(() => this.setPaused(screen, false))
-  }
-
-  /** Apply an installed wallpaper that is not already active when possible. */
-  async applyRandom(screen?: string): Promise<MutationResult & { wallpaperTitle?: string }> {
-    const wallpapers = await this.getWallpapers()
-    if (wallpapers.length === 0) return { success: false, error: 'No wallpapers installed' }
-
-    const activeIds = new Set(
-      [...this.supervisor.screens().values()].map((active) => active.options.backgroundId),
-    )
-    const pick = pickRandomWallpaper(wallpapers, activeIds)
-    const settings = await settingsService.loadSettings()
-    const options = buildApplyOptions(settings, { backgroundId: pick.path, screen })
-    const result = await this.supervisor.run(() => this.applyWallpaper(options))
-    return { ...result, wallpaperTitle: pick.title }
-  }
-
-  /** Return screen keys with an active wallpaper process. */
-  getActiveScreens(): string[] {
-    return [...this.supervisor.screens().keys()]
-  }
-
-  /** The playlist running on each screen that runs one. */
-  getActivePlaylists(): ActivePlaylistInfo[] {
-    return [...this.supervisor.screens()].flatMap(([screen, { playlist }]) =>
-      playlist ? [{ name: playlist, screen }] : [],
-    )
-  }
-
-  /** Return screen keys whose wallpaper process is paused. */
-  getPausedScreens(): string[] {
+  private pausedScreens(): string[] {
     return [...this.supervisor.screens()]
       .filter(([, screen]) => screen.paused)
       .map(([screen]) => screen)
   }
 
-  /** Pause or resume the target screens, then report which ones flipped. */
-  private async setPaused(
+  // Pause or resume the target screens, then report which ones flipped
+  private async pauseScreens(
     screen: string | string[] | undefined,
     paused: boolean,
   ): Promise<MutationResult> {
@@ -491,7 +447,7 @@ class WallpaperService implements IWallpaperService {
   private async getActiveWithTitles(allWallpapers: Wallpaper[]): Promise<ActiveWallpaperEntry[]> {
     const result: ActiveWallpaperEntry[] = []
 
-    for (const [screen, { options: wallpaper, paused }] of this.supervisor.screens()) {
+    for (const [screen, { options: wallpaper, playlist, paused }] of this.supervisor.screens()) {
       const cached = allWallpapers.find((w) => w.path === wallpaper.backgroundId)
       const project = cached ? null : await readProjectSummary(wallpaper.backgroundId)
       const title =
@@ -501,7 +457,7 @@ class WallpaperService implements IWallpaperService {
         'Unknown'
       const thumbnail = cached?.thumbnail ?? project?.thumbnail ?? ''
 
-      result.push({ screen, wallpaper, title, thumbnail, paused })
+      result.push({ screen, wallpaper, ...(playlist && { playlist }), title, thumbnail, paused })
     }
 
     return result
@@ -655,7 +611,7 @@ class WallpaperService implements IWallpaperService {
 
   private async reapplyAll(): Promise<MutationResult> {
     const errors: string[] = []
-    const pausedScreens = this.getPausedScreens()
+    const pausedScreens = this.pausedScreens()
     const settings = await settingsService.loadSettings()
     const grouped = new Map<string, { screens: string[]; options: ApplyWallpaperOptions }>()
 
@@ -713,7 +669,7 @@ class WallpaperService implements IWallpaperService {
     }
 
     // Respawned processes start running; keep previously paused screens frozen
-    const repause = await this.setPaused(pausedScreens, true)
+    const repause = await this.pauseScreens(pausedScreens, true)
     if (repause.error) errors.push(repause.error)
 
     return {
@@ -727,7 +683,7 @@ class WallpaperService implements IWallpaperService {
     if (remaining.length === 0) return
     await this.respawnScreens(remaining)
     const paused = remaining.filter((entry) => entry.paused).map((entry) => entry.screen)
-    await this.setPaused(paused, true)
+    await this.pauseScreens(paused, true)
   }
 
   private async respawnScreens(remaining: RemainingScreen[]): Promise<void> {

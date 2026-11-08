@@ -13,6 +13,8 @@ export interface ActiveWallpaperEntry {
   wallpaper: ApplyWallpaperOptions
   title: string
   thumbnail: string
+  // The playlist the screen runs, if any
+  playlist?: string
   // Whether the screen's process is currently frozen (paused)
   paused: boolean
 }
@@ -40,5 +42,18 @@ export type ServiceAction =
 // ── Apply target ───────────────────────────────────────────────────────────
 
 export type ApplyTarget =
-  | { kind: 'wallpaper'; options: ApplyWallpaperOptions }
+  /** A wallpaper; options left out are filled from settings */
+  | { kind: 'wallpaper'; options: Partial<ApplyWallpaperOptions> & { backgroundId: string } }
+  /** An installed wallpaper not already showing, when there is one */
+  | { kind: 'random'; screen?: string }
+  /** A playlist, replacing whatever the screens were running */
+  | { kind: 'playlist'; name: string; screens: string[]; stampLastApplied: boolean }
+  /** Respawn every screen with the current settings */
   | { kind: 'reapply' }
+  /** Bring back the last run's wallpapers; once, at launch */
+  | { kind: 'restore' }
+
+export type ApplyResult = MutationResult & {
+  /** The wallpaper a random apply picked */
+  wallpaperTitle?: string
+}

@@ -115,7 +115,7 @@ void app.whenReady().then(() => {
 
   // Restore after the flatpak bypass is applied, since it decides how backends spawn
   wallpaperService
-    .restore()
+    .apply({ kind: 'restore' })
     .catch((error: unknown) => console.error('Restoring saved wallpapers failed:', error))
 
   // Register protocol handler for local files
