@@ -227,11 +227,7 @@ class CompatibilityService {
           this.updateAutoCompatibility(wallpaper.path, status, errors)
           this.scanProgress.scanned++
 
-          try {
-            proc.kill('SIGKILL')
-          } catch {
-            /* already dead */
-          }
+          backendSupervisor.kill(proc)
           resolve()
         }
 

@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises'
 import type { Playlist } from '../../../shared/constants/playlist'
 import { storeService, type ActivePlaylistInfo } from '../store'
-import { startPlaylistProcess, type RegisterProcessFn } from './playlist-runner'
+import { startPlaylistProcess, type LaunchBackendFn } from './playlist-runner'
 import {
   findSteamConfigPath,
   ensureSteamConfigPath,
@@ -28,9 +28,9 @@ class PlaylistService {
     playlistName: string,
     screens: string[],
     stampLastApplied: boolean,
-    register: RegisterProcessFn,
+    launch: LaunchBackendFn,
   ): Promise<{ success: boolean; error?: string }> {
-    return startPlaylistProcess(this, playlistName, screens, stampLastApplied, register)
+    return startPlaylistProcess(this, playlistName, screens, stampLastApplied, launch)
   }
 
   resolveSteamLibraryPaths = resolveSteamLibraryPaths

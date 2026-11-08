@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import type { ChildProcess } from 'node:child_process'
+import { EventEmitter } from 'node:events'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 // --- Mocks ---------------------------------------------------------------
@@ -36,6 +36,7 @@ vi.mock('../../utils/host', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/host')>()),
   // `du` for sizes, `file` for resolutions; empty output is fine for these tests
   hostExecFileAsync: vi.fn(async () => ({ stdout: '', stderr: '' })),
+  hostSpawn: vi.fn(() => Object.assign(new EventEmitter(), { unref: vi.fn(), kill: vi.fn() })),
 }))
 
 // --- Fixture: a Steam library with one installed wallpaper -----------------
@@ -51,14 +52,12 @@ fs.writeFileSync(
 afterAll(() => fs.rmSync(library, { recursive: true, force: true }))
 
 import { wallpaperService } from './wallpaper'
-import { wallpaperStateManager } from './state-manager/state-manager'
-
-const makeProc = () => ({ kill: vi.fn() }) as unknown as ChildProcess
+import { backendSupervisor } from '../../utils/backend-supervisor'
 
 beforeEach(async () => {
   vi.clearAllMocks()
   mockPlaylistService.resolveSteamLibraryPaths.mockResolvedValue([library])
-  wallpaperStateManager.reset()
+  backendSupervisor.reset()
   await wallpaperService.diagnose({ kind: 'invalidateCache' })
 })
 
@@ -88,7 +87,7 @@ describe('wallpaperService catalog', () => {
 
 describe('wallpaperService.getActive', () => {
   it('returns active wallpapers from project.json without scanning the library', async () => {
-    wallpaperStateManager.register(['eDP-1'], makeProc(), { backgroundId: wallpaperPath })
+    backendSupervisor.spawnFor(['eDP-1'], { backgroundId: wallpaperPath }, [], { stdio: 'ignore' })
 
     const active = await wallpaperService.getActive()
 

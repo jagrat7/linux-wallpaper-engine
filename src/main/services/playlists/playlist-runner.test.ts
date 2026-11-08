@@ -1,4 +1,3 @@
-import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { DEFAULT_SETTINGS } from '../../../shared/constants/app'
 import type { Playlist } from '../../../shared/constants/playlist'
@@ -17,8 +16,6 @@ const { mockPlaylistService, mockSettingsService, mockHost } = vi.hoisted(() => 
   },
   mockHost: {
     hostCommandExists: vi.fn(),
-    hostSpawn: vi.fn(),
-    hostExecFileAsync: vi.fn(),
   },
 }))
 
@@ -51,52 +48,44 @@ beforeEach(() => {
   mockSettingsService.getSetting.mockReturnValue(false)
   mockPlaylistService.resolveWallpaperEngineAssetsDir.mockResolvedValue('/assets')
   mockHost.hostCommandExists.mockResolvedValue(true)
-  // The backend supervisor unrefs every process it spawns
-  mockHost.hostSpawn.mockReturnValue(Object.assign(new EventEmitter(), { unref: vi.fn() }))
-  mockHost.hostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
 })
 
 describe('startPlaylistProcess', () => {
-  it('starts the backend, registers its process, and records the active playlist', async () => {
-    const register = vi.fn()
+  it('launches the backend for its screens and records the active playlist', async () => {
+    const launch = vi.fn().mockResolvedValue(undefined)
 
     const result = await startPlaylistProcess(
       mockPlaylistService,
       'Random Mix',
       ['HDMI-1'],
       true,
-      register,
+      launch,
     )
 
     expect(result).toEqual({ success: true })
     expect(mockPlaylistService.stampLastApplied).toHaveBeenCalledWith('Random Mix')
-    expect(mockHost.hostSpawn).toHaveBeenCalledWith(
-      'linux-wallpaperengine',
-      ['--screen-root', 'HDMI-1', '--playlist', 'Random Mix', '--assets-dir', '/assets'],
-      expect.any(Object),
-    )
-    expect(register).toHaveBeenCalledWith(
+    expect(launch).toHaveBeenCalledWith(
       ['HDMI-1'],
-      expect.any(EventEmitter),
-      expect.any(Array),
+      ['--screen-root', 'HDMI-1', '--playlist', 'Random Mix', '--assets-dir', '/assets'],
       expect.objectContaining({ backgroundId: '/wallpapers/first', screen: 'HDMI-1' }),
     )
     expect(mockPlaylistService.setActivePlaylist).toHaveBeenCalledWith('Random Mix', ['HDMI-1'])
   })
 
-  it('does not spawn when the backend is missing', async () => {
+  it('does not launch when the backend is missing', async () => {
     mockHost.hostCommandExists.mockResolvedValue(false)
+    const launch = vi.fn()
 
     const result = await startPlaylistProcess(
       mockPlaylistService,
       'Random Mix',
       ['HDMI-1'],
       true,
-      vi.fn(),
+      launch,
     )
 
     expect(result.success).toBe(false)
     expect(mockPlaylistService.stampLastApplied).not.toHaveBeenCalled()
-    expect(mockHost.hostSpawn).not.toHaveBeenCalled()
+    expect(launch).not.toHaveBeenCalled()
   })
 })

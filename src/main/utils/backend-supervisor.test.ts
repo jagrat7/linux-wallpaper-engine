@@ -1,16 +1,31 @@
 import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import type { ApplyWallpaperOptions } from '../../shared/constants/wallpaper'
 
-const { mockHost } = vi.hoisted(() => ({
-  mockHost: {
-    hostSpawn: vi.fn(),
-    hostExecFileAsync: vi.fn(),
-    hostExecFileSync: vi.fn(),
-    shouldUseFlatpakSpawn: vi.fn(),
-  },
-}))
+// Store contents the supervisor reads on construction: saved screens from the last run
+type Saved = { activeWallpapers?: Record<string, ApplyWallpaperOptions> } & Record<string, unknown>
+
+const { mockHost, mockStore, saved } = vi.hoisted(() => {
+  const store: { value: Record<string, unknown> } = { value: {} }
+  return {
+    saved: store,
+    mockHost: {
+      hostSpawn: vi.fn(),
+      hostExecFileAsync: vi.fn(),
+      hostExecFileSync: vi.fn(),
+      shouldUseFlatpakSpawn: vi.fn(),
+    },
+    mockStore: {
+      get: vi.fn(
+        (key: string) => store.value[key] ?? (key === 'activeWallpapers' ? {} : undefined),
+      ),
+      set: vi.fn(),
+    },
+  }
+})
 
 vi.mock('./host', () => mockHost)
+vi.mock('../services/store', () => ({ storeService: { activeWallpapers: mockStore } }))
 
 type FakeProc = EventEmitter & { unref: ReturnType<typeof vi.fn>; kill: ReturnType<typeof vi.fn> }
 
@@ -18,10 +33,14 @@ type FakeProc = EventEmitter & { unref: ReturnType<typeof vi.fn>; kill: ReturnTy
 let spawned: FakeProc[] = []
 
 // Each test gets a fresh supervisor, since shutdown is one-way
-const loadSupervisor = async () => {
+const loadSupervisor = async (store: Saved = {}) => {
+  saved.value = store
   vi.resetModules()
   return (await import('./backend-supervisor')).backendSupervisor
 }
+
+const stdio = 'ignore' as const
+const wallpaper = (backgroundId = '/wp/1'): ApplyWallpaperOptions => ({ backgroundId })
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -92,7 +111,7 @@ describe('backendSupervisor.spawn', () => {
       stdio: 'ignore',
     })
     expect(spawned[0].unref).toHaveBeenCalled()
-    expect(onExit).toHaveBeenCalledOnce()
+    expect(onExit).toHaveBeenCalledWith([])
   })
 })
 
@@ -159,5 +178,181 @@ describe('backendSupervisor.shutdown', () => {
       '-f',
       '--screen-root eDP-1',
     ])
+  })
+})
+
+describe('backendSupervisor.kill', () => {
+  it('sends SIGKILL, or SIGTERM under Flatpak for flatpak-spawn to forward', async () => {
+    const supervisor = await loadSupervisor()
+    const native = supervisor.spawn([], { stdio })
+    const flatpak = supervisor.spawn([], { stdio })
+
+    supervisor.kill(native)
+    mockHost.shouldUseFlatpakSpawn.mockReturnValue(true)
+    supervisor.kill(flatpak)
+
+    expect(spawned[0].kill).toHaveBeenCalledWith('SIGKILL')
+    expect(spawned[1].kill).toHaveBeenCalledWith('SIGTERM')
+  })
+})
+
+describe('backendSupervisor screens', () => {
+  it('records a spawned backend against its screens and saves them', async () => {
+    const supervisor = await loadSupervisor()
+
+    supervisor.spawnFor(['eDP-1', 'HDMI-1'], wallpaper(), ['--bg', '/wp/1'], { stdio })
+
+    expect(supervisor.getProcess('eDP-1')).toBe(spawned[0])
+    expect(supervisor.getActive().get('HDMI-1')).toEqual({
+      backgroundId: '/wp/1',
+      screen: 'HDMI-1',
+    })
+    expect(mockStore.set).toHaveBeenCalledWith('screenGroups', {
+      'eDP-1': ['eDP-1', 'HDMI-1'],
+      'HDMI-1': ['eDP-1', 'HDMI-1'],
+    })
+  })
+
+  it('restores saved screens without a process until they are respawned', async () => {
+    const supervisor = await loadSupervisor({
+      activeWallpapers: { 'eDP-1': wallpaper() },
+      pausedScreens: ['eDP-1'],
+    })
+
+    expect([...supervisor.getActive().keys()]).toEqual(['eDP-1'])
+    expect(supervisor.getProcess('eDP-1')).toBeUndefined()
+    expect(supervisor.isPaused('eDP-1')).toBe(true)
+
+    supervisor.release(['eDP-1'])
+
+    expect(supervisor.getActive().size).toBe(0)
+    expect(supervisor.getPausedScreens()).toEqual([])
+  })
+
+  it('releases a shared backend and hands back the screens left without it', async () => {
+    const supervisor = await loadSupervisor()
+    supervisor.spawnFor(['eDP-1', 'HDMI-1'], wallpaper(), [], { stdio })
+    supervisor.markPaused(['eDP-1'], true)
+
+    const { remaining, released } = supervisor.release(['eDP-1'])
+
+    expect(spawned[0].kill).toHaveBeenCalledWith('SIGKILL')
+    expect(released).toEqual(['eDP-1'])
+    expect(remaining).toEqual([{ screen: 'HDMI-1', options: expect.anything(), paused: true }])
+    // HDMI-1 keeps its wallpaper but has no backend until the caller respawns it
+    expect([...supervisor.getActive().keys()]).toEqual(['HDMI-1'])
+    expect(supervisor.getProcess('HDMI-1')).toBeUndefined()
+    expect(supervisor.getPausedScreens()).toEqual([])
+  })
+
+  it('detach kills a screen backend but keeps the screen saved for its respawn', async () => {
+    const supervisor = await loadSupervisor()
+    const onExit = vi.fn()
+    supervisor.spawnFor(['eDP-1', 'HDMI-1'], wallpaper(), [], { stdio, onExit })
+    mockStore.set.mockClear()
+
+    supervisor.detach(['eDP-1'])
+    spawned[0].emit('exit', null, 'SIGKILL')
+
+    expect(spawned[0].kill).toHaveBeenCalledWith('SIGKILL')
+    expect(onExit).toHaveBeenCalledWith([])
+    expect([...supervisor.getActive().keys()]).toEqual(['eDP-1', 'HDMI-1'])
+    expect(supervisor.getProcess('HDMI-1')).toBeUndefined()
+    expect(mockStore.set).not.toHaveBeenCalled()
+  })
+
+  it('reset kills every screen backend and saves an empty state', async () => {
+    const supervisor = await loadSupervisor()
+    supervisor.spawnFor(['eDP-1'], wallpaper(), [], { stdio })
+    supervisor.markPaused(['eDP-1'], true)
+
+    supervisor.reset()
+
+    expect(spawned[0].kill).toHaveBeenCalledWith('SIGKILL')
+    expect(supervisor.getActive().size).toBe(0)
+    expect(mockStore.set).toHaveBeenCalledWith('pausedScreens', [])
+    expect(mockStore.set).toHaveBeenLastCalledWith('screenGroups', {})
+  })
+
+  it('isActive needs a running backend, not only a saved screen', async () => {
+    const supervisor = await loadSupervisor({ activeWallpapers: { 'eDP-1': wallpaper() } })
+    expect(supervisor.isActive('/wp/1')).toBe(false)
+
+    supervisor.spawnFor(['HDMI-1'], wallpaper('/wp/2'), [], { stdio })
+
+    expect(supervisor.isActive('/wp/1')).toBe(true)
+  })
+})
+
+describe('backendSupervisor pause marks', () => {
+  it('expands pause and resume to the whole screen group, and saves them', async () => {
+    const supervisor = await loadSupervisor()
+    supervisor.spawnFor(['eDP-1', 'HDMI-1'], wallpaper(), [], { stdio })
+
+    supervisor.markPaused(['eDP-1'], true)
+    expect(supervisor.getPausedScreens()).toEqual(['eDP-1', 'HDMI-1'])
+    expect(mockStore.set).toHaveBeenCalledWith('pausedScreens', ['eDP-1', 'HDMI-1'])
+
+    supervisor.markPaused(['HDMI-1'], false)
+    expect(supervisor.getPausedScreens()).toEqual([])
+  })
+
+  it('starts a respawned screen unpaused', async () => {
+    const supervisor = await loadSupervisor()
+    supervisor.spawnFor(['eDP-1'], wallpaper(), [], { stdio })
+    supervisor.markPaused(['eDP-1'], true)
+
+    supervisor.spawnFor(['eDP-1'], wallpaper(), [], { stdio })
+
+    expect(supervisor.isPaused('eDP-1')).toBe(false)
+  })
+
+  it('stops pausing a screen with its old group once it moves to a new backend', async () => {
+    const supervisor = await loadSupervisor()
+    supervisor.spawnFor(['eDP-1', 'HDMI-1'], wallpaper(), [], { stdio })
+    supervisor.spawnFor(['HDMI-1'], wallpaper('/wp/2'), [], { stdio })
+
+    supervisor.markPaused(['eDP-1'], true)
+
+    expect(supervisor.getPausedScreens()).toEqual(['eDP-1'])
+  })
+})
+
+describe('backendSupervisor exits', () => {
+  it('reports and forgets the screens an exiting backend still drove', async () => {
+    const supervisor = await loadSupervisor()
+    const onExit = vi.fn()
+    supervisor.spawnFor(['eDP-1', 'HDMI-1'], wallpaper('/wp/old'), [], { stdio, onExit })
+    supervisor.spawnFor(['HDMI-1'], wallpaper('/wp/new'), [], { stdio })
+
+    spawned[0].emit('exit', 1, null)
+
+    expect(onExit).toHaveBeenCalledWith(['eDP-1'])
+    expect([...supervisor.getActive().keys()]).toEqual(['HDMI-1'])
+  })
+
+  it('reports nothing when a replaced backend exits late', async () => {
+    const supervisor = await loadSupervisor()
+    const onExit = vi.fn()
+    supervisor.spawnFor(['eDP-1'], wallpaper('/wp/old'), [], { stdio, onExit })
+    supervisor.release(['eDP-1'])
+    supervisor.spawnFor(['eDP-1'], wallpaper('/wp/new'), [], { stdio })
+
+    spawned[0].emit('exit', null, 'SIGKILL')
+
+    expect(onExit).toHaveBeenCalledWith([])
+    expect(supervisor.getActive().get('eDP-1')?.backgroundId).toBe('/wp/new')
+  })
+
+  it('keeps saved screens when backends exit because the app is quitting', async () => {
+    const supervisor = await loadSupervisor()
+    supervisor.spawnFor(['eDP-1'], wallpaper(), [], { stdio })
+    mockStore.set.mockClear()
+
+    supervisor.shutdown()
+    spawned[0].emit('exit', null, 'SIGKILL')
+
+    expect(mockStore.set).not.toHaveBeenCalled()
+    expect([...supervisor.getActive().keys()]).toEqual(['eDP-1'])
   })
 })
