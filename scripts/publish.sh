@@ -9,7 +9,6 @@ FORGE_COMMAND="${1:-publish}"
 WRAPPER_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/linux-wallpaper-engine-rpm.XXXXXX")"
 WRAPPER_BIN="$WRAPPER_ROOT/bin"
 RPM_DB="$WRAPPER_ROOT/rpmdb"
-DEBUG_NAMESPACES="electron-installer-flatpak,flatpak-bundler"
 
 cleanup() {
   rm -rf -- "$WRAPPER_ROOT"
@@ -45,7 +44,7 @@ if [[ "$FORGE_COMMAND" == "publish" && -z "${GITHUB_TOKEN:-}" ]]; then
   exit 1
 fi
 
-REQUIRED_BINARIES=(dpkg fakeroot rpmbuild rpm flatpak-builder eu-strip)
+REQUIRED_BINARIES=(dpkg fakeroot rpmbuild rpm eu-strip)
 MISSING_BINARIES=()
 
 for binary in "${REQUIRED_BINARIES[@]}"; do
@@ -61,7 +60,7 @@ if (( ${#MISSING_BINARIES[@]} > 0 )); then
     source /etc/os-release
   fi
   if [[ "${ID:-} ${ID_LIKE:-}" == *arch* ]]; then
-    echo "Install them with: sudo pacman -S --needed dpkg fakeroot rpm-tools flatpak-builder elfutils" >&2
+    echo "Install them with: sudo pacman -S --needed dpkg fakeroot rpm-tools elfutils" >&2
   else
     echo "Install the distro packages that provide the missing binaries, then retry." >&2
   fi
@@ -102,7 +101,6 @@ EOF
 chmod +x "$WRAPPER_BIN/rpmbuild" "$WRAPPER_BIN/rpm"
 
 export PATH="$WRAPPER_BIN:$PATH"
-export DEBUG="${DEBUG:-$DEBUG_NAMESPACES}"
 
 cd "$PROJECT_ROOT"
 "$NODE_BIN" "$FORGE_CLI" "$FORGE_COMMAND"

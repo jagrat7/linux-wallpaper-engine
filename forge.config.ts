@@ -1,7 +1,6 @@
 import type { ForgeConfig } from '@electron-forge/shared-types'
 import { MakerDeb } from '@electron-forge/maker-deb'
 import { MakerRpm } from '@electron-forge/maker-rpm'
-import { MakerFlatpak } from '@electron-forge/maker-flatpak'
 import { MakerZIP } from '@electron-forge/maker-zip'
 import { VitePlugin } from '@electron-forge/plugin-vite'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
@@ -54,46 +53,6 @@ const config: ForgeConfig = {
     new MakerRpm({
       options: {
         icon: './assets/transparent-logo.png',
-      },
-    }),
-    new MakerFlatpak({
-      options: {
-        id: 'com.github.jagrat7.LinuxWallpaperEngine',
-        // Default handling of icons are broken for flatpak
-        // Need to explicitly pass a set of size values
-        // and ignore the typing for this one lol
-        icon: {
-          '512x512': './assets/transparent-logo.png',
-        } as any,
-        categories: ['Utility'],
-        runtimeVersion: '24.08',
-        base: 'org.electronjs.Electron2.BaseApp',
-        baseVersion: '24.08',
-        finishArgs: [
-          // X11 + Wayland rendering
-          '--socket=x11',
-          '--socket=wayland',
-          '--share=ipc',
-          // GPU access
-          '--device=dri',
-          // Audio
-          '--socket=pulseaudio',
-          // Home directory access (read wallpapers + write config)
-          '--filesystem=home',
-          // Chromium singleton check socket
-          '--env=TMPDIR=/var/tmp',
-          // Network access
-          '--share=network',
-          // Access to linux-wallpaperengine binary on host
-          '--talk-name=org.freedesktop.Flatpak',
-          // System notifications / tray
-          '--talk-name=org.freedesktop.Notifications',
-          '--talk-name=org.kde.StatusNotifierWatcher',
-        ],
-        files: [],
-        // BaseApp already includes zypak; skip the default module
-        // that tries to compile it from source (requires clang++)
-        modules: [],
       },
     }),
   ],
