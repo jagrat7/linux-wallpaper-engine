@@ -7,7 +7,6 @@
     "desktop",
     "dynamic",
     "dynamic-wallpaper",
-    "flatpak",
     "hyprland",
     "linux",
     "linux-desktop",
@@ -95,7 +94,6 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.10.2",
     "@electron-forge/maker-deb": "^7.10.2",
-    "@electron-forge/maker-flatpak": "^7.11.1",
     "@electron-forge/maker-rpm": "^7.10.2",
     "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.10.2",

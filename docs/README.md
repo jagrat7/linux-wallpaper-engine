@@ -71,12 +71,6 @@ sudo apt install ./linux-wallpaper-engine_<version>_amd64.deb
 sudo dnf install ./linux-wallpaper-engine-<version>.x86_64.rpm
 ```
 
-#### Flatpak
-
-```bash
-flatpak install --user ./com.github.jagrat7.LinuxWallpaperEngine_stable_x86_64.flatpak
-```
-
 #### ZIP (Portable)
 
 ```bash

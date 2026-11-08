@@ -129,10 +129,6 @@
     url = "https://registry.npmjs.org/@electron-forge/maker-deb/-/maker-deb-7.10.2.tgz";
     hash = "sha512-4MPr9NW5UbEUbf9geZn5R/0O/QVIiy2EgUXOYOeKkA7oR8U6I1I3+BytYFHYcxbY6+PGhi1H1VTLJLITbHGVWw==";
   };
-  "@electron-forge/maker-flatpak@7.11.1" = fetchurl {
-    url = "https://registry.npmjs.org/@electron-forge/maker-flatpak/-/maker-flatpak-7.11.1.tgz";
-    hash = "sha512-H7+aa1OkJUHBj08DdbhSz2gL1hD/IowYpVS+uv7e6PcDqRYy/5XQQ2FoX52+3Qlik8d+tai7iOzVGcqb+D7f0Q==";
-  };
   "@electron-forge/maker-rpm@7.10.2" = fetchurl {
     url = "https://registry.npmjs.org/@electron-forge/maker-rpm/-/maker-rpm-7.10.2.tgz";
     hash = "sha512-LQoeYzbY/z1yuBBA+bNutCJmhCA4NcXUbFO4OTqsIX8B6y1zNTYZT4JEuhoK7eBsP4/Rz6u/JnNp0XOyjftOUQ==";
@@ -496,14 +492,6 @@
   "@malept/cross-spawn-promise@2.0.0" = fetchurl {
     url = "https://registry.npmjs.org/@malept/cross-spawn-promise/-/cross-spawn-promise-2.0.0.tgz";
     hash = "sha512-1DpKU0Z5ThltBwjNySMC14g0CkbyhCaz9FkhxqNsZI6uAPJXFS8cMXlBKo26FJ8ZuW6S9GCMcR9IO5k2X5/9Fg==";
-  };
-  "@malept/electron-installer-flatpak@0.11.4" = fetchurl {
-    url = "https://registry.npmjs.org/@malept/electron-installer-flatpak/-/electron-installer-flatpak-0.11.4.tgz";
-    hash = "sha512-ZdwhT4WeeJWdnsmALUtQ7bn4pzYVh0Vg+4NnF1S3n3OACc9IWg+B+LxI5gT3XSXIrxogouqkjM6gD8S592awyA==";
-  };
-  "@malept/flatpak-bundler@0.4.0" = fetchurl {
-    url = "https://registry.npmjs.org/@malept/flatpak-bundler/-/flatpak-bundler-0.4.0.tgz";
-    hash = "sha512-9QOtNffcOF/c1seMCDnjckb3R9WHcG34tky+FHpNKKCW0wc/scYLwMtO+ptyGUfMW0/b/n4qRiALlaFHc9Oj7Q==";
   };
   "@napi-rs/wasm-runtime@1.1.1" = fetchurl {
     url = "https://registry.npmjs.org/@napi-rs/wasm-runtime/-/wasm-runtime-1.1.1.tgz";
