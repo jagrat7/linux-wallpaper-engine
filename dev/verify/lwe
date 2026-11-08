@@ -166,13 +166,12 @@ cmd_launch() {
   # Snapshot backend processes that existed before us; never touch these
   pgrep -af '^[^ ]*linux-wallpaperengine[^ ]*( |$)' > "$run/backends.before" || true
 
-  # forge exits when stdin hits EOF, so feed it a stdin that never closes.
-  # setsid puts forge + vite + electron in one process group we own.
+  # setsid puts the dev runner + vite + electron in one process group we own.
   local electron_args=""
   [[ "$target" == desktop ]] && electron_args="-- --remote-debugging-port=$cdp_port"
   (
     cd "$REPO_DIR"
-    setsid bash -c "sleep infinity | XDG_CONFIG_HOME='$run/config' DEV_TARGET=$target DEV_BACKEND_PORT=$backend_port exec node_modules/.bin/electron-forge start $electron_args" \
+    setsid bash -c "XDG_CONFIG_HOME='$run/config' DEV_TARGET=$target DEV_BACKEND_PORT=$backend_port exec node scripts/app.mjs dev $electron_args" \
       > "$run/logs/dev.log" 2>&1 < /dev/null &
     echo $! > "$run/dev.pgid"
   )

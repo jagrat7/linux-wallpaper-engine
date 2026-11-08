@@ -41,8 +41,10 @@ if (!isPrimaryInstance) {
 
 systemThemeService.configureElectronPlatform(nativeTheme, systemPreferences)
 
+// Set by `bun dev` (scripts/app.mjs); production builds compile this to undefined
+const devServerUrl = import.meta.env.DEV ? process.env.VITE_DEV_SERVER_URL : undefined
 // Packaged builds always open the desktop window; `bun dev` scripts pick a target through DEV_TARGET
-const devTarget: DevTarget = MAIN_WINDOW_VITE_DEV_SERVER_URL
+const devTarget: DevTarget = devServerUrl
   ? (DEV_TARGETS.find((target) => target === process.env.DEV_TARGET) ?? 'desktop')
   : 'desktop'
 const opensWindow = devTarget !== 'web'
@@ -92,13 +94,10 @@ const createWindow = (page: AppPage = 'installed') => {
 
   // and load the index.html of the app, on `page` (the renderer uses a hash router)
   const hash = APP_PAGE_ROUTES[page]
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    void mainWindow.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#${hash}`)
+  if (devServerUrl) {
+    void mainWindow.loadURL(`${devServerUrl}#${hash}`)
   } else {
-    void mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-      { hash },
-    )
+    void mainWindow.loadFile(path.join(__dirname, '../renderer/main_window/index.html'), { hash })
   }
 
   // Open the DevTools.
@@ -156,7 +155,6 @@ void app.whenReady().then(() => {
   }
 
   // Dev only (undefined in packaged builds): serve the same router to browser tabs
-  const devServerUrl = MAIN_WINDOW_VITE_DEV_SERVER_URL
   if (devServerUrl && devTarget !== 'desktop') {
     import('./development/gateway.ts')
       .then(({ startDevGateway }) => startDevGateway(devServerUrl))
