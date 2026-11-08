@@ -8,8 +8,7 @@ import { compatibilityService } from '../../services/compatibility'
 export const wallpaperRouter = trpc.router({
   // Check if linux-wallpaperengine is installed
   checkBackend: trpc.procedure.query(async () => {
-    const { backendInstalled } = await wallpaperService.query()
-    return { installed: backendInstalled }
+    return { installed: await wallpaperService.isBackendInstalled() }
   }),
 
   // Get all wallpapers and apply history (from a single service query)
@@ -99,8 +98,7 @@ export const wallpaperRouter = trpc.router({
 
   // Get currently active wallpapers
   getActiveWallpaper: trpc.procedure.query(async () => {
-    const { active } = await wallpaperService.query()
-    return active
+    return wallpaperService.getActive()
   }),
 
   // Save per-wallpaper setting overrides
@@ -150,8 +148,7 @@ export const wallpaperRouter = trpc.router({
 
   // Start bulk compatibility scan
   scanAll: trpc.procedure.mutation(async () => {
-    const { wallpapers } = await wallpaperService.query()
-    return compatibilityService.scanAll(wallpapers)
+    return compatibilityService.scanAll(await wallpaperService.catalog())
   }),
 
   // Get scan progress (for polling)
@@ -162,7 +159,7 @@ export const wallpaperRouter = trpc.router({
   // Get scan results report (joined with wallpaper titles)
   getScanReport: trpc.procedure.query(async () => {
     const report = compatibilityService.getScanReport()
-    const { wallpapers } = await wallpaperService.query()
+    const wallpapers = await wallpaperService.catalog()
     const titleMap = new Map(wallpapers.map((w) => [w.path, w.title]))
     return report.map((entry) => ({
       ...entry,

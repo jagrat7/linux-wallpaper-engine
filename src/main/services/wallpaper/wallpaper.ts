@@ -29,7 +29,7 @@ import {
   parseWallpaperType,
   parseContentRating,
   detectResolution,
-  resolveThumbnail,
+  readProjectSummary,
   parseWindowGeometry,
   resolveTimedCache,
   buildApplyOptions,
@@ -56,8 +56,9 @@ import type {
 class WallpaperService implements IWallpaperService {
   private static instance: WallpaperService | null = null
 
-  private wallpaperCache: Wallpaper[] | null = null
   private wallpaperCacheEntry: TimedCache<Wallpaper[]> | null = null
+  // The library scan in progress, shared by every caller until it settles
+  private wallpaperScan: Promise<Wallpaper[]> | null = null
   private overridesStore = storeService.wallpaperOverrides
   private fsWatchers: fsSync.FSWatcher[] = []
   private reapplyTimer: ReturnType<typeof setTimeout> | null = null
@@ -82,24 +83,33 @@ class WallpaperService implements IWallpaperService {
 
   // ── Query ──────────────────────────────────────────────────────────────
 
+  /** Installed wallpapers and when each was last applied, for the library grid. */
   async query(): Promise<{
     wallpapers: Wallpaper[]
-    backendInstalled: boolean
-    active: ActiveWallpaperEntry[]
     appliedHistory: Record<string, number>
   }> {
-    const [wallpapers, backendInstalled] = await Promise.all([
-      this.getWallpapers(),
-      this.checkBackendInstalled(),
-    ])
-    await this.pruneDeadRestoredScreens()
-    const active = await this.getActiveWithTitles(wallpapers)
-    return { wallpapers, backendInstalled, active, appliedHistory: this.state.getAppliedHistory() }
+    const wallpapers = await this.getWallpapers()
+    return { wallpapers, appliedHistory: this.state.getAppliedHistory() }
   }
 
-  /** Installed wallpapers from the same cached scan as `query`, without backend checks. */
+  /** Installed wallpapers from the same cached scan as `query`. */
   catalog(): Promise<Wallpaper[]> {
     return this.getWallpapers()
+  }
+
+  /**
+   * Wallpapers active on each screen. Never waits on a library scan: titles
+   * come from the cached catalog when there is one, otherwise from each active
+   * wallpaper's project.json, so the UI shows what's running right after launch.
+   */
+  async getActive(): Promise<ActiveWallpaperEntry[]> {
+    await this.pruneDeadRestoredScreens()
+    return this.getActiveWithTitles(this.wallpaperCacheEntry?.value ?? [])
+  }
+
+  /** Whether the linux-wallpaperengine backend is on the host PATH. */
+  isBackendInstalled(): Promise<boolean> {
+    return this.checkBackendInstalled()
   }
 
   // ── Launch ─────────────────────────────────────────────────────────────
@@ -346,8 +356,7 @@ class WallpaperService implements IWallpaperService {
         return
 
       case 'invalidateCache':
-        this.wallpaperCache = null
-        this.wallpaperCacheEntry = null
+        this.invalidateCatalog()
         return
 
       case 'cleanup':
@@ -362,12 +371,26 @@ class WallpaperService implements IWallpaperService {
     return hostCommandExists('linux-wallpaperengine')
   }
 
-  private async getWallpapers(): Promise<Wallpaper[]> {
-    this.wallpaperCacheEntry = await resolveTimedCache(this.wallpaperCacheEntry, () =>
-      this.scanWallpapers(),
-    )
-    this.wallpaperCache = this.wallpaperCacheEntry.value
-    return this.wallpaperCache
+  // Callers that arrive during a scan share it. Every UI query at launch
+  // otherwise started its own full scan, and they slowed each other down.
+  private getWallpapers(): Promise<Wallpaper[]> {
+    if (this.wallpaperScan) return this.wallpaperScan
+    const scan = resolveTimedCache(this.wallpaperCacheEntry, () => this.scanWallpapers())
+      .then((entry) => {
+        // A scan invalidated while it ran still answers its callers, but isn't cached
+        if (this.wallpaperScan === scan) this.wallpaperCacheEntry = entry
+        return entry.value
+      })
+      .finally(() => {
+        if (this.wallpaperScan === scan) this.wallpaperScan = null
+      })
+    this.wallpaperScan = scan
+    return scan
+  }
+
+  private invalidateCatalog(): void {
+    this.wallpaperCacheEntry = null
+    this.wallpaperScan = null
   }
 
   private async scanWallpapers(): Promise<Wallpaper[]> {
@@ -493,9 +516,13 @@ class WallpaperService implements IWallpaperService {
 
     for (const [screen, wallpaper] of this.state.getActive().entries()) {
       const cached = allWallpapers.find((w) => w.path === wallpaper.backgroundId)
+      const project = cached ? null : await readProjectSummary(wallpaper.backgroundId)
       const title =
-        cached?.title ?? wallpaper.backgroundId.split('/').filter(Boolean).pop() ?? 'Unknown'
-      const thumbnail = cached?.thumbnail ?? (await resolveThumbnail(wallpaper.backgroundId))
+        cached?.title ??
+        project?.title ??
+        wallpaper.backgroundId.split('/').filter(Boolean).pop() ??
+        'Unknown'
+      const thumbnail = cached?.thumbnail ?? project?.thumbnail ?? ''
 
       result.push({ screen, wallpaper, title, thumbnail, paused: this.state.isPaused(screen) })
     }
@@ -977,8 +1004,7 @@ class WallpaperService implements IWallpaperService {
         const watcher = fsSync.watch(dir, { recursive: false }, () => {
           clearTimeout(debounce)
           debounce = setTimeout(() => {
-            this.wallpaperCache = null
-            this.wallpaperCacheEntry = null
+            this.invalidateCatalog()
             invalidationService.emit('wallpaper.getWallpapers')
           }, 500)
         })

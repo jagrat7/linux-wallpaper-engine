@@ -12,6 +12,9 @@ const {
 } = vi.hoisted(() => ({
   mockWallpaperService: {
     query: vi.fn(),
+    catalog: vi.fn(),
+    getActive: vi.fn(),
+    isBackendInstalled: vi.fn(),
     apply: vi.fn(),
     buildApplyOptions: vi.fn(),
     stop: vi.fn(),
@@ -89,21 +92,14 @@ beforeEach(() => {
 describe('wallpaperRouter', () => {
   describe('checkBackend', () => {
     it('should return installed true when backend is installed', async () => {
-      mockWallpaperService.query.mockResolvedValue({
-        wallpapers: [],
-        backendInstalled: true,
-        active: [],
-      })
+      mockWallpaperService.isBackendInstalled.mockResolvedValue(true)
       const result = await caller.checkBackend()
       expect(result).toEqual({ installed: true })
+      expect(mockWallpaperService.query).not.toHaveBeenCalled()
     })
 
     it('should return installed false when backend is missing', async () => {
-      mockWallpaperService.query.mockResolvedValue({
-        wallpapers: [],
-        backendInstalled: false,
-        active: [],
-      })
+      mockWallpaperService.isBackendInstalled.mockResolvedValue(false)
       const result = await caller.checkBackend()
       expect(result).toEqual({ installed: false })
     })
@@ -112,12 +108,7 @@ describe('wallpaperRouter', () => {
   describe('getWallpapers', () => {
     it('should call the service without search input', async () => {
       const wallpapers = [makeWallpaper()]
-      mockWallpaperService.query.mockResolvedValue({
-        wallpapers,
-        backendInstalled: true,
-        active: [],
-        appliedHistory: {},
-      })
+      mockWallpaperService.query.mockResolvedValue({ wallpapers, appliedHistory: {} })
 
       const result = await caller.getWallpapers()
 
@@ -126,12 +117,7 @@ describe('wallpaperRouter', () => {
     })
 
     it('should return an empty list when there are no wallpapers', async () => {
-      mockWallpaperService.query.mockResolvedValue({
-        wallpapers: [],
-        backendInstalled: true,
-        active: [],
-        appliedHistory: {},
-      })
+      mockWallpaperService.query.mockResolvedValue({ wallpapers: [], appliedHistory: {} })
       const result = await caller.getWallpapers()
       expect(result).toEqual({ wallpapers: [], appliedHistory: {} })
     })
@@ -241,16 +227,14 @@ describe('wallpaperRouter', () => {
   })
 
   describe('getActiveWallpaper', () => {
-    it('should return active wallpapers with titles', async () => {
+    it('should return active wallpapers without waiting on a library scan', async () => {
       const active = [{ screen: 'eDP-1', wallpaper: '123', title: 'Cool', thumbnail: '/t.jpg' }]
-      mockWallpaperService.query.mockResolvedValue({
-        wallpapers: [],
-        backendInstalled: true,
-        active,
-      })
+      mockWallpaperService.getActive.mockResolvedValue(active)
 
       const result = await caller.getActiveWallpaper()
       expect(result).toEqual(active)
+      expect(mockWallpaperService.query).not.toHaveBeenCalled()
+      expect(mockWallpaperService.catalog).not.toHaveBeenCalled()
     })
   })
 
@@ -303,16 +287,12 @@ describe('wallpaperRouter', () => {
   describe('scanAll', () => {
     it('should fetch wallpapers then delegate to compatibility scan', async () => {
       const wallpapers = [makeWallpaper(), makeWallpaper({ id: '456' })]
-      mockWallpaperService.query.mockResolvedValue({
-        wallpapers,
-        backendInstalled: true,
-        active: [],
-      })
+      mockWallpaperService.catalog.mockResolvedValue(wallpapers)
       mockCompatibilityInstance.scanAll.mockResolvedValue({ total: 2, scanned: 2 })
 
       const result = await caller.scanAll()
 
-      expect(mockWallpaperService.query).toHaveBeenCalled()
+      expect(mockWallpaperService.catalog).toHaveBeenCalled()
       expect(mockCompatibilityInstance.scanAll).toHaveBeenCalledWith(wallpapers)
       expect(result).toEqual({ total: 2, scanned: 2 })
     })
@@ -339,11 +319,7 @@ describe('wallpaperRouter', () => {
         makeWallpaper({ path: '/wp/2', title: 'Ocean' }),
       ]
       mockCompatibilityInstance.getScanReport.mockReturnValue(report)
-      mockWallpaperService.query.mockResolvedValue({
-        wallpapers,
-        backendInstalled: true,
-        active: [],
-      })
+      mockWallpaperService.catalog.mockResolvedValue(wallpapers)
 
       const result = await caller.getScanReport()
 
@@ -356,11 +332,7 @@ describe('wallpaperRouter', () => {
         { path: '/some/missing/wallpaper', status: 'unknown', errors: [], lastTested: 0 },
       ]
       mockCompatibilityInstance.getScanReport.mockReturnValue(report)
-      mockWallpaperService.query.mockResolvedValue({
-        wallpapers: [],
-        backendInstalled: true,
-        active: [],
-      })
+      mockWallpaperService.catalog.mockResolvedValue([])
 
       const result = await caller.getScanReport()
 
