@@ -15,7 +15,6 @@ import { build, createServer } from 'vite-plus'
 
 const root = path.resolve(import.meta.dirname, '..')
 const rendererConfig = path.join(root, 'vite.config.mts')
-const DEV_TARGETS = ['web', 'desktop', 'full']
 
 // Electron and Node built-ins come from the runtime. steamworks.js loads a native
 // binary by relative path, so it ships in node_modules instead of the bundle.
@@ -110,15 +109,14 @@ const watchBuild = async (config, onRebuild) => {
 }
 
 const dev = async () => {
+  // main.ts checks this against DEV_TARGETS (src/shared/constants/development.ts)
   const target = process.env.DEV_TARGET ?? 'desktop'
-  if (!DEV_TARGETS.includes(target)) {
-    throw new Error(`DEV_TARGET must be one of ${DEV_TARGETS.join(', ')}, got "${target}"`)
-  }
 
   const server = await createServer({ configFile: rendererConfig, root, mode: 'development' })
   await server.listen()
   server.printUrls()
-  const devServerUrl = `http://localhost:${server.config.server.port}`
+  // The port Vite actually bound: it moves on from 5173 when that one is taken
+  const devServerUrl = `http://localhost:${server.httpServer.address().port}`
 
   let electron = null
   let restarting = false
@@ -145,7 +143,8 @@ const dev = async () => {
     // Quitting the app ends the dev session, as `electron-forge start` did
     child.once('exit', (code) => {
       if (electron === child) electron = null
-      if (!restarting && !shuttingDown) void shutdown(code ?? 0)
+      // A signal leaves code null; treat that as a failure, not a clean quit
+      if (!restarting && !shuttingDown) void shutdown(code ?? 1)
     })
     electron = child
     console.log('Launched Electron app. Type rs in terminal to restart main process.')
