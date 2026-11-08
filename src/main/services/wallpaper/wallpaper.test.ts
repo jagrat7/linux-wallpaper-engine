@@ -52,12 +52,12 @@ fs.writeFileSync(
 afterAll(() => fs.rmSync(library, { recursive: true, force: true }))
 
 import { wallpaperService } from './wallpaper'
-import { backendSupervisor } from '../../utils/backend-supervisor'
+import { supervisorService } from '../supervisor/supervisor'
 
 beforeEach(async () => {
   vi.clearAllMocks()
   mockPlaylistService.resolveSteamLibraryPaths.mockResolvedValue([library])
-  backendSupervisor.reset()
+  supervisorService.reset()
   await wallpaperService.diagnose({ kind: 'invalidateCache' })
 })
 
@@ -87,7 +87,7 @@ describe('wallpaperService catalog', () => {
 
 describe('wallpaperService.getActive', () => {
   it('returns active wallpapers from project.json without scanning the library', async () => {
-    backendSupervisor.spawnFor(['eDP-1'], { backgroundId: wallpaperPath }, [], { stdio: 'ignore' })
+    supervisorService.spawnFor(['eDP-1'], { backgroundId: wallpaperPath }, [], { stdio: 'ignore' })
 
     const active = await wallpaperService.getActive()
 
@@ -112,8 +112,8 @@ describe('wallpaperService.getActive during restore', () => {
     })
     vi.resetModules()
     const { wallpaperService: service } = await import('./wallpaper')
-    const { backendSupervisor } = await import('../../utils/backend-supervisor')
-    return { service, backendSupervisor }
+    const { supervisorService: supervisor } = await import('../supervisor/supervisor')
+    return { service, supervisor }
   }
 
   afterAll(() => {
@@ -123,9 +123,9 @@ describe('wallpaperService.getActive during restore', () => {
   })
 
   it('keeps a restored screen while process work is running, then prunes it once idle', async () => {
-    const { service, backendSupervisor } = await loadWithRestoredScreen()
+    const { service, supervisor } = await loadWithRestoredScreen()
     const restore = Promise.withResolvers<void>()
-    const restoring = backendSupervisor.run(() => restore.promise)
+    const restoring = supervisor.run(() => restore.promise)
 
     expect((await service.getActive()).map((entry) => entry.screen)).toEqual(['eDP-1'])
 

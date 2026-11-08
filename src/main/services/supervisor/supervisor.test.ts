@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
-import type { ApplyWallpaperOptions } from '../../shared/constants/wallpaper'
+import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 
 // Store contents the supervisor reads on construction: saved screens from the last run
 type Saved = { activeWallpapers?: Record<string, ApplyWallpaperOptions> } & Record<string, unknown>
@@ -24,8 +24,8 @@ const { mockHost, mockStore, saved } = vi.hoisted(() => {
   }
 })
 
-vi.mock('./host', () => mockHost)
-vi.mock('../services/store', () => ({ storeService: { activeWallpapers: mockStore } }))
+vi.mock('../../utils/host', () => mockHost)
+vi.mock('../store', () => ({ storeService: { activeWallpapers: mockStore } }))
 
 type FakeProc = EventEmitter & { unref: ReturnType<typeof vi.fn>; kill: ReturnType<typeof vi.fn> }
 
@@ -36,7 +36,7 @@ let spawned: FakeProc[] = []
 const loadSupervisor = async (store: Saved = {}) => {
   saved.value = store
   vi.resetModules()
-  return (await import('./backend-supervisor')).backendSupervisor
+  return (await import('./supervisor')).supervisorService
 }
 
 const stdio = 'ignore' as const
@@ -54,7 +54,7 @@ beforeEach(() => {
   mockHost.shouldUseFlatpakSpawn.mockReturnValue(false)
 })
 
-describe('backendSupervisor.run', () => {
+describe('supervisorService.run', () => {
   it('starts a task only after the previous one settles, even when it fails', async () => {
     const supervisor = await loadSupervisor()
     const order: string[] = []
@@ -81,7 +81,7 @@ describe('backendSupervisor.run', () => {
   })
 })
 
-describe('backendSupervisor.isIdle', () => {
+describe('supervisorService.isIdle', () => {
   it('is false while a task runs or waits, and true once all have settled', async () => {
     const supervisor = await loadSupervisor()
     const gate = Promise.withResolvers<void>()
@@ -98,7 +98,7 @@ describe('backendSupervisor.isIdle', () => {
   })
 })
 
-describe('backendSupervisor.spawn', () => {
+describe('supervisorService.spawn', () => {
   it('spawns a detached backend and reports an unexpected exit', async () => {
     const supervisor = await loadSupervisor()
     const onExit = vi.fn()
@@ -115,7 +115,7 @@ describe('backendSupervisor.spawn', () => {
   })
 })
 
-describe('backendSupervisor.killMatching', () => {
+describe('supervisorService.killMatching', () => {
   it('pkills each pattern and treats no match as success', async () => {
     const supervisor = await loadSupervisor()
     mockHost.hostExecFileAsync.mockRejectedValueOnce(new Error('pkill exited with code 1'))
@@ -130,7 +130,7 @@ describe('backendSupervisor.killMatching', () => {
   })
 })
 
-describe('backendSupervisor.shutdown', () => {
+describe('supervisorService.shutdown', () => {
   it('kills every live backend and refuses new ones', async () => {
     const supervisor = await loadSupervisor()
     supervisor.spawn([], { stdio: 'ignore' })
@@ -181,7 +181,7 @@ describe('backendSupervisor.shutdown', () => {
   })
 })
 
-describe('backendSupervisor.kill', () => {
+describe('supervisorService.kill', () => {
   it('sends SIGKILL, or SIGTERM under Flatpak for flatpak-spawn to forward', async () => {
     const supervisor = await loadSupervisor()
     const native = supervisor.spawn([], { stdio })
@@ -196,7 +196,7 @@ describe('backendSupervisor.kill', () => {
   })
 })
 
-describe('backendSupervisor screens', () => {
+describe('supervisorService screens', () => {
   it('records a spawned backend against its screens and saves them', async () => {
     const supervisor = await loadSupervisor()
 
@@ -284,7 +284,7 @@ describe('backendSupervisor screens', () => {
   })
 })
 
-describe('backendSupervisor pause marks', () => {
+describe('supervisorService pause marks', () => {
   it('expands pause and resume to the whole screen group, and saves them', async () => {
     const supervisor = await loadSupervisor()
     supervisor.spawnFor(['eDP-1', 'HDMI-1'], wallpaper(), [], { stdio })
@@ -318,7 +318,7 @@ describe('backendSupervisor pause marks', () => {
   })
 })
 
-describe('backendSupervisor exits', () => {
+describe('supervisorService exits', () => {
   it('reports and forgets the screens an exiting backend still drove', async () => {
     const supervisor = await loadSupervisor()
     const onExit = vi.fn()

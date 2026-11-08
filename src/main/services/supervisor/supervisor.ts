@@ -1,7 +1,12 @@
 import type { ChildProcess, StdioOptions } from 'node:child_process'
-import type { ApplyWallpaperOptions } from '../../shared/constants/wallpaper'
-import { storeService } from '../services/store'
-import { hostExecFileAsync, hostExecFileSync, hostSpawn, shouldUseFlatpakSpawn } from './host'
+import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
+import { storeService } from '../store'
+import {
+  hostExecFileAsync,
+  hostExecFileSync,
+  hostSpawn,
+  shouldUseFlatpakSpawn,
+} from '../../utils/host'
 
 interface BackendSpawnOptions {
   stdio: StdioOptions
@@ -41,7 +46,9 @@ interface ScreenRecord {
  * task at a time, so two callers can never interleave their kill → spawn
  * sequences on the same screen.
  */
-class BackendSupervisor {
+class SupervisorService {
+  private static instance: SupervisorService | null = null
+
   // Every backend still running, including compatibility scans and released ones not yet exited
   private live = new Set<ChildProcess>()
   private screens = new Map<string, ScreenRecord>()
@@ -50,8 +57,15 @@ class BackendSupervisor {
   private stopping = false
   private pending = 0
 
-  constructor() {
+  private constructor() {
     this.load()
+  }
+
+  static getInstance(): SupervisorService {
+    if (!SupervisorService.instance) {
+      SupervisorService.instance = new SupervisorService()
+    }
+    return SupervisorService.instance
   }
 
   // ── Queue ──────────────────────────────────────────────────────────────
@@ -295,4 +309,4 @@ class BackendSupervisor {
   }
 }
 
-export const backendSupervisor = new BackendSupervisor()
+export const supervisorService = SupervisorService.getInstance()
