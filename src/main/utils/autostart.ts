@@ -21,6 +21,9 @@ const isBinaryInPath = (): boolean => {
 }
 
 const getLinuxExec = (): string => {
+  // An AppImage runs from a temporary mount, so point at the .AppImage file itself
+  if (process.env.APPIMAGE) return `"${process.env.APPIMAGE}"`
+
   // If in PATH, use the binary name
   if (isBinaryInPath()) return BINARY_NAME
 

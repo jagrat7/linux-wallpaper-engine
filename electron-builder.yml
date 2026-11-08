@@ -1,0 +1,90 @@
+# Linux packaging. `bun run make` builds every target into release/; CI builds releases.
+# https://www.electron.build/configuration
+appId: com.github.jagrat7.LinuxWallpaperEngine
+productName: Linux Wallpaper Engine
+
+directories:
+  output: release
+
+# Vite bundles every dependency into .vite/ except steamworks.js, which loads its
+# native binary by relative path and so ships as-is (see scripts/app.mjs).
+files:
+  - package.json
+  - .vite/**
+  - '!node_modules/**'
+  - node_modules/steamworks.js/index.js
+  - node_modules/steamworks.js/package.json
+  - node_modules/steamworks.js/dist/linux64/**
+# dlopen can't read inside app.asar; libsteam_api.so sits next to the .node file
+asarUnpack:
+  - node_modules/steamworks.js/dist/linux64/**
+# Read at runtime from resources/assets (src/main/utils/assets.ts)
+extraResources:
+  - from: assets
+    to: assets
+# steamworks.js ships prebuilt binaries; nothing to compile
+npmRebuild: false
+
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+
+linux:
+  executableName: linux-wallpaper-engine
+  # Required by the .deb
+  maintainer: jagrat7 <46803744+jagrat7@users.noreply.github.com>
+  icon: assets/transparent-logo.png
+  category: Utility
+  synopsis: Browse, manage, and apply Wallpaper Engine wallpapers
+  target:
+    - target: deb
+      arch: x64
+    - target: rpm
+      arch: x64
+    - target: zip
+      arch: x64
+    - target: AppImage
+      arch: x64
+  # No spaces, so GitHub keeps the names as-is: linux-wallpaper-engine-0.5.0-x64.zip
+  artifactName: ${name}-${version}-${arch}.${ext}
+
+# electron-builder's default dependencies plus what Electron also loads at startup:
+# ALSA (without it the app exits with "libasound.so.2: cannot open shared object file"),
+# and the GBM/DRM libraries for GPU rendering.
+deb:
+  artifactName: ${name}_${version}_${arch}.${ext}
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+    # Ubuntu 24.04 renamed it libasound2t64
+    - libasound2t64 | libasound2
+    - libgbm1
+    - libdrm2
+
+rpm:
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libXScrnSaver
+    - (libXtst or libXtst6)
+    - xdg-utils
+    - at-spi2-core
+    - (libuuid or libuuid1)
+    - (alsa-lib or libasound2)
+    - (mesa-libgbm or libgbm1)
+    - libdrm
+
+# Releases are uploaded by CI, not by electron-builder
+publish: null

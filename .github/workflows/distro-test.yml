@@ -1,11 +1,11 @@
 name: Distro tests
 
-# Builds the release packages, then installs and launches each one on the distro
-# it targets. The release workflow calls this before publishing.
+# Builds the release packages with electron-builder, then installs and launches each
+# one on the distro it targets. The release workflow calls this before publishing.
 on:
   pull_request:
     paths:
-      - forge.config.ts
+      - electron-builder.yml
       - package.json
       - bun.lock
       - distro/**
@@ -37,24 +37,28 @@ jobs:
         with:
           bun-version: 1.4.4
 
-      # Forge must run on Node; on Node 26 it exits 0 without building anything.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
 
+      # electron-builder's .rpm target calls rpmbuild
       - name: Install packaging tools
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq dpkg fakeroot rpm elfutils
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq rpm
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build deb, rpm and zip
-        run: bash scripts/publish.sh make
+      - name: Build deb, rpm, zip and AppImage
+        run: bun run make
 
       - uses: actions/upload-artifact@v4
         with:
           name: packages
-          path: out/make
+          path: |
+            release/*.deb
+            release/*.rpm
+            release/*.zip
+            release/*.AppImage
           if-no-files-found: error
 
   test:
@@ -65,8 +69,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # debian: the .deb, fedora: the .rpm, arch: the AUR PKGBUILD built from the zip
-        distro: [debian, fedora, arch]
+        # debian: the .deb, fedora: the .rpm, arch: the AUR PKGBUILD built from the zip,
+        # appimage: the .AppImage on Debian 12
+        distro: [debian, fedora, arch, appimage]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,7 +84,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: packages
-          path: out/make
+          path: release
 
       - name: Install playwright-core
         run: dev/verify/lwe setup
@@ -90,7 +95,7 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Install, launch and drive the app
-        run: bash scripts/ci/distro-smoke.sh ${{ matrix.distro }} out/make smoke-output
+        run: bash scripts/ci/distro-smoke.sh ${{ matrix.distro }} release smoke-output
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -98,3 +103,25 @@ jobs:
           name: smoke-${{ matrix.distro }}
           path: smoke-output
           if-no-files-found: ignore
+
+  nix:
+    name: Nix package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@v31
+
+      # Builds the flake's package (distro/nix/package.nix) with Nixpkgs' Electron
+      - name: Build the Nix package
+        run: nix build .#default -L
+
+      - name: Check the package contents
+        run: |
+          test -f result/share/linux-wallpaper-engine/app.asar
+          test -d result/share/linux-wallpaper-engine/assets
+          test -x result/bin/linux-wallpaper-engine
+          ls -l result/bin result/share/linux-wallpaper-engine

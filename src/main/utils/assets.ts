@@ -2,7 +2,7 @@ import { app } from 'electron'
 import path from 'node:path'
 
 export const resolveAssetPath = (assetName: string): string => {
-  // If packaged normally in forge-maker
+  // If packaged by electron-builder
   if (app.isPackaged) return path.join(process.resourcesPath, 'assets', assetName)
 
   // If packaged with Nix, the resource path will point to Electron's default,

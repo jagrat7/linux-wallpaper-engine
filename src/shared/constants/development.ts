@@ -6,6 +6,6 @@ export const DEV_BACKEND_PORT = 5180
 export const devBackendPort = (env: Record<string, string | undefined>) =>
   Number(env.DEV_BACKEND_PORT) || DEV_BACKEND_PORT
 
-// What `electron-forge start` opens, set through DEV_TARGET by the dev scripts in package.json
+// What `bun dev` (scripts/app.mjs) opens, set through DEV_TARGET by the dev scripts in package.json
 export const DEV_TARGETS = ['web', 'desktop', 'full'] as const
 export type DevTarget = (typeof DEV_TARGETS)[number]
