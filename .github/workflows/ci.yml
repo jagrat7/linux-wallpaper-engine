@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Format, lint, typecheck, test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # The checks never launch Electron, so skip its ~100 MB download.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      # Forge and the Vite+ CLI run on Node; 24 is the LTS packaging is known to work on.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # postinstall regenerates distro/nix/bun.nix; a diff means a dependency
+      # change was committed without it, which breaks the Nix build.
+      - name: Nix lockfile matches bun.lock
+        run: git diff --exit-code -- distro/nix/bun.nix
+
+      - name: Format
+        run: bun run fmt:check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
