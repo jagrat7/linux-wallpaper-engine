@@ -12,6 +12,7 @@ on:
       - scripts/**
       - src/main/main.ts
       - src/main/utils/autostart.ts
+      - src/main/services/updater.ts
       - .github/workflows/distro-test.yml
   workflow_dispatch:
   workflow_call:
@@ -129,6 +130,48 @@ jobs:
         with:
           name: smoke-${{ matrix.distro }}
           path: smoke-output
+          if-no-files-found: ignore
+
+  appimage-update:
+    name: AppImage self-update
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build the app
+        run: bun run build
+
+      - name: Install playwright-core
+        run: dev/verify/lwe setup
+
+      - name: Allow user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      # Builds the current AppImage and a 99.0.0 one against a local feed, then
+      # updates the current one from the banner
+      - name: Update an AppImage from the app
+        run: bash scripts/ci/appimage-update-smoke.sh update-output
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-appimage-update
+          path: update-output
           if-no-files-found: ignore
 
   nix:
