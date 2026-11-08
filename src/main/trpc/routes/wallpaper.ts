@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
 import { wallpaperService, type DebugInfo } from '../../services/wallpaper/wallpaper'
-import { playlistService } from '../../services/playlists/playlist'
 import { engineOverridesSchema } from '../../../shared/constants/wallpaper'
 import { settingsService } from '../../services/settings'
 import { compatibilityService } from '../../services/compatibility'
@@ -64,11 +63,7 @@ export const wallpaperRouter = trpc.router({
 
       const options = wallpaperService.buildApplyOptions(settings, input)
 
-      const result = await wallpaperService.apply({ kind: 'wallpaper', options })
-      if (result.success && result.screens) {
-        playlistService.clearActivePlaylist(result.screens)
-      }
-      return result
+      return wallpaperService.apply({ kind: 'wallpaper', options })
     }),
 
   // Stop wallpaper(s). Pass all screens in one call so a shared process is
@@ -77,11 +72,7 @@ export const wallpaperRouter = trpc.router({
   stopWalpaper: trpc.procedure
     .input(z.object({ screen: z.union([z.string(), z.array(z.string())]).optional() }).optional())
     .mutation(async ({ input }) => {
-      const result = await wallpaperService.stop(input?.screen)
-      if (result.success && result.screens) {
-        playlistService.clearActivePlaylist(result.screens)
-      }
-      return result
+      return wallpaperService.stop(input?.screen)
     }),
 
   pause: trpc.procedure

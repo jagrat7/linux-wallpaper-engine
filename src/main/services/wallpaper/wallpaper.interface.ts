@@ -1,3 +1,4 @@
+import type { ActivePlaylistInfo } from '../store'
 import type { Wallpaper, WallpaperOverrides } from '../../../shared/constants/wallpaper'
 import type {
   MutationResult,
@@ -62,6 +63,9 @@ export interface IWallpaperService {
 
   /** Screen keys whose wallpaper process is paused. */
   getPausedScreens(): string[]
+
+  /** The playlist running on each screen that runs one. */
+  getActivePlaylists(): ActivePlaylistInfo[]
 
   // Per-wallpaper override CRUD
   overrides(mutation: OverrideMutation): Promise<WallpaperOverrides | void>

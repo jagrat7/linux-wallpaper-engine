@@ -50,6 +50,6 @@ export interface ISupervisorService {
    */
   shutdown(): void
 
-  /** Each screen with a wallpaper: its options, paused mark and backend. */
+  /** Each screen with a wallpaper: its options, playlist, paused mark and backend. */
   screens(): ReadonlyMap<string, Readonly<ScreenRecord>>
 }

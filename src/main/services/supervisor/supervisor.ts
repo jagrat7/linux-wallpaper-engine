@@ -2,7 +2,6 @@ import type { ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 export type { RemainingScreen, ScreenRecord } from './supervisor.types'
 import { storeService } from '../store'
-import { playlistService } from '../playlists/playlist'
 import {
   hostExecFileAsync,
   hostExecFileSync,
@@ -59,8 +58,14 @@ class SupervisorService implements ISupervisorService {
   private pending = 0
 
   private constructor() {
+    // Older versions saved a single playlist under `activePlaylist`
+    const legacy = this.store.get('activePlaylist')
     this.records = recordsFromSaved({
       activeWallpapers: this.store.get('activeWallpapers'),
+      activePlaylists: {
+        ...(legacy && { [legacy.screen]: legacy }),
+        ...this.store.get('activePlaylists'),
+      },
       pausedScreens: this.store.get('pausedScreens'),
       screenGroups: this.store.get('screenGroups'),
     })
@@ -109,16 +114,19 @@ class SupervisorService implements ISupervisorService {
       this.live.delete(proc)
       // Saved screens must outlive a quit, so exits during one change nothing
       if (this.stopping) return
-      options.onExit?.(this.forget(proc))
+      // Forget first: an optional call would skip evaluating its argument
+      const lost = this.forget(proc)
+      options.onExit?.(lost)
     })
 
     if (options.screens) {
-      const { screens, wallpaper } = options
+      const { screens, wallpaper, playlist } = options
       for (const screen of screens) {
         const paused = this.records.get(screen)?.paused ?? false
         leaveGroup(this.records, screen)
         this.records.set(screen, {
           options: { ...wallpaper, screen },
+          ...(playlist && { playlist }),
           group: screens,
           paused,
           proc,
@@ -144,11 +152,13 @@ class SupervisorService implements ISupervisorService {
           continue
         }
         // Keeps its wallpaper but has no backend until the caller respawns it
-        remaining.push({ screen, options: record.options, paused: record.paused })
+        const { options, playlist, paused } = record
+        remaining.push({ screen, options, ...(playlist && { playlist }), paused })
         this.records.set(screen, {
-          options: record.options,
+          options,
+          ...(playlist && { playlist }),
           group: [screen],
-          paused: record.paused,
+          paused,
         })
       }
       this.kill(proc)
@@ -241,9 +251,10 @@ class SupervisorService implements ISupervisorService {
 
   // How to find `screen`'s backend by command line, for one this instance has no handle for
   private patternFor(screen: string): string | null {
+    const record = this.records.get(screen)
     return screenPattern(screen, {
-      playlist: playlistService.getActivePlaylistEntries()[screen]?.name,
-      backgroundId: this.records.get(screen)?.options.backgroundId,
+      playlist: record?.playlist,
+      backgroundId: record?.options.backgroundId,
     })
   }
 
@@ -266,6 +277,8 @@ class SupervisorService implements ISupervisorService {
   private save(): void {
     const saved = toSavedScreens(this.records)
     this.store.set('activeWallpapers', saved.activeWallpapers)
+    this.store.set('activePlaylists', saved.activePlaylists)
+    this.store.set('activePlaylist', null)
     this.store.set('pausedScreens', saved.pausedScreens)
     this.store.set('screenGroups', saved.screenGroups)
   }

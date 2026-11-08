@@ -11,11 +11,9 @@ const { mockPlaylistService, mockWallpaperService, mockSettingsService, mockDisp
       updatePlaylist: vi.fn(),
       deletePlaylist: vi.fn(),
       stampLastApplied: vi.fn(),
-      getActivePlaylists: vi.fn(),
-      setActivePlaylist: vi.fn(),
-      clearActivePlaylist: vi.fn(),
     },
     mockWallpaperService: {
+      getActivePlaylists: vi.fn(),
       stop: vi.fn(),
       apply: vi.fn(),
       startPlaylist: vi.fn(),
@@ -102,7 +100,6 @@ describe('playlistRouter', () => {
         true,
       )
       expect(mockWallpaperService.stop).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
-      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
     })
 
     it('returns the process start error', async () => {
@@ -120,7 +117,7 @@ describe('playlistRouter', () => {
 
   describe('stop', () => {
     it('stops only matching playlist screens', async () => {
-      mockPlaylistService.getActivePlaylists.mockReturnValue([
+      mockWallpaperService.getActivePlaylists.mockReturnValue([
         { name: 'Random Mix', screen: 'HDMI-1' },
         { name: 'Other Mix', screen: 'DP-1' },
       ])
@@ -128,11 +125,10 @@ describe('playlistRouter', () => {
       await caller.stop({ playlistName: 'Random Mix' })
 
       expect(mockWallpaperService.stop).toHaveBeenCalledWith(['HDMI-1'])
-      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1'])
     })
 
     it('restarts remaining screens when stopping one screen', async () => {
-      mockPlaylistService.getActivePlaylists.mockReturnValue([
+      mockWallpaperService.getActivePlaylists.mockReturnValue([
         { name: 'Random Mix', screen: 'HDMI-1' },
         { name: 'Random Mix', screen: 'DP-1' },
       ])
@@ -140,7 +136,6 @@ describe('playlistRouter', () => {
       await caller.stop({ playlistName: 'Random Mix', screen: 'HDMI-1' })
 
       expect(mockWallpaperService.stop).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
-      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
       expect(mockWallpaperService.startPlaylist).toHaveBeenCalledWith('Random Mix', ['DP-1'], false)
     })
   })

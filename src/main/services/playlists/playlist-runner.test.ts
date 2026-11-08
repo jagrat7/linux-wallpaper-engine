@@ -6,7 +6,6 @@ const { mockPlaylistService, mockSettingsService, mockHost } = vi.hoisted(() => 
   mockPlaylistService: {
     getPlaylist: vi.fn(),
     stampLastApplied: vi.fn(),
-    setActivePlaylist: vi.fn(),
     resolveWallpaperEngineAssetsDir: vi.fn(),
   },
   mockSettingsService: {
@@ -51,7 +50,7 @@ beforeEach(() => {
 })
 
 describe('startPlaylistProcess', () => {
-  it('launches the backend for its screens and records the active playlist', async () => {
+  it('launches the backend for its screens', async () => {
     const launch = vi.fn().mockResolvedValue(undefined)
 
     const result = await startPlaylistProcess(
@@ -69,7 +68,6 @@ describe('startPlaylistProcess', () => {
       ['--screen-root', 'HDMI-1', '--playlist', 'Random Mix', '--assets-dir', '/assets'],
       expect.objectContaining({ backgroundId: '/wallpapers/first', screen: 'HDMI-1' }),
     )
-    expect(mockPlaylistService.setActivePlaylist).toHaveBeenCalledWith('Random Mix', ['HDMI-1'])
   })
 
   it('does not launch when the backend is missing', async () => {

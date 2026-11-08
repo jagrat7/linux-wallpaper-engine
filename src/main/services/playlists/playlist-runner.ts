@@ -17,7 +17,7 @@ export type LaunchBackendFn = (
 
 type PlaylistProcessService = Pick<
   typeof playlistService,
-  'getPlaylist' | 'stampLastApplied' | 'resolveWallpaperEngineAssetsDir' | 'setActivePlaylist'
+  'getPlaylist' | 'stampLastApplied' | 'resolveWallpaperEngineAssetsDir'
 >
 
 export async function startPlaylistProcess(
@@ -67,8 +67,6 @@ export async function startPlaylistProcess(
       backgroundId: playlist.items[0],
       screen: settings.windowMode ? undefined : screens.length === 1 ? screens[0] : undefined,
     })
-
-    service.setActivePlaylist(playlistName, screenKeys)
 
     return { success: true }
   } catch (error) {

@@ -9,7 +9,6 @@ import {
   type NativeImage,
 } from 'electron'
 import { invalidationService } from '../services/invalidation'
-import { playlistService } from '../services/playlists/playlist'
 import { wallpaperService } from '../services/wallpaper/wallpaper'
 import { APP_NAME } from '../../shared/constants/app'
 import { isPlaybackInvalidationKey } from '../../shared/constants/wallpaper'
@@ -58,11 +57,7 @@ const runTrayAction = async (
 }
 
 // Stops playlists too, since they run as the same tracked backend processes
-const stopAllWallpapers = async () => {
-  const result = await wallpaperService.stop()
-  if (result.success) playlistService.clearActivePlaylist()
-  return result
-}
+const stopAllWallpapers = () => wallpaperService.stop()
 
 /**
  * Owns the system tray: the tray icon, the live context menu

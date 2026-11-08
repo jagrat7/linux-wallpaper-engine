@@ -6,7 +6,7 @@ import * as path from 'node:path'
 import { glob } from 'glob'
 import { displayService } from '../display'
 import { settingsService, type AppSettings } from '../settings'
-import { storeService } from '../store'
+import { storeService, type ActivePlaylistInfo } from '../store'
 import { hostExecFileAsync, hostCommandExists, isFlatpak } from '../../utils/host'
 import { supervisorService, type RemainingScreen } from '../supervisor/supervisor'
 import { WALLPAPER_ENGINE_APP_ID } from '../../../shared/constants/app'
@@ -152,7 +152,7 @@ class WallpaperService implements IWallpaperService {
         screens,
         stampLastApplied,
         async (screenKeys, args, options) => {
-          await this.launchPlaylist(screenKeys, args, options)
+          await this.launchPlaylist(screenKeys, args, options, playlistName)
           started = screenKeys
         },
       )
@@ -211,13 +211,19 @@ class WallpaperService implements IWallpaperService {
     const settings = await settingsService.loadSettings()
     const options = buildApplyOptions(settings, { backgroundId: pick.path, screen })
     const result = await this.supervisor.run(() => this.applyWallpaper(options))
-    if (result.success && result.screens) playlistService.clearActivePlaylist(result.screens)
     return { ...result, wallpaperTitle: pick.title }
   }
 
   /** Return screen keys with an active wallpaper process. */
   getActiveScreens(): string[] {
     return [...this.supervisor.screens().keys()]
+  }
+
+  /** The playlist running on each screen that runs one. */
+  getActivePlaylists(): ActivePlaylistInfo[] {
+    return [...this.supervisor.screens()].flatMap(([screen, { playlist }]) =>
+      playlist ? [{ name: playlist, screen }] : [],
+    )
   }
 
   /** Return screen keys whose wallpaper process is paused. */
@@ -590,17 +596,20 @@ class WallpaperService implements IWallpaperService {
 
   /**
    * Replace whatever draws on `screens` with a backend running `args`, and
-   * record it as their wallpaper. Wallpapers and playlists both start here.
+   * record it as their wallpaper, or their `playlist` when it runs one.
+   * Wallpapers and playlists both start here.
    */
   private async launch(
     screens: string[],
     args: string[],
     options: ApplyWallpaperOptions,
+    playlist?: string,
   ): Promise<ChildProcess> {
     const debugMode = settingsService.getSetting('debugMode')
     const proc = await this.supervisor.start(args, {
       screens,
       wallpaper: options,
+      playlist,
       stdio: debugMode ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'ignore', 'pipe'],
       onExit: (lostScreens) => this.handleLostScreens(lostScreens),
     })
@@ -614,16 +623,15 @@ class WallpaperService implements IWallpaperService {
     screens: string[],
     args: string[],
     options: ApplyWallpaperOptions,
+    playlist: string,
   ): Promise<void> {
-    await this.launch(screens, args, options)
+    await this.launch(screens, args, options, playlist)
     invalidationService.emit('wallpaper.applied')
   }
 
   // A backend exited without being stopped: the screens it still drove lost their wallpaper
   private handleLostScreens(screens: string[]): void {
-    if (screens.length === 0) return
-    playlistService.clearActivePlaylist(screens)
-    invalidationService.emit('wallpaper.stopped')
+    if (screens.length > 0) invalidationService.emit('wallpaper.stopped')
   }
 
   // Wait briefly to detect if the spawned process exits immediately (failed apply).
@@ -654,9 +662,10 @@ class WallpaperService implements IWallpaperService {
     // Screens running a playlist restart their playlist process (which picks
     // up current global settings) instead of being flattened to a single
     // wallpaper.
-    const active = [...this.supervisor.screens()].map(([screen, { options }]) => ({
+    const active = [...this.supervisor.screens()].map(([screen, { options, playlist }]) => ({
       screen,
       options,
+      playlist,
     }))
     const { playlistScreens, wallpaperRemaining } = this.partitionByPlaylist(active)
     errors.push(...(await this.restartPlaylists(playlistScreens)))
@@ -761,25 +770,23 @@ class WallpaperService implements IWallpaperService {
     }
   }
 
-  // Split screens between those owned by an active playlist and the rest
-  private partitionByPlaylist<T extends { screen: string }>(
+  // Split screens between those running a playlist and the rest
+  private partitionByPlaylist<T extends { screen: string; playlist?: string }>(
     entries: T[],
   ): {
     playlistScreens: Map<string, string[]>
     wallpaperRemaining: T[]
   } {
-    const playlistEntries = playlistService.getActivePlaylistEntries()
     const playlistScreens = new Map<string, string[]>()
     const wallpaperRemaining: T[] = []
 
     for (const entry of entries) {
-      const playlistEntry = playlistEntries[entry.screen]
-      if (playlistEntry) {
-        const screens = playlistScreens.get(playlistEntry.name)
+      if (entry.playlist) {
+        const screens = playlistScreens.get(entry.playlist)
         if (screens) {
           screens.push(entry.screen)
         } else {
-          playlistScreens.set(playlistEntry.name, [entry.screen])
+          playlistScreens.set(entry.playlist, [entry.screen])
         }
       } else {
         wallpaperRemaining.push(entry)
@@ -796,11 +803,11 @@ class WallpaperService implements IWallpaperService {
         name,
         screens,
         false,
-        (screenKeys, args, options) => this.launchPlaylist(screenKeys, args, options),
+        (screenKeys, args, options) => this.launchPlaylist(screenKeys, args, options, name),
       )
       if (!result.success) {
-        // Playlist is gone (e.g. deleted) — drop the stale active entries
-        playlistService.clearActivePlaylist(screens)
+        // The playlist is gone (e.g. deleted), so its screens stop rather than stay marked as playing it
+        await this.supervisor.stop({ screens })
         if (result.error) errors.push(`${screens.join(',')}: ${result.error}`)
       }
     }

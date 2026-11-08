@@ -7,7 +7,7 @@ import { BACKEND_PROCESS_PATTERN } from './supervisor.utils'
 // Store contents the supervisor reads on construction: saved screens from the last run
 type Saved = { activeWallpapers?: Record<string, ApplyWallpaperOptions> } & Record<string, unknown>
 
-const { mockHost, mockStore, mockPlaylists, saved } = vi.hoisted(() => {
+const { mockHost, mockStore, saved } = vi.hoisted(() => {
   const store: { value: Record<string, unknown> } = { value: {} }
   return {
     saved: store,
@@ -24,7 +24,6 @@ const { mockHost, mockStore, mockPlaylists, saved } = vi.hoisted(() => {
       ),
       set: vi.fn(),
     },
-    mockPlaylists: { getActivePlaylistEntries: vi.fn() },
   }
 })
 
@@ -33,7 +32,6 @@ vi.mock('../../utils/host', async (importOriginal) => ({
   ...mockHost,
 }))
 vi.mock('../store', () => ({ storeService: { activeWallpapers: mockStore } }))
-vi.mock('../playlists/playlist', () => ({ playlistService: mockPlaylists }))
 
 type FakeProc = EventEmitter & { unref: ReturnType<typeof vi.fn>; kill: ReturnType<typeof vi.fn> }
 
@@ -64,7 +62,6 @@ beforeEach(() => {
   })
   mockHost.hostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
   mockHost.shouldUseFlatpakSpawn.mockReturnValue(false)
-  mockPlaylists.getActivePlaylistEntries.mockReturnValue({})
 })
 
 describe('supervisorService.run', () => {
@@ -162,6 +159,67 @@ describe('supervisorService.start', () => {
   })
 })
 
+describe('supervisorService playlists', () => {
+  it('records the playlist a backend runs, until a wallpaper replaces it', async () => {
+    const supervisor = await loadSupervisor()
+
+    await supervisor.start([], {
+      stdio,
+      screens: ['eDP-1'],
+      wallpaper: wallpaper(),
+      playlist: 'Mix',
+    })
+    expect(supervisor.screens().get('eDP-1')?.playlist).toBe('Mix')
+    expect(mockStore.set).toHaveBeenCalledWith('activePlaylists', {
+      'eDP-1': { name: 'Mix', screen: 'eDP-1' },
+    })
+
+    await supervisor.start([], { stdio, screens: ['eDP-1'], wallpaper: wallpaper('/wp/2') })
+    expect(supervisor.screens().get('eDP-1')?.playlist).toBeUndefined()
+    expect(mockStore.set).toHaveBeenLastCalledWith('screenGroups', { 'eDP-1': ['eDP-1'] })
+    expect(mockStore.set).toHaveBeenCalledWith('activePlaylists', {})
+  })
+
+  it('forgets the playlist when its backend exits', async () => {
+    const supervisor = await loadSupervisor()
+    await supervisor.start([], {
+      stdio,
+      screens: ['eDP-1'],
+      wallpaper: wallpaper(),
+      playlist: 'Mix',
+    })
+
+    spawned[0].emit('exit', 1, null)
+
+    expect(supervisor.screens().size).toBe(0)
+    expect(mockStore.set).toHaveBeenLastCalledWith('screenGroups', {})
+    expect(mockStore.set).toHaveBeenCalledWith('activePlaylists', {})
+  })
+
+  it('reads a playlist saved by an older version under activePlaylist', async () => {
+    const supervisor = await loadSupervisor({
+      activeWallpapers: { 'eDP-1': wallpaper() },
+      activePlaylist: { name: 'Mix', screen: 'eDP-1' },
+    })
+
+    expect(supervisor.screens().get('eDP-1')?.playlist).toBe('Mix')
+  })
+
+  it('hands back the playlist of a screen left without its shared backend', async () => {
+    const supervisor = await loadSupervisor()
+    await supervisor.start([], {
+      stdio,
+      screens: ['eDP-1', 'HDMI-1'],
+      wallpaper: wallpaper(),
+      playlist: 'Mix',
+    })
+
+    const { remaining } = await supervisor.stop({ screens: ['eDP-1'] })
+
+    expect(remaining).toEqual([expect.objectContaining({ screen: 'HDMI-1', playlist: 'Mix' })])
+  })
+})
+
 describe('supervisorService.stop', () => {
   it('stops a shared backend and hands back the screens left without it', async () => {
     const supervisor = await loadSupervisor()
@@ -194,8 +252,10 @@ describe('supervisorService.stop', () => {
   })
 
   it('finds the window-mode backend by the playlist it runs', async () => {
-    const supervisor = await loadSupervisor({ activeWallpapers: { default: wallpaper() } })
-    mockPlaylists.getActivePlaylistEntries.mockReturnValue({ default: { name: 'Mix' } })
+    const supervisor = await loadSupervisor({
+      activeWallpapers: { default: wallpaper() },
+      activePlaylists: { default: { name: 'Mix', screen: 'default' } },
+    })
 
     await supervisor.stop()
 

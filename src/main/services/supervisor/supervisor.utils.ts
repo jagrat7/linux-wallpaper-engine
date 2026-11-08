@@ -93,19 +93,31 @@ export const leaveGroup = (records: ScreenRecords, screen: string): void => {
 export const recordsFromSaved = (saved: Partial<SavedScreens>): ScreenRecords => {
   const paused = new Set(saved.pausedScreens ?? [])
   const groups = saved.screenGroups ?? {}
+  const playlists = saved.activePlaylists ?? {}
   return new Map(
     Object.entries(saved.activeWallpapers ?? {}).map(([screen, options]) => [
       screen,
-      { options, group: groups[screen] ?? [screen], paused: paused.has(screen) },
+      {
+        options,
+        ...(playlists[screen] && { playlist: playlists[screen].name }),
+        group: groups[screen] ?? [screen],
+        paused: paused.has(screen),
+      },
     ]),
   )
 }
 
 /** The saved form of `records`. Processes are not saved. */
 export const toSavedScreens = (records: ScreenRecords): SavedScreens => {
-  const saved: SavedScreens = { activeWallpapers: {}, pausedScreens: [], screenGroups: {} }
+  const saved: SavedScreens = {
+    activeWallpapers: {},
+    activePlaylists: {},
+    pausedScreens: [],
+    screenGroups: {},
+  }
   for (const [screen, record] of records) {
     saved.activeWallpapers[screen] = record.options
+    if (record.playlist) saved.activePlaylists[screen] = { name: record.playlist, screen }
     saved.screenGroups[screen] = record.group
     if (record.paused) saved.pausedScreens.push(screen)
   }

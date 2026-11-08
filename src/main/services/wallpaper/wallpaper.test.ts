@@ -17,8 +17,6 @@ const { mockStore, mockPlaylistService } = vi.hoisted(() => ({
   mockPlaylistService: {
     resolveSteamLibraryPaths: vi.fn(),
     resolveWallpaperEngineAssetsDir: vi.fn(),
-    getActivePlaylistEntries: vi.fn(() => ({})),
-    clearActivePlaylist: vi.fn(),
   },
 }))
 

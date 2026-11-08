@@ -15,10 +15,14 @@ interface StartBase {
 
 /**
  * Without `screens` the backend is one-off work, such as a compatibility scan.
- * With them it replaces whatever draws there and becomes their `wallpaper`.
+ * With them it replaces whatever draws there and becomes their `wallpaper`,
+ * or their `playlist` when it runs one.
  */
 export type StartOptions = StartBase &
-  ({ screens?: undefined } | { screens: string[]; wallpaper: ApplyWallpaperOptions })
+  (
+    | { screens?: undefined }
+    | { screens: string[]; wallpaper: ApplyWallpaperOptions; playlist?: string }
+  )
 
 export interface StopOptions {
   /** Screens to stop; every screen when omitted */
@@ -31,7 +35,10 @@ export interface StopOptions {
 
 /** What a screen shows and the backend drawing it. */
 export interface ScreenRecord {
+  /** The wallpaper, or for a playlist its first item */
   options: ApplyWallpaperOptions
+  /** The playlist the backend runs, if any */
+  playlist?: string
   /** Screens sharing this screen's backend. Saved, so pausing still freezes all of them after a restart */
   group: string[]
   /** Whether the screen should stay frozen; kept across a respawn and saved */
@@ -46,7 +53,7 @@ export type ScreenRecords = Map<string, ScreenRecord>
 /** The part of the active-wallpapers store that screen records are saved to. */
 export type SavedScreens = Pick<
   ActiveWallpapersSchema,
-  'activeWallpapers' | 'pausedScreens' | 'screenGroups'
+  'activeWallpapers' | 'activePlaylists' | 'pausedScreens' | 'screenGroups'
 >
 
 // ── Results ────────────────────────────────────────────────────────────────
@@ -55,6 +62,7 @@ export type SavedScreens = Pick<
 export interface RemainingScreen {
   screen: string
   options: ApplyWallpaperOptions
+  playlist?: string
   // Whether it was paused, so the respawned process can be frozen again
   paused: boolean
 }

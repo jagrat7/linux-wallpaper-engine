@@ -34,7 +34,10 @@ const sharedRecords = (proc: ChildProcess): ScreenRecords => {
   return new Map([
     ['eDP-1', { options: { backgroundId: '/wp/1' }, group, paused: false, proc }],
     ['HDMI-1', { options: { backgroundId: '/wp/1' }, group, paused: true, proc }],
-    ['DP-2', { options: { backgroundId: '/wp/2' }, group: ['DP-2'], paused: false }],
+    [
+      'DP-2',
+      { options: { backgroundId: '/wp/2' }, playlist: 'Mix', group: ['DP-2'], paused: false },
+    ],
   ])
 }
 
@@ -79,6 +82,7 @@ describe('saved screens', () => {
         'HDMI-1': { backgroundId: '/wp/1' },
         'DP-2': { backgroundId: '/wp/2' },
       },
+      activePlaylists: { 'DP-2': { name: 'Mix', screen: 'DP-2' } },
       pausedScreens: ['HDMI-1'],
       screenGroups: {
         'eDP-1': ['eDP-1', 'HDMI-1'],
@@ -86,6 +90,7 @@ describe('saved screens', () => {
         'DP-2': ['DP-2'],
       },
     })
+    expect(restored.get('DP-2')?.playlist).toBe('Mix')
     expect(restored.get('HDMI-1')).toEqual({
       options: { backgroundId: '/wp/1' },
       group: ['eDP-1', 'HDMI-1'],

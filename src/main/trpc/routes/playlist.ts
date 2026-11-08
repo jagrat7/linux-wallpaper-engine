@@ -81,7 +81,7 @@ export const playlistRouter = trpc.router({
         .optional(),
     )
     .mutation(async ({ input }) => {
-      const active = playlistService.getActivePlaylists()
+      const active = wallpaperService.getActivePlaylists()
       const targetScreens = active
         .filter(
           (entry) =>
@@ -103,7 +103,6 @@ export const playlistRouter = trpc.router({
         const remainingScreens = playlistScreens.filter((screen) => !targetScreenSet.has(screen))
 
         await wallpaperService.stop(playlistScreens)
-        playlistService.clearActivePlaylist(playlistScreens)
 
         if (remainingScreens.length > 0) {
           const result = await startPlaylist(playlistName, remainingScreens, false)
@@ -131,13 +130,12 @@ export const playlistRouter = trpc.router({
           : (await displayService.detectDisplays()).map((d) => d.name)
 
       await wallpaperService.stop(targetScreens)
-      playlistService.clearActivePlaylist(targetScreens)
 
       return startPlaylist(input.playlistName, targetScreens, true)
     }),
 
   // Get currently active playlist info
   active: trpc.procedure.query(() => {
-    return playlistService.getActivePlaylists()
+    return wallpaperService.getActivePlaylists()
   }),
 })
