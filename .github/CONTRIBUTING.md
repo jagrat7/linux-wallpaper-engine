@@ -59,6 +59,18 @@ Builds the deb, rpm, zip and AppImage with [electron-builder](https://www.electr
 
 Releases are built and tested in CI, not on a laptop. The `Distro tests` workflow installs and launches each package on Debian, Fedora and Arch (the AUR PKGBUILD) and runs the AppImage; run one locally with `bash scripts/ci/distro-smoke.sh <debian|fedora|arch|appimage> release <output dir>` (needs Docker and `dev/verify/lwe setup`).
 
+### Releasing
+
+Releases are built, tested and published by the `Release` workflow (`.github/workflows/release.yml`):
+
+```bash
+# 1. Bump "version" in package.json, commit, and merge to main
+# 2. Tag that commit and push the tag
+git tag v0.5.0 && git push origin v0.5.0
+```
+
+The tag must match `package.json`. CI then runs the type check and tests, builds every package, installs and launches each one on its distro (`Distro tests`), creates the GitHub release with generated notes, and publishes the AUR package (that last job waits for approval in the `aur` environment). To rebuild an existing release, run `Release` from the Actions tab with its tag; the assets are replaced.
+
 ### Nix Devshell
 
 As with the installation setup, flakes must be enabled. With [nix-direnv](https://github.com/nix-community/nix-direnv), it's as simple as getting in to the project root and allowing it.
