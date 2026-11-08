@@ -69,7 +69,7 @@ Releases are built, tested and published by the `Release` workflow (`.github/wor
 git tag v0.5.0 && git push origin v0.5.0
 ```
 
-The tag must match `package.json`. CI then runs the type check and tests, builds every package, installs and launches each one on its distro (`Distro tests`), creates the GitHub release with generated notes, and publishes the AUR package (that last job waits for approval in the `aur` environment). To rebuild an existing release, run `Release` from the Actions tab with its tag; the assets are replaced.
+The tag must match `package.json`. CI then runs the type check and tests, builds every package, installs and launches each one on its distro (`Distro tests`), creates the GitHub release with generated notes, and publishes the AUR package (that last job waits for approval in the `aur` environment). If a release fails partway, run `Release` from the Actions tab with the same tag: it uploads only the files the release is missing and never replaces published ones, so their checksums and the AUR package stay valid. Tags from before this workflow (v0.4.12 and earlier) don't match `package.json` and can't be rerun.
 
 ### Nix Devshell
 

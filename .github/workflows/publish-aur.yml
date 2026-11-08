@@ -17,6 +17,10 @@ on:
         description: GitHub release tag to publish to AUR
         type: string
         required: true
+      pkgbuild_ref:
+        description: Git ref to take the PKGBUILD from; defaults to the triggering ref
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -38,6 +42,7 @@ jobs:
       - name: Checkout PKGBUILD
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.pkgbuild_ref }}
           sparse-checkout: distro/aur
           persist-credentials: false
 

@@ -3,15 +3,18 @@ run-name: Release ${{ inputs.tag || github.ref_name }}
 
 # Push a version tag (vX.Y.Z, matching package.json) to release it: CI checks the
 # code, builds and tests every package on its distro, creates the GitHub release,
-# then publishes the AUR package. Run it from the Actions tab with an existing tag
-# to rebuild that release; its assets are replaced.
+# then publishes the AUR package. To finish a release that failed partway, run it
+# from the Actions tab with the same tag: it uploads only the assets the release is
+# missing and never replaces published ones, so their checksums (and the AUR
+# PKGBUILD's) stay valid. Tags from before this workflow don't match package.json.
+
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing tag to build and release, e.g. v0.5.0
+        description: Tag of a release to finish, e.g. v0.5.0
         required: true
 
 permissions:
@@ -78,17 +81,25 @@ jobs:
           name: packages
           path: release
 
-      - name: Create or update the release
+      - name: Create the release, or add what it is missing
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           ls -l release
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" release/* --clobber
-          else
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" release/* --verify-tag --generate-notes --title "$TAG"
+            exit 0
           fi
+          # Replacing a published file would change its checksum under the same version
+          published="$(gh release view "$TAG" --json assets --jq '.assets[].name')"
+          for file in release/*; do
+            if grep -qxF "$(basename "$file")" <<<"$published"; then
+              echo "keeping the published $(basename "$file")"
+            else
+              gh release upload "$TAG" "$file"
+            fi
+          done
 
   aur:
     name: AUR package
@@ -96,4 +107,6 @@ jobs:
     uses: ./.github/workflows/publish-aur.yml
     with:
       tag: ${{ inputs.tag || github.ref_name }}
+      # The PKGBUILD the distro tests built, not the default branch's
+      pkgbuild_ref: ${{ inputs.tag || github.ref_name }}
     secrets: inherit
