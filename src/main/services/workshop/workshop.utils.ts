@@ -98,18 +98,24 @@ export function toWorkshopResolutionTag(value: string): string | null {
 }
 
 // All filters we want Steam to honor, split into two classes:
-//  - "always required": tags every combination must include (custom tags, resolution, any caller-supplied base tags).
-//  - "axes": categories where the user may pick multiple values (type, age rating). We Cartesian-product the axes
-//    so each sub-query is a pure AND (matchAnyTag=false), and the union of sub-queries gives OR-within-category.
+//  - "always required": tags every combination must include (custom tags, any caller-supplied base tags).
+//  - "axes": categories where the user may pick multiple values (type, age rating, resolution). We
+//    Cartesian-product the axes so each sub-query is a pure AND (matchAnyTag=false), and the union of
+//    sub-queries gives OR-within-category. Resolution must be an axis: a wallpaper carries one resolution
+//    tag, so requiring two of them at once matches nothing.
 export function buildFilterCombinations(
   settings: WorkshopFilterSettings,
   baseTags: string[] = [],
 ): string[][] {
   const customTags = settings.workshopFilterTags.map((tag) => tag.trim()).filter(Boolean)
-  const resolutionTags = settings.workshopFilterResolution
-    .map((value) => toWorkshopResolutionTag(value))
-    .filter((value): value is string => value != null)
-  const alwaysRequired = Array.from(new Set([...baseTags, ...customTags, ...resolutionTags]))
+  const resolutionTags = Array.from(
+    new Set(
+      settings.workshopFilterResolution
+        .map((value) => toWorkshopResolutionTag(value))
+        .filter((value): value is string => value != null),
+    ),
+  )
+  const alwaysRequired = Array.from(new Set([...baseTags, ...customTags]))
 
   const typeTags = settings.workshopFilterType
     .filter((value): value is WallpaperType => value !== 'all')
@@ -122,6 +128,7 @@ export function buildFilterCombinations(
   const axes: Array<Array<string | null>> = [
     typeTags.length > 0 ? typeTags : [null],
     ageRatingTags.length > 0 ? ageRatingTags : [null],
+    resolutionTags.length > 0 ? resolutionTags : [null],
   ]
 
   let combinations: Array<Array<string | null>> = [[]]
