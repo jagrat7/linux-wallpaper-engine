@@ -7,7 +7,7 @@ description: Launch and drive the Linux Wallpaper Engine Electron app (React UI 
 
 The app is an Electron app: `src/main` (backend services and tRPC routes), `src/renderer` (React, TanStack hash router), `src/preload`. The surface you drive is the renderer UI. Electron main runs the real backend, so it reads your real Steam library and spawns real `linux-wallpaperengine` processes.
 
-Use `dev/verify/lwe` (call it `$LWE` below) to launch, health-check, and clean up the verification instance. It wraps the repo's own dev command (`electron-forge start` with `DEV_TARGET`, which is what `bun dev` / `bun run dev:desktop` run) and drives the UI over CDP with `playwright-core`.
+Use `dev/verify/lwe` (call it `$LWE` below) to launch, health-check, and clean up the verification instance. It wraps the repo's own dev command (`node scripts/app.mjs dev` with `DEV_TARGET`, which is what `bun dev` / `bun run dev:desktop` run) and drives the UI over CDP with `playwright-core`.
 
 ```bash
 LWE=dev/verify/lwe   # from the repo root
@@ -38,7 +38,7 @@ $LWE setup              # once per checkout: installs playwright-core@1.58.2 int
 $LWE launch web         # or: $LWE launch desktop
 ```
 
-Ready means launch printed `ready: run=/tmp/lwe-verify/<run-id> target=... app=http://localhost:5173 cdp=http://127.0.0.1:9333`. Launch waits for forge's `Web preview:` line (web) or `Launched Electron app` (desktop), a CDP page on the app origin, and the sidebar `Installed` button. A cold start takes about 15–40 s. Launch fails fast and prints `logs/dev.log` if the dev process dies.
+Ready means launch printed `ready: run=/tmp/lwe-verify/<run-id> target=... app=http://localhost:5173 cdp=http://127.0.0.1:9333`. Launch waits for the `Web preview:` line (web) or `Launched Electron app` (desktop), a CDP page on the app origin, and the sidebar `Installed` button. A cold start takes about 15–40 s. Launch fails fast and prints `logs/dev.log` if the dev process dies.
 
 Prerequisites: `bun install --frozen-lockfile` already done, `bun` and `node` on PATH, and `chromium` or `google-chrome-stable` (override with `LWE_BROWSER=`). The `linux-wallpaperengine` binary is only needed to apply wallpapers.
 

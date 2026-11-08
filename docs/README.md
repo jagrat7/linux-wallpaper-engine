@@ -68,15 +68,22 @@ sudo apt install ./linux-wallpaper-engine_<version>_amd64.deb
 #### Fedora / RHEL (.rpm)
 
 ```bash
-sudo dnf install ./linux-wallpaper-engine-<version>.x86_64.rpm
+sudo dnf install ./linux-wallpaper-engine-<version>-x86_64.rpm
+```
+
+#### AppImage (any distro)
+
+```bash
+chmod +x linux-wallpaper-engine-<version>-x86_64.AppImage
+./linux-wallpaper-engine-<version>-x86_64.AppImage
 ```
 
 #### ZIP (Portable)
 
 ```bash
 # Extract the archive (use your preferred tool: unzip, 7z, etc.)
-unzip Linux.Wallpaper.Engine-linux-x64-<version>.zip
-cd "Linux Wallpaper Engine-linux-x64"
+unzip linux-wallpaper-engine-<version>-x64.zip -d linux-wallpaper-engine
+cd linux-wallpaper-engine
 ./linux-wallpaper-engine
 ```
 

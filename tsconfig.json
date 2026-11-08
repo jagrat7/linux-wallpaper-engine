@@ -4,8 +4,6 @@
     "src/**/*.tsx",
     "vite.*.config.ts",
     "vite.*.config.mts",
-    "forge.config.ts",
-    "forge.env.d.ts",
     "vite.config.mts",
     "scripts/**/*.ts"
   ],
