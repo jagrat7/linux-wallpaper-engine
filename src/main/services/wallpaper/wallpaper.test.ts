@@ -57,7 +57,7 @@ import { supervisorService } from '../supervisor/supervisor'
 beforeEach(async () => {
   vi.clearAllMocks()
   mockPlaylistService.resolveSteamLibraryPaths.mockResolvedValue([library])
-  supervisorService.reset()
+  await supervisorService.stop()
   await wallpaperService.diagnose({ kind: 'invalidateCache' })
 })
 
@@ -87,7 +87,11 @@ describe('wallpaperService catalog', () => {
 
 describe('wallpaperService.getActive', () => {
   it('returns active wallpapers from project.json without scanning the library', async () => {
-    supervisorService.spawnFor(['eDP-1'], { backgroundId: wallpaperPath }, [], { stdio: 'ignore' })
+    await supervisorService.start([], {
+      stdio: 'ignore',
+      screens: ['eDP-1'],
+      wallpaper: { backgroundId: wallpaperPath },
+    })
 
     const active = await wallpaperService.getActive()
 

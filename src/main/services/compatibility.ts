@@ -211,37 +211,35 @@ class CompatibilityService {
 
       this.scanProgress.current = wallpaper.title
 
-      return new Promise<void>((resolve) => {
-        const proc = supervisorService.spawn(['--window', '0x0x1x1', '--silent', wallpaper.path], {
-          stdio: ['ignore', 'ignore', 'pipe'],
-        })
+      const done = Promise.withResolvers<void>()
+      let stderrData = ''
+      let resolved = false
+      let proc: ChildProcess | undefined
 
-        let stderrData = ''
-        let resolved = false
+      const finish = (exitedEarly: boolean) => {
+        if (resolved) return
+        resolved = true
 
-        const finish = (exitedEarly: boolean) => {
-          if (resolved) return
-          resolved = true
+        const { status, errors } = this.parseStderrToStatus(stderrData, exitedEarly)
+        this.updateAutoCompatibility(wallpaper.path, status, errors)
+        this.scanProgress.scanned++
 
-          const { status, errors } = this.parseStderrToStatus(stderrData, exitedEarly)
-          this.updateAutoCompatibility(wallpaper.path, status, errors)
-          this.scanProgress.scanned++
+        if (proc) supervisorService.kill(proc)
+        done.resolve()
+      }
 
-          supervisorService.kill(proc)
-          resolve()
-        }
-
-        if (proc.stderr) {
-          proc.stderr.on('data', (chunk: Buffer) => {
-            stderrData += chunk.toString()
-          })
-        }
-
-        proc.on('exit', () => finish(true))
-        proc.on('error', () => finish(true))
-
-        setTimeout(() => finish(false), 5000)
+      proc = await supervisorService.start(['--window', '0x0x1x1', '--silent', wallpaper.path], {
+        stdio: ['ignore', 'ignore', 'pipe'],
+        // Not called for the kill when the app quits, so a quit mid-scan marks nothing broken
+        onExit: () => finish(true),
       })
+      proc.stderr?.on('data', (chunk: Buffer) => {
+        stderrData += chunk.toString()
+      })
+      proc.on('error', () => finish(true))
+      setTimeout(() => finish(false), 5000)
+
+      return done.promise
     }
 
     const runBatch = async () => {

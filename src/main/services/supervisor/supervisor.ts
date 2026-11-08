@@ -1,7 +1,8 @@
 import type { ChildProcess } from 'node:child_process'
-export type { RemainingScreen } from './supervisor.types'
-import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
+import { setTimeout as sleep } from 'node:timers/promises'
+export type { RemainingScreen, ScreenRecord } from './supervisor.types'
 import { storeService } from '../store'
+import { playlistService } from '../playlists/playlist'
 import {
   hostExecFileAsync,
   hostExecFileSync,
@@ -10,44 +11,55 @@ import {
 } from '../../utils/host'
 import type { ISupervisorService } from './supervisor.interface'
 import type {
-  BackendSpawnOptions,
-  ReleaseResult,
+  PauseResult,
   RemainingScreen,
+  ScreenRecord,
   ScreenRecords,
+  StartOptions,
+  StopOptions,
+  StopResult,
 } from './supervisor.types'
 import {
   killSignal,
   leaveGroup,
+  listBackendProcesses,
   processesOf,
   recordsFromSaved,
+  screenPattern,
   screensDrivenBy,
+  signalBackend,
   toSavedScreens,
 } from './supervisor.utils'
 
+// How long a replaced backend gets to let go of its screen before the new one starts
+const REPLACE_GRACE_MS = 100
+
 /**
  * Sole owner of the linux-wallpaperengine processes this app instance starts,
- * and of which wallpaper each screen shows.
+ * and of what each screen shows.
  *
- * Every backend (wallpapers, playlists and compatibility scans) is spawned and
- * killed here, so quitting can take all of them down. A backend started for
- * screens is recorded against them and saved, so the next launch can restore
- * them. Process work that kills and respawns backends runs through `run`, one
- * task at a time, so two callers can never interleave their kill → spawn
- * sequences on the same screen.
+ * Every backend (wallpapers, playlists and compatibility scans) is started,
+ * paused and stopped here, so quitting can take all of them down and the saved
+ * state always matches the processes. A backend started for screens is
+ * recorded against them and saved, so the next launch can restore them.
+ * Callers put kill → spawn work through `run`, one task at a time, so two
+ * callers never interleave on the same screen.
  */
 class SupervisorService implements ISupervisorService {
   private static instance: SupervisorService | null = null
 
-  // Every backend still running, including compatibility scans and released ones not yet exited
+  // Every backend still running, including compatibility scans and stopped ones not yet exited
   private live = new Set<ChildProcess>()
-  private screens: ScreenRecords
+  // Backends currently held with SIGSTOP
+  private frozen = new WeakSet<ChildProcess>()
+  private records: ScreenRecords
   private store = storeService.activeWallpapers
   private queue: Promise<unknown> = Promise.resolve()
   private stopping = false
   private pending = 0
 
   private constructor() {
-    this.screens = recordsFromSaved({
+    this.records = recordsFromSaved({
       activeWallpapers: this.store.get('activeWallpapers'),
       pausedScreens: this.store.get('pausedScreens'),
       screenGroups: this.store.get('screenGroups'),
@@ -72,20 +84,24 @@ class SupervisorService implements ISupervisorService {
     return result
   }
 
-  get isIdle(): boolean {
+  get idle(): boolean {
     return this.pending === 0
   }
 
-  get isShuttingDown(): boolean {
-    return this.stopping
-  }
+  // ── Backends ───────────────────────────────────────────────────────────
 
-  // ── Processes ──────────────────────────────────────────────────────────
+  async start(args: string[], options: StartOptions): Promise<ChildProcess> {
+    this.assertRunning()
+    if (options.screens) {
+      await this.stop({ screens: options.screens, keep: true })
+      await sleep(REPLACE_GRACE_MS)
+      this.assertRunning()
+    }
 
-  spawn(args: string[], { stdio, onExit }: BackendSpawnOptions): ChildProcess {
-    if (this.stopping) throw new Error('The app is quitting')
-
-    const proc = hostSpawn('linux-wallpaperengine', args, { detached: true, stdio })
+    const proc = hostSpawn('linux-wallpaperengine', args, {
+      detached: true,
+      stdio: options.stdio,
+    })
     // Quit kills backends explicitly, so the event loop never has to wait on them
     proc.unref()
     this.live.add(proc)
@@ -93,136 +109,162 @@ class SupervisorService implements ISupervisorService {
       this.live.delete(proc)
       // Saved screens must outlive a quit, so exits during one change nothing
       if (this.stopping) return
-      onExit?.(this.forget(proc))
+      options.onExit?.(this.forget(proc))
     })
+
+    if (options.screens) {
+      const { screens, wallpaper } = options
+      for (const screen of screens) {
+        const paused = this.records.get(screen)?.paused ?? false
+        leaveGroup(this.records, screen)
+        this.records.set(screen, {
+          options: { ...wallpaper, screen },
+          group: screens,
+          paused,
+          proc,
+        })
+      }
+      this.save()
+    }
     return proc
   }
 
-  spawnFor(
-    screens: string[],
-    options: ApplyWallpaperOptions,
-    args: string[],
-    spawnOptions: BackendSpawnOptions,
-  ): ChildProcess {
-    const proc = this.spawn(args, spawnOptions)
-    for (const screen of screens) {
-      leaveGroup(this.screens, screen)
-      this.screens.set(screen, {
-        options: { ...options, screen },
-        group: screens,
-        paused: false,
-        proc,
-      })
+  async stop({ screens, keep = false }: StopOptions = {}): Promise<StopResult> {
+    const targets = new Set(screens ?? this.records.keys())
+    // Read before the records change: the window-mode screen is found through its record
+    const patterns = [...targets].flatMap((screen) => this.patternFor(screen) ?? [])
+    const stopped = [...targets].filter((screen) => this.records.has(screen))
+    const remaining: RemainingScreen[] = []
+
+    for (const proc of processesOf(this.records, targets)) {
+      for (const [screen, record] of this.records) {
+        if (record.proc !== proc) continue
+        if (targets.has(screen)) {
+          delete record.proc
+          continue
+        }
+        // Keeps its wallpaper but has no backend until the caller respawns it
+        remaining.push({ screen, options: record.options, paused: record.paused })
+        this.records.set(screen, {
+          options: record.options,
+          group: [screen],
+          paused: record.paused,
+        })
+      }
+      this.kill(proc)
     }
-    this.save()
-    return proc
+    if (!keep) for (const screen of targets) this.records.delete(screen)
+    if (stopped.length > 0) this.save()
+
+    // Also reaches a backend with no handle: a crashed run's, or the host side under Flatpak
+    await this.killMatching(patterns)
+    return { stopped, remaining }
+  }
+
+  async setPaused(screens: string[], paused: boolean): Promise<PauseResult> {
+    const changed: string[] = []
+    const failed: string[] = []
+    for (const screen of screens) {
+      const record = this.records.get(screen)
+      if (!record) continue
+      const frozen = record.proc ? this.frozen.has(record.proc) : false
+      if (record.paused === paused && frozen === paused) continue
+
+      const signal = paused ? 'SIGSTOP' : 'SIGCONT'
+      if (!(await signalBackend(signal, record.proc, this.patternFor(screen)))) {
+        failed.push(screen)
+        continue
+      }
+      if (record.proc) {
+        if (paused) this.frozen.add(record.proc)
+        else this.frozen.delete(record.proc)
+      }
+      // Screens sharing the backend froze or resumed with it
+      for (const member of record.group) {
+        const sibling = this.records.get(member)
+        if (!sibling || sibling.paused === paused) continue
+        sibling.paused = paused
+        changed.push(member)
+      }
+    }
+    if (changed.length > 0) this.save()
+    return { changed, failed }
+  }
+
+  async prune(): Promise<string[]> {
+    const unowned = [...this.records].filter(([, record]) => !record.proc).map(([screen]) => screen)
+    if (unowned.length === 0) return []
+
+    const running = await listBackendProcesses()
+    const dead = unowned.filter((screen) => {
+      const pattern = this.patternFor(screen)
+      return !pattern || !running.some((line) => new RegExp(pattern).test(line))
+    })
+    for (const screen of dead) this.records.delete(screen)
+    if (dead.length > 0) this.save()
+    return dead
   }
 
   kill(proc: ChildProcess): void {
     try {
+      // A frozen process holds SIGTERM until it is resumed
+      if (this.frozen.has(proc)) proc.kill('SIGCONT')
       proc.kill(killSignal(shouldUseFlatpakSpawn()))
     } catch {
       /* already dead */
     }
   }
 
-  async killMatching(patterns: string[]): Promise<void> {
-    for (const pattern of patterns) {
-      await hostExecFileAsync('pkill', ['-9', '-f', pattern]).catch(() => undefined)
-    }
-  }
-
-  detach(screens: string[]): void {
-    const procs = processesOf(this.screens, screens)
-    for (const record of this.screens.values()) {
-      if (record.proc && procs.has(record.proc)) delete record.proc
-    }
-    for (const proc of procs) this.kill(proc)
-  }
-
-  release(screens: string[]): ReleaseResult {
-    const targets = new Set(screens)
-    const released = [...targets].filter((screen) => this.screens.has(screen))
-    const remaining: RemainingScreen[] = []
-
-    for (const proc of processesOf(this.screens, released)) {
-      for (const [screen, { options, paused, proc: drivenBy }] of this.screens) {
-        if (drivenBy !== proc || targets.has(screen)) continue
-        remaining.push({ screen, options, paused })
-        // Keeps its wallpaper but has no backend until the caller respawns it
-        this.screens.set(screen, { options, group: [screen], paused: false })
-      }
-      this.kill(proc)
-    }
-    for (const screen of targets) this.screens.delete(screen)
-    if (released.length > 0) this.save()
-
-    return { remaining, released }
-  }
-
-  reset(): void {
-    for (const proc of processesOf(this.screens, this.screens.keys())) this.kill(proc)
-    this.screens.clear()
-    this.save()
-  }
-
-  shutdown(hostPatterns: string[] = []): void {
+  shutdown(): void {
     this.stopping = true
     for (const proc of this.live) this.kill(proc)
     this.live.clear()
+    // Under Flatpak a handle only reaches flatpak-spawn, so also kill the host backends
     if (!shouldUseFlatpakSpawn()) return
-    for (const pattern of hostPatterns) {
-      hostExecFileSync('pkill', ['-9', '-f', pattern])
+    for (const screen of this.records.keys()) {
+      const pattern = this.patternFor(screen)
+      if (pattern) hostExecFileSync('pkill', ['-9', '-f', pattern])
     }
   }
 
   // ── Screens ────────────────────────────────────────────────────────────
 
-  getActive(): ReadonlyMap<string, ApplyWallpaperOptions> {
-    return new Map([...this.screens].map(([screen, record]) => [screen, record.options]))
-  }
-
-  getProcess(screen: string): ChildProcess | undefined {
-    return this.screens.get(screen)?.proc
-  }
-
-  isActive(backgroundId: string): boolean {
-    const records = [...this.screens.values()]
-    if (!records.some((record) => record.proc)) return false
-    return records.some((record) => record.options.backgroundId === backgroundId)
-  }
-
-  getPausedScreens(): string[] {
-    return [...this.screens].filter(([, record]) => record.paused).map(([screen]) => screen)
-  }
-
-  isPaused(screen: string): boolean {
-    return this.screens.get(screen)?.paused ?? false
-  }
-
-  markPaused(screens: string[], paused: boolean): void {
-    for (const screen of screens) {
-      for (const member of this.screens.get(screen)?.group ?? [screen]) {
-        const record = this.screens.get(member)
-        if (record) record.paused = paused
-      }
-    }
-    this.save()
+  screens(): ReadonlyMap<string, Readonly<ScreenRecord>> {
+    return this.records
   }
 
   // ── Private ────────────────────────────────────────────────────────────
 
+  private assertRunning(): void {
+    if (this.stopping) throw new Error('The app is quitting')
+  }
+
+  // How to find `screen`'s backend by command line, for one this instance has no handle for
+  private patternFor(screen: string): string | null {
+    return screenPattern(screen, {
+      playlist: playlistService.getActivePlaylistEntries()[screen]?.name,
+      backgroundId: this.records.get(screen)?.options.backgroundId,
+    })
+  }
+
+  // pkill -9 by command line; a pattern with no match is fine
+  private async killMatching(patterns: string[]): Promise<void> {
+    for (const pattern of patterns) {
+      await hostExecFileAsync('pkill', ['-9', '-f', pattern]).catch(() => undefined)
+    }
+  }
+
   // Drop the screens `proc` still drives, returning them. Screens a newer
   // backend has taken over are no longer `proc`'s and keep their state
   private forget(proc: ChildProcess): string[] {
-    const lost = screensDrivenBy(this.screens, proc)
-    for (const screen of lost) this.screens.delete(screen)
+    const lost = screensDrivenBy(this.records, proc)
+    for (const screen of lost) this.records.delete(screen)
     if (lost.length > 0) this.save()
     return lost
   }
 
   private save(): void {
-    const saved = toSavedScreens(this.screens)
+    const saved = toSavedScreens(this.records)
     this.store.set('activeWallpapers', saved.activeWallpapers)
     this.store.set('pausedScreens', saved.pausedScreens)
     this.store.set('screenGroups', saved.screenGroups)

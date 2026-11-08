@@ -19,6 +19,7 @@ import { resolveAssetPath } from './utils/assets.ts'
 import { createAppTray, type AppTray } from './utils/tray.ts'
 import { invalidationService } from './services/invalidation.ts'
 import { wallpaperService } from './services/wallpaper/wallpaper.ts'
+import { supervisorService } from './services/supervisor/supervisor.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
 import { DEV_TARGETS, type DevTarget } from '../shared/constants/development.ts'
 
@@ -182,7 +183,7 @@ app.on('before-quit', () => {
 // Backends die with the app; the next launch restores them from saved state.
 // Electron routes SIGTERM, SIGINT and SIGHUP through this same quit sequence
 app.on('will-quit', () => {
-  if (isPrimaryInstance) wallpaperService.shutdown()
+  if (isPrimaryInstance) supervisorService.shutdown()
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

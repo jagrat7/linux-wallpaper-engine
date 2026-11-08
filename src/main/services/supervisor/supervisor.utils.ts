@@ -1,5 +1,36 @@
 import type { ChildProcess } from 'node:child_process'
+import { backendArgPattern, hostExecFileAsync, shouldUseFlatpakSpawn } from '../../utils/host'
 import type { ScreenRecords, SavedScreens } from './supervisor.types'
+
+// ── Finding backends by command line ───────────────────────────────────────
+
+// Matches the backend executable itself, whether plain, absolute or Nix-wrapped.
+// Needs -f: plain pgrep only sees the 15-char comm, which truncates the name.
+export const BACKEND_PROCESS_PATTERN = '^[^ ]*linux-wallpaperengine[^ ]*( |$)'
+
+/** Command lines of every running backend, including ones this instance has no handle for. */
+export const listBackendProcesses = async (): Promise<string[]> => {
+  const { stdout } = await hostExecFileAsync('pgrep', ['-af', BACKEND_PROCESS_PATTERN]).catch(
+    () => ({ stdout: '' }),
+  )
+  return stdout.split('\n').filter((line) => line.trim().length > 0)
+}
+
+/**
+ * The command-line pattern of the backend drawing on `screen`. A real screen is
+ * found by its `--screen-root`. The window-mode `'default'` screen has none, so
+ * it is found by the playlist or wallpaper it runs.
+ */
+export const screenPattern = (
+  screen: string,
+  { playlist, backgroundId }: { playlist?: string; backgroundId?: string },
+): string | null => {
+  if (screen !== 'default') return backendArgPattern('--screen-root', screen)
+  if (playlist) return backendArgPattern('--playlist', playlist)
+  return backgroundId ? backendArgPattern('--bg', backgroundId) : null
+}
+
+// ── Signals ────────────────────────────────────────────────────────────────
 
 /**
  * The signal that kills one backend handle. Under Flatpak the handle is
@@ -7,6 +38,36 @@ import type { ScreenRecords, SavedScreens } from './supervisor.types'
  * alone on SIGKILL.
  */
 export const killSignal = (flatpak: boolean): NodeJS.Signals => (flatpak ? 'SIGTERM' : 'SIGKILL')
+
+/**
+ * Freeze or resume a backend. Signals the handle when there is one outside
+ * Flatpak; otherwise (a restored screen, or a handle that only reaches
+ * flatpak-spawn) signals the host backend by `pattern`. Never falls back to the
+ * bare executable name, which would hit every backend on the machine.
+ */
+export const signalBackend = async (
+  signal: 'SIGSTOP' | 'SIGCONT',
+  proc: ChildProcess | undefined,
+  pattern: string | null,
+): Promise<boolean> => {
+  if (proc && !shouldUseFlatpakSpawn()) {
+    try {
+      return proc.kill(signal)
+    } catch {
+      return false
+    }
+  }
+  if (!pattern) return false
+  const flag = signal === 'SIGSTOP' ? '-STOP' : '-CONT'
+  try {
+    await hostExecFileAsync('pkill', [flag, '-f', pattern])
+    return true
+  } catch {
+    return false
+  }
+}
+
+// ── Screen records ─────────────────────────────────────────────────────────
 
 /** Screens whose record points at `proc`. */
 export const screensDrivenBy = (records: ScreenRecords, proc: ChildProcess): string[] =>

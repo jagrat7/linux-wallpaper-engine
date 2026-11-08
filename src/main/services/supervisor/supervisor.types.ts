@@ -2,15 +2,29 @@ import type { ChildProcess, StdioOptions } from 'node:child_process'
 import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 import type { ActiveWallpapersSchema } from '../store'
 
-// ── Spawning ───────────────────────────────────────────────────────────────
+// ── Options ────────────────────────────────────────────────────────────────
 
-export interface BackendSpawnOptions {
+interface StartBase {
   stdio: StdioOptions
   /**
    * Runs when the backend exits on its own, with the screens it still drove
    * (none for a backend bound to no screen). Skipped once the app is quitting.
    */
   onExit?: (lostScreens: string[]) => void
+}
+
+/**
+ * Without `screens` the backend is one-off work, such as a compatibility scan.
+ * With them it replaces whatever draws there and becomes their `wallpaper`.
+ */
+export type StartOptions = StartBase &
+  ({ screens?: undefined } | { screens: string[]; wallpaper: ApplyWallpaperOptions })
+
+export interface StopOptions {
+  /** Screens to stop; every screen when omitted */
+  screens?: string[]
+  /** Keep the screens' wallpapers recorded, for a backend about to replace theirs */
+  keep?: boolean
 }
 
 // ── Screen state ───────────────────────────────────────────────────────────
@@ -20,6 +34,7 @@ export interface ScreenRecord {
   options: ApplyWallpaperOptions
   /** Screens sharing this screen's backend. Saved, so pausing still freezes all of them after a restart */
   group: string[]
+  /** Whether the screen should stay frozen; kept across a respawn and saved */
   paused: boolean
   /** Missing for a screen restored from the last run until it is respawned */
   proc?: ChildProcess
@@ -36,7 +51,7 @@ export type SavedScreens = Pick<
 
 // ── Results ────────────────────────────────────────────────────────────────
 
-/** A screen left without a backend when the process it shared was released. */
+/** A screen left without a backend when the process it shared was stopped. */
 export interface RemainingScreen {
   screen: string
   options: ApplyWallpaperOptions
@@ -44,9 +59,16 @@ export interface RemainingScreen {
   paused: boolean
 }
 
-export interface ReleaseResult {
+export interface StopResult {
+  /** Requested screens that had a wallpaper */
+  stopped: string[]
   /** Screens that shared a killed backend and still need one */
   remaining: RemainingScreen[]
-  /** Requested screens that had a wallpaper */
-  released: string[]
+}
+
+export interface PauseResult {
+  /** Screens whose paused state flipped, including those sharing a backend */
+  changed: string[]
+  /** Screens whose backend could not be signalled */
+  failed: string[]
 }
