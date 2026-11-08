@@ -85,7 +85,8 @@ for arg in "\$@"; do
 done
 
 if [[ -n "\$SPEC_FILE" ]]; then
-  sed -i 's/^%install.*/&\\ncd ../g' "\$SPEC_FILE"
+  # Newer rpm (Arch, Fedora) runs %install one directory below the files; older rpm (Ubuntu 24.04) does not
+  sed -i 's/^%install.*/&\\n[ -d usr ] || cd ../g' "\$SPEC_FILE"
 fi
 
 exec "$REAL_RPMBUILD" --define "_dbpath $RPM_DB" "\$@"
