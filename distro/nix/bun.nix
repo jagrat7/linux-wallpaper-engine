@@ -1885,6 +1885,10 @@
     url = "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.267.tgz";
     hash = "sha512-0Drusm6MVRXSOJpGbaSVgcQsuB4hEkMpHXaVstcPmhu5LIedxs1xNK/nIxmQIU/RPC0+1/o0AVZfBTkTNJOdUw==";
   };
+  "electron-updater@6.8.11" = fetchurl {
+    url = "https://registry.npmjs.org/electron-updater/-/electron-updater-6.8.11.tgz";
+    hash = "sha512-12U/mbzaIKQS3Q543aQ7DjyAZMXeVJy1Wpu0qdq5ne4RXpIQDpWYm25zRjgXngAoo6swMrm4C4owGyiIipelsg==";
+  };
   "electron-winstaller@5.4.0" = fetchurl {
     url = "https://registry.npmjs.org/electron-winstaller/-/electron-winstaller-5.4.0.tgz";
     hash = "sha512-bO3y10YikuUwUuDUQRM4KfwNkKhnpVO7IPdbsrejwN9/AABJzzTQ4GeHwyzNSrVO+tEH3/Np255a3sVZpZDjvg==";
@@ -2368,6 +2372,14 @@
   "lightningcss@1.33.0" = fetchurl {
     url = "https://registry.npmjs.org/lightningcss/-/lightningcss-1.33.0.tgz";
     hash = "sha512-WkUDrojuJs0xkgGf2udWxa3yGBRxPtxUkB79i6aCZLRgc7PM8fZe9TosfPDcvEpQZbuFASnHYmRLBLUbmLOIIA==";
+  };
+  "lodash.escaperegexp@4.1.2" = fetchurl {
+    url = "https://registry.npmjs.org/lodash.escaperegexp/-/lodash.escaperegexp-4.1.2.tgz";
+    hash = "sha512-TM9YBvyC84ZxE3rgfefxUWiQKLilstD6k7PTGt6wfbtXF8ixIJLOL3VYyV/z+ZiPLsVxAsKAFVwWlWeb2Y8Yyw==";
+  };
+  "lodash.isequal@4.5.0" = fetchurl {
+    url = "https://registry.npmjs.org/lodash.isequal/-/lodash.isequal-4.5.0.tgz";
+    hash = "sha512-pDo3lu8Jhfjqls6GkMgpahsF9kCyayhgykjyLMNFTKWrpVdAQtYyB4muAMWozBB4ig/dtWAmsMxLEI8wuz+DYQ==";
   };
   "lodash@4.18.1" = fetchurl {
     url = "https://registry.npmjs.org/lodash/-/lodash-4.18.1.tgz";
@@ -2932,6 +2944,10 @@
   "tiny-invariant@1.3.3" = fetchurl {
     url = "https://registry.npmjs.org/tiny-invariant/-/tiny-invariant-1.3.3.tgz";
     hash = "sha512-+FbBPE1o9QAYvviau/qC5SE3caw21q3xkvWKBtja5vgqOWIHHJ3ioaq1VPfn/Szqctz2bU/oYeKd9/z5BL+PVg==";
+  };
+  "tiny-typed-emitter@2.1.0" = fetchurl {
+    url = "https://registry.npmjs.org/tiny-typed-emitter/-/tiny-typed-emitter-2.1.0.tgz";
+    hash = "sha512-qVtvMxeXbVej0cQWKqVSSAHmKZEHAvxdF8HEUBFWts8h+xEo5m/lEiPakuyZ3BnCBjOD8i24kzNOiOLLgsSxhA==";
   };
   "tiny-warning@1.0.3" = fetchurl {
     url = "https://registry.npmjs.org/tiny-warning/-/tiny-warning-1.0.3.tgz";
