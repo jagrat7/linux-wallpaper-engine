@@ -103,3 +103,25 @@ jobs:
           name: smoke-${{ matrix.distro }}
           path: smoke-output
           if-no-files-found: ignore
+
+  nix:
+    name: Nix package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@v31
+
+      # Builds the flake's package (distro/nix/package.nix) with Nixpkgs' Electron
+      - name: Build the Nix package
+        run: nix build .#default -L
+
+      - name: Check the package contents
+        run: |
+          test -f result/share/linux-wallpaper-engine/app.asar
+          test -d result/share/linux-wallpaper-engine/assets
+          test -x result/bin/linux-wallpaper-engine
+          ls -l result/bin result/share/linux-wallpaper-engine
