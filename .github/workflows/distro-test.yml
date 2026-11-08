@@ -66,6 +66,7 @@ jobs:
             release/*.rpm
             release/*.zip
             release/*.AppImage
+            release/latest-linux.yml
           if-no-files-found: error
 
   test:
