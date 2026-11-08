@@ -9,6 +9,14 @@ on:
       tag:
         description: GitHub release tag to publish to AUR
         required: true
+  # The Release workflow calls this after it creates the release: a release created
+  # with the workflow's token doesn't fire the `release` event above.
+  workflow_call:
+    inputs:
+      tag:
+        description: GitHub release tag to publish to AUR
+        type: string
+        required: true
 
 permissions:
   contents: read

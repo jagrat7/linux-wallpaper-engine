@@ -15,13 +15,19 @@ on:
       - .github/workflows/distro-test.yml
   workflow_dispatch:
   workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build and test, such as a release tag
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 concurrency:
-  group: distro-test-${{ github.ref }}
-  cancel-in-progress: true
+  group: distro-test-${{ inputs.ref || github.ref }}
+  # A release run must finish; only superseded PR runs are cancelled
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -31,6 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
@@ -75,6 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
 
       - uses: actions/setup-node@v4
@@ -111,6 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
 
       - uses: cachix/install-nix-action@v31
