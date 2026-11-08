@@ -37,6 +37,37 @@ export const WORKSHOP_SORT_OPTIONS = [
 ] as const
 export type WorkshopSortBy = (typeof WORKSHOP_SORT_OPTIONS)[number]['value']
 
+// Steam Workshop's resolution tags for Wallpaper Engine, in Steam's order. `label` is the tag Steam
+// shows; `value` is what workshopFilterResolution stores: plain sizes in the compact "WxH" form
+// (toWorkshopResolutionTag turns it into Steam's "W x H"), every other tag as-is.
+export const WORKSHOP_RESOLUTION_OPTIONS = [
+  { label: 'Standard Definition', value: 'Standard Definition' },
+  { label: '1280 x 720', value: '1280x720' },
+  { label: '1366 x 768', value: '1366x768' },
+  { label: '1920 x 1080', value: '1920x1080' },
+  { label: '2560 x 1440', value: '2560x1440' },
+  { label: '3840 x 2160', value: '3840x2160' },
+  { label: 'Ultrawide Standard Definition', value: 'Ultrawide Standard Definition' },
+  { label: 'Ultrawide 2560 x 1080', value: 'Ultrawide 2560 x 1080' },
+  { label: 'Ultrawide 3440 x 1440', value: 'Ultrawide 3440 x 1440' },
+  { label: 'Dual Standard Definition', value: 'Dual Standard Definition' },
+  { label: 'Dual 3840 x 1080', value: 'Dual 3840 x 1080' },
+  { label: 'Dual 5120 x 1440', value: 'Dual 5120 x 1440' },
+  { label: 'Dual 7680 x 2160', value: 'Dual 7680 x 2160' },
+  { label: 'Triple Standard Definition', value: 'Triple Standard Definition' },
+  { label: 'Triple 4096 x 768', value: 'Triple 4096 x 768' },
+  { label: 'Triple 5760 x 1080', value: 'Triple 5760 x 1080' },
+  { label: 'Triple 7680 x 1440', value: 'Triple 7680 x 1440' },
+  { label: 'Triple 11520 x 2160', value: 'Triple 11520 x 2160' },
+  { label: 'Portrait Standard Definition', value: 'Portrait Standard Definition' },
+  { label: 'Portrait 720 x 1280', value: 'Portrait 720 x 1280' },
+  { label: 'Portrait 1080 x 1920', value: 'Portrait 1080 x 1920' },
+  { label: 'Portrait 1440 x 2560', value: 'Portrait 1440 x 2560' },
+  { label: 'Portrait 2160 x 3840', value: 'Portrait 2160 x 3840' },
+  { label: 'Other resolution', value: 'Other resolution' },
+  { label: 'Dynamic resolution', value: 'Dynamic resolution' },
+] as const
+
 export const WORKSHOP_SORT_TO_QUERY_TYPE: Record<WorkshopSortBy, number> = {
   trend: UGC_QUERY_TYPE_RANKED_BY_TREND,
   votes: UGC_QUERY_TYPE_RANKED_BY_VOTES_UP,

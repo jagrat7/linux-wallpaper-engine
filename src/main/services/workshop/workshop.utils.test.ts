@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { buildFilterCombinations } from './workshop.utils'
+import { WORKSHOP_RESOLUTION_OPTIONS } from '../../../shared/constants/workshop'
+import { buildFilterCombinations, toWorkshopResolutionTag } from './workshop.utils'
 
 const noFilters = {
   workshopFilterType: [],
@@ -60,5 +61,18 @@ describe('buildFilterCombinations', () => {
         workshopFilterResolution: ['Unknown', '3840x2160', '3840 x 2160'],
       }),
     ).toEqual([['3840 x 2160']])
+  })
+})
+
+describe('WORKSHOP_RESOLUTION_OPTIONS', () => {
+  it('stores values that convert to the Steam tag each option shows', () => {
+    for (const option of WORKSHOP_RESOLUTION_OPTIONS) {
+      expect(toWorkshopResolutionTag(option.value)).toBe(option.label)
+    }
+  })
+
+  it('has no duplicate values', () => {
+    const values = WORKSHOP_RESOLUTION_OPTIONS.map((option) => option.value)
+    expect(new Set(values).size).toBe(values.length)
   })
 })
