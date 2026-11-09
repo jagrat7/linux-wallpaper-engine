@@ -2,4 +2,8 @@
 - add jsdocs for services
 - Avoid litering services with one of files, try to see if you can add it to utils first
 - Adding new members (methods or properties) to a service interface is heavily discouraged. First see whether the behavior fits an existing member, for example as a new `kind` of an existing action or a field on an existing result
-lkllklk
+- Keep service interfaces small, like tRPC or React Query APIs: a few verbs that take a typed input, not one method per case
+  - One action with a discriminated input (`apply({ kind: 'random' })`) instead of `applyRandom`, `applyPlaylist`, ...
+  - One setter with a value (`setPaused(paused)`) instead of `pause` and `resume`
+  - One read that returns a snapshot (`getActive()`) instead of a getter per field (`getActiveScreens`, `getPausedScreens`, ...)
+  - Pure helpers that need no service state go in utils, not on the service
