@@ -581,6 +581,9 @@ class WallpaperService implements IWallpaperService {
     options: ApplyWallpaperOptions,
     playlist: string,
   ): Promise<void> {
+    // Screens sharing a backend with the targets keep their wallpaper on a backend of their own
+    const { remaining } = await this.supervisor.stop({ screens, keep: true })
+    await this.respawnGrouped(remaining)
     await this.launch(screens, args, options, playlist)
     invalidationService.emit('wallpaper.applied')
   }

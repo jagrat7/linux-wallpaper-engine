@@ -17,6 +17,7 @@ const { mockStore, mockPlaylistService } = vi.hoisted(() => ({
   mockPlaylistService: {
     resolveSteamLibraryPaths: vi.fn(),
     resolveWallpaperEngineAssetsDir: vi.fn(),
+    startProcess: vi.fn(),
   },
 }))
 
@@ -25,7 +26,10 @@ vi.mock('../store', () => ({
 }))
 vi.mock('../playlists/playlist', () => ({ playlistService: mockPlaylistService }))
 vi.mock('../settings', () => ({
-  settingsService: { loadSettings: vi.fn(), getSetting: vi.fn() },
+  settingsService: {
+    loadSettings: vi.fn(async () => ({ windowMode: false, fps: 60, volume: 100 })),
+    getSetting: vi.fn(),
+  },
 }))
 vi.mock('../display', () => ({ displayService: { detectDisplays: vi.fn() } }))
 vi.mock('../compatibility', () => ({ compatibilityService: { monitorProcess: vi.fn() } }))
@@ -135,5 +139,37 @@ describe('wallpaperService.getActive during restore', () => {
     await restoring
     // pgrep (mocked) finds no backend for eDP-1, so the idle prune drops it
     expect(await service.getActive()).toEqual([])
+  })
+})
+
+describe('wallpaperService.apply playlist', () => {
+  it('keeps a screen that shared a backend with the playlist target on its wallpaper', async () => {
+    const shared = await supervisorService.start(['--bg', '/wp/1'], {
+      screens: ['eDP-1', 'HDMI-1'],
+      wallpaper: { backgroundId: '/wp/1' },
+      stdio: 'ignore',
+    })
+    mockPlaylistService.startProcess.mockImplementation(
+      async (name: string, screens: string[], _stamp: boolean, launch) => {
+        await launch(screens, ['--screen-root', screens[0], '--playlist', name], {
+          backgroundId: '/wp/2',
+        })
+        return { success: true, screens }
+      },
+    )
+
+    await wallpaperService.apply({
+      kind: 'playlist',
+      name: 'Mix',
+      screens: ['eDP-1'],
+      stampLastApplied: false,
+    })
+
+    const records = supervisorService.screens()
+    expect(records.get('eDP-1')?.playlist).toBe('Mix')
+    expect(records.get('HDMI-1')?.options.backgroundId).toBe('/wp/1')
+    expect(records.get('HDMI-1')?.proc).toBeDefined()
+    expect(records.get('HDMI-1')?.proc).not.toBe(shared)
+    expect(records.get('HDMI-1')?.proc).not.toBe(records.get('eDP-1')?.proc)
   })
 })
