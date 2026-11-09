@@ -24,7 +24,7 @@ const isScrollbarClass = (token, allow) => {
   const utility = parts.at(-1).replace(/^!|!$/g, '')
   if (allow.includes(utility)) return false
   return (
-    /^-?scrollbar-[\w[(]/.test(utility) ||
+    /^-?scrollbar-(?:[\w[(]|$)/.test(utility) ||
     /^\[-?(?:webkit-)?scrollbar-/.test(utility) ||
     parts.some((part) => part.includes('::-webkit-scrollbar'))
   )

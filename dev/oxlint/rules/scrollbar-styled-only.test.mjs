@@ -54,5 +54,7 @@ tester.run('scrollbar-styled-only', scrollbarStyledOnly, {
       errors: [error('[&::-webkit-scrollbar]:hidden')],
     },
     { code: '<div className="!scrollbar-thin" />', errors: [error('!scrollbar-thin')] },
+    { code: '<div className={`scrollbar-${kind}`} />', errors: [error('scrollbar-')] },
+    { code: "cn('hover:scrollbar-' + kind)", errors: [error('hover:scrollbar-')] },
   ],
 })
