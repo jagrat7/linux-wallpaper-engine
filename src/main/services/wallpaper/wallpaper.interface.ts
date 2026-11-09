@@ -11,15 +11,20 @@ import type {
 // ── Main wallpaper service — thin facade with condensed API ────────────────
 
 export interface IWallpaperService {
-  // Catalog: scan and check backend
+  /** Installed wallpapers and when each was last applied, for the library grid. */
   query(): Promise<{
     wallpapers: Wallpaper[]
-    backendInstalled: boolean
-    active: ActiveWallpaperEntry[]
+    appliedHistory: Record<string, number>
   }>
 
-  // Catalog only: the same cached scan, without the backend check or active state
+  /** Installed wallpapers from the same cached scan as `query`. */
   catalog(): Promise<Wallpaper[]>
+
+  /** Wallpapers active on each screen, without waiting on a library scan. */
+  getActive(): Promise<ActiveWallpaperEntry[]>
+
+  /** Whether the linux-wallpaperengine backend is on the host PATH. */
+  isBackendInstalled(): Promise<boolean>
 
   /**
    * Bring back the wallpapers saved from the last run, replacing any backends

@@ -218,13 +218,17 @@ export function parseContentRating(contentRating?: string): AgeRating | undefine
 
 const PREVIEW_CANDIDATES = ['preview.jpg', 'preview.png', 'preview.gif']
 
-export async function resolveThumbnail(backgroundId: string): Promise<string> {
+/** Title and preview image of one wallpaper, read from its project.json without a library scan. */
+export async function readProjectSummary(
+  backgroundId: string,
+): Promise<{ title?: string; thumbnail: string }> {
   try {
     const projectPath = path.join(backgroundId, 'project.json')
     const projectData = await fs.readFile(projectPath, 'utf-8')
     const project = JSON.parse(projectData)
-    if (project.preview) {
-      return path.join(backgroundId, project.preview)
+    return {
+      title: project.title,
+      thumbnail: project.preview ? path.join(backgroundId, project.preview) : '',
     }
   } catch {
     // Fallback: try common preview filenames
@@ -232,13 +236,13 @@ export async function resolveThumbnail(backgroundId: string): Promise<string> {
       const candidatePath = path.join(backgroundId, candidate)
       try {
         await fs.access(candidatePath)
-        return candidatePath
+        return { thumbnail: candidatePath }
       } catch {
         /* continue */
       }
     }
   }
-  return ''
+  return { thumbnail: '' }
 }
 
 export async function detectResolution(

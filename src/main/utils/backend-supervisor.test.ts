@@ -62,6 +62,23 @@ describe('backendSupervisor.run', () => {
   })
 })
 
+describe('backendSupervisor.isIdle', () => {
+  it('is false while a task runs or waits, and true once all have settled', async () => {
+    const supervisor = await loadSupervisor()
+    const gate = Promise.withResolvers<void>()
+    expect(supervisor.isIdle).toBe(true)
+
+    const first = supervisor.run(() => gate.promise.then(() => Promise.reject(new Error('x'))))
+    const second = supervisor.run(async () => undefined)
+    expect(supervisor.isIdle).toBe(false)
+
+    gate.resolve()
+    await expect(first).rejects.toThrow('x')
+    await second
+    expect(supervisor.isIdle).toBe(true)
+  })
+})
+
 describe('backendSupervisor.spawn', () => {
   it('spawns a detached backend and reports an unexpected exit', async () => {
     const supervisor = await loadSupervisor()
