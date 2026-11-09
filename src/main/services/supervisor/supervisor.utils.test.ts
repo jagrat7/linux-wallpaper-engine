@@ -117,13 +117,25 @@ describe('screenPattern', () => {
   })
 
   it('finds the window-mode screen by its playlist, then by its wallpaper', () => {
-    expect(screenPattern('default', { playlist: 'Mix', backgroundId: '/wp/a' })).toBe(
-      backendArgPattern('--playlist', 'Mix'),
+    const playlist = new RegExp(
+      screenPattern('default', { playlist: 'Mix', backgroundId: '/wp/a' }) ?? '^$',
     )
-    expect(screenPattern('default', { backgroundId: '/wp/a' })).toBe(
-      backendArgPattern('--bg', '/wp/a'),
-    )
+    const wallpaper = new RegExp(screenPattern('default', { backgroundId: '/wp/a' }) ?? '^$')
+
+    expect(playlist.test('linux-wallpaperengine --playlist Mix --fps 30')).toBe(true)
+    expect(wallpaper.test('linux-wallpaperengine --bg /wp/a --fps 30')).toBe(true)
+    expect(wallpaper.test('linux-wallpaperengine --window 0x0x800x600 --bg /wp/a')).toBe(true)
+    expect(wallpaper.test('/nix/store/x/bin/.linux-wallpaperengine-wrapped --bg /wp/a')).toBe(true)
+    expect(wallpaper.test('linux-wallpaperengine --bg /wp/ab')).toBe(false)
     expect(screenPattern('default', {})).toBeNull()
+  })
+
+  it('never matches a per-screen backend running the same wallpaper or playlist', () => {
+    const playlist = new RegExp(screenPattern('default', { playlist: 'Mix' }) ?? '^$')
+    const wallpaper = new RegExp(screenPattern('default', { backgroundId: '/wp/a' }) ?? '^$')
+
+    expect(wallpaper.test('linux-wallpaperengine --screen-root eDP-1 --bg /wp/a')).toBe(false)
+    expect(playlist.test('linux-wallpaperengine --screen-root eDP-1 --playlist Mix')).toBe(false)
   })
 })
 

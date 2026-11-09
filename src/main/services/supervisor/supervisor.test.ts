@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import type { ApplyWallpaperOptions } from '../../../shared/constants/wallpaper'
 import { backendArgPattern } from '../../utils/host'
-import { BACKEND_PROCESS_PATTERN } from './supervisor.utils'
+import { BACKEND_PROCESS_PATTERN, screenPattern } from './supervisor.utils'
 
 // Store contents the supervisor reads on construction: saved screens from the last run
 type Saved = { activeWallpapers?: Record<string, ApplyWallpaperOptions> } & Record<string, unknown>
@@ -259,7 +259,7 @@ describe('supervisorService.stop', () => {
 
     await supervisor.stop()
 
-    expect(pkilled()).toEqual([`-9 -f ${backendArgPattern('--playlist', 'Mix')}`])
+    expect(pkilled()).toEqual([`-9 -f ${screenPattern('default', { playlist: 'Mix' })}`])
   })
 
   it('with keep, kills the backend but keeps the screens saved', async () => {

@@ -1,5 +1,10 @@
 import type { ChildProcess } from 'node:child_process'
-import { backendArgPattern, hostExecFileAsync, shouldUseFlatpakSpawn } from '../../utils/host'
+import {
+  backendArgPattern,
+  escapeRegExp,
+  hostExecFileAsync,
+  shouldUseFlatpakSpawn,
+} from '../../utils/host'
 import type { ScreenRecords, SavedScreens } from './supervisor.types'
 
 // ── Finding backends by command line ───────────────────────────────────────
@@ -16,18 +21,24 @@ export const listBackendProcesses = async (): Promise<string[]> => {
   return stdout.split('\n').filter((line) => line.trim().length > 0)
 }
 
+// A windowed backend's own flag, right after the executable (and its optional
+// `--window` geometry). A per-screen backend starts with `--screen-root`, so a
+// windowed pattern never matches one running the same wallpaper or playlist.
+const windowedPattern = (flag: string, value: string): string =>
+  `linux-wallpaperengine[^ ]* (--window [^ ]+ )?${escapeRegExp(flag)} ${escapeRegExp(value)}( |$)`
+
 /**
  * The command-line pattern of the backend drawing on `screen`. A real screen is
  * found by its `--screen-root`. The window-mode `'default'` screen has none, so
- * it is found by the playlist or wallpaper it runs.
+ * it is found by the playlist or wallpaper it leads with.
  */
 export const screenPattern = (
   screen: string,
   { playlist, backgroundId }: { playlist?: string; backgroundId?: string },
 ): string | null => {
   if (screen !== 'default') return backendArgPattern('--screen-root', screen)
-  if (playlist) return backendArgPattern('--playlist', playlist)
-  return backgroundId ? backendArgPattern('--bg', backgroundId) : null
+  if (playlist) return windowedPattern('--playlist', playlist)
+  return backgroundId ? windowedPattern('--bg', backgroundId) : null
 }
 
 // ── Signals ────────────────────────────────────────────────────────────────
