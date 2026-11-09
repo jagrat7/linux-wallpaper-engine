@@ -21,8 +21,15 @@ const playlistSettingsSchema = z.object({
   overrides: engineOverridesSchema.optional(),
 })
 
-function startPlaylist(playlistName: string, screens: string[], stampLastApplied: boolean) {
-  return wallpaperService.startPlaylist(playlistName, screens, stampLastApplied)
+function startPlaylist(name: string, screens: string[], stampLastApplied: boolean) {
+  return wallpaperService.apply({ kind: 'playlist', name, screens, stampLastApplied })
+}
+
+// The playlist running on each screen that runs one
+async function activePlaylists(): Promise<{ name: string; screen: string }[]> {
+  return (await wallpaperService.getActive()).flatMap(({ screen, playlist }) =>
+    playlist ? [{ name: playlist, screen }] : [],
+  )
 }
 
 export const playlistRouter = trpc.router({
@@ -81,7 +88,7 @@ export const playlistRouter = trpc.router({
         .optional(),
     )
     .mutation(async ({ input }) => {
-      const active = playlistService.getActivePlaylists()
+      const active = await activePlaylists()
       const targetScreens = active
         .filter(
           (entry) =>
@@ -103,7 +110,6 @@ export const playlistRouter = trpc.router({
         const remainingScreens = playlistScreens.filter((screen) => !targetScreenSet.has(screen))
 
         await wallpaperService.stop(playlistScreens)
-        playlistService.clearActivePlaylist(playlistScreens)
 
         if (remainingScreens.length > 0) {
           const result = await startPlaylist(playlistName, remainingScreens, false)
@@ -131,13 +137,10 @@ export const playlistRouter = trpc.router({
           : (await displayService.detectDisplays()).map((d) => d.name)
 
       await wallpaperService.stop(targetScreens)
-      playlistService.clearActivePlaylist(targetScreens)
 
       return startPlaylist(input.playlistName, targetScreens, true)
     }),
 
   // Get currently active playlist info
-  active: trpc.procedure.query(() => {
-    return playlistService.getActivePlaylists()
-  }),
+  active: trpc.procedure.query(() => activePlaylists()),
 })

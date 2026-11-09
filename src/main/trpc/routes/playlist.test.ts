@@ -11,14 +11,11 @@ const { mockPlaylistService, mockWallpaperService, mockSettingsService, mockDisp
       updatePlaylist: vi.fn(),
       deletePlaylist: vi.fn(),
       stampLastApplied: vi.fn(),
-      getActivePlaylists: vi.fn(),
-      setActivePlaylist: vi.fn(),
-      clearActivePlaylist: vi.fn(),
     },
     mockWallpaperService: {
+      getActive: vi.fn(),
       stop: vi.fn(),
       apply: vi.fn(),
-      startPlaylist: vi.fn(),
     },
     mockSettingsService: {
       loadSettings: vi.fn(),
@@ -78,7 +75,6 @@ beforeEach(() => {
     { name: 'HDMI-1', primary: true },
     { name: 'DP-1', primary: false },
   ])
-  mockWallpaperService.startPlaylist.mockResolvedValue({ success: true })
 })
 
 describe('playlistRouter', () => {
@@ -86,27 +82,28 @@ describe('playlistRouter', () => {
     it('starts the playlist on the selected screen', async () => {
       await caller.start({ playlistName: 'Random Mix', screen: 'HDMI-1' })
 
-      expect(mockWallpaperService.startPlaylist).toHaveBeenCalledWith(
-        'Random Mix',
-        ['HDMI-1'],
-        true,
-      )
+      expect(mockWallpaperService.apply).toHaveBeenCalledWith({
+        kind: 'playlist',
+        name: 'Random Mix',
+        screens: ['HDMI-1'],
+        stampLastApplied: true,
+      })
     })
 
     it('starts a playlist on all detected screens when no screen is selected', async () => {
       await caller.start({ playlistName: 'Random Mix' })
 
-      expect(mockWallpaperService.startPlaylist).toHaveBeenCalledWith(
-        'Random Mix',
-        ['HDMI-1', 'DP-1'],
-        true,
-      )
+      expect(mockWallpaperService.apply).toHaveBeenCalledWith({
+        kind: 'playlist',
+        name: 'Random Mix',
+        screens: ['HDMI-1', 'DP-1'],
+        stampLastApplied: true,
+      })
       expect(mockWallpaperService.stop).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
-      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
     })
 
     it('returns the process start error', async () => {
-      mockWallpaperService.startPlaylist.mockResolvedValue({
+      mockWallpaperService.apply.mockResolvedValue({
         success: false,
         error: 'Backend missing',
       })
@@ -120,28 +117,31 @@ describe('playlistRouter', () => {
 
   describe('stop', () => {
     it('stops only matching playlist screens', async () => {
-      mockPlaylistService.getActivePlaylists.mockReturnValue([
-        { name: 'Random Mix', screen: 'HDMI-1' },
-        { name: 'Other Mix', screen: 'DP-1' },
+      mockWallpaperService.getActive.mockResolvedValue([
+        { screen: 'HDMI-1', playlist: 'Random Mix' },
+        { screen: 'DP-1', playlist: 'Other Mix' },
       ])
 
       await caller.stop({ playlistName: 'Random Mix' })
 
       expect(mockWallpaperService.stop).toHaveBeenCalledWith(['HDMI-1'])
-      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1'])
     })
 
     it('restarts remaining screens when stopping one screen', async () => {
-      mockPlaylistService.getActivePlaylists.mockReturnValue([
-        { name: 'Random Mix', screen: 'HDMI-1' },
-        { name: 'Random Mix', screen: 'DP-1' },
+      mockWallpaperService.getActive.mockResolvedValue([
+        { screen: 'HDMI-1', playlist: 'Random Mix' },
+        { screen: 'DP-1', playlist: 'Random Mix' },
       ])
 
       await caller.stop({ playlistName: 'Random Mix', screen: 'HDMI-1' })
 
       expect(mockWallpaperService.stop).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
-      expect(mockPlaylistService.clearActivePlaylist).toHaveBeenCalledWith(['HDMI-1', 'DP-1'])
-      expect(mockWallpaperService.startPlaylist).toHaveBeenCalledWith('Random Mix', ['DP-1'], false)
+      expect(mockWallpaperService.apply).toHaveBeenCalledWith({
+        kind: 'playlist',
+        name: 'Random Mix',
+        screens: ['DP-1'],
+        stampLastApplied: false,
+      })
     })
   })
 })

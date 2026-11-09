@@ -27,7 +27,7 @@ export async function serveMedia(req: IncomingMessage, res: ServerResponse) {
     res.writeHead(404).end()
     return
   }
-  const wallpapers = await wallpaperService.catalog()
+  const { wallpapers } = await wallpaperService.catalog()
   const directories = await Promise.all(
     wallpapers.map((item) => fs.realpath(item.path).catch(() => null)),
   )

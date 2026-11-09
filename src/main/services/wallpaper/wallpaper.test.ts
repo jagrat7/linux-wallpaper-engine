@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import type { ChildProcess } from 'node:child_process'
+import { EventEmitter } from 'node:events'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 // --- Mocks ---------------------------------------------------------------
@@ -17,8 +17,7 @@ const { mockStore, mockPlaylistService } = vi.hoisted(() => ({
   mockPlaylistService: {
     resolveSteamLibraryPaths: vi.fn(),
     resolveWallpaperEngineAssetsDir: vi.fn(),
-    getActivePlaylistEntries: vi.fn(() => ({})),
-    clearActivePlaylist: vi.fn(),
+    startProcess: vi.fn(),
   },
 }))
 
@@ -27,7 +26,10 @@ vi.mock('../store', () => ({
 }))
 vi.mock('../playlists/playlist', () => ({ playlistService: mockPlaylistService }))
 vi.mock('../settings', () => ({
-  settingsService: { loadSettings: vi.fn(), getSetting: vi.fn() },
+  settingsService: {
+    loadSettings: vi.fn(async () => ({ windowMode: false, fps: 60, volume: 100 })),
+    getSetting: vi.fn(),
+  },
 }))
 vi.mock('../display', () => ({ displayService: { detectDisplays: vi.fn() } }))
 vi.mock('../compatibility', () => ({ compatibilityService: { monitorProcess: vi.fn() } }))
@@ -36,6 +38,7 @@ vi.mock('../../utils/host', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/host')>()),
   // `du` for sizes, `file` for resolutions; empty output is fine for these tests
   hostExecFileAsync: vi.fn(async () => ({ stdout: '', stderr: '' })),
+  hostSpawn: vi.fn(() => Object.assign(new EventEmitter(), { unref: vi.fn(), kill: vi.fn() })),
 }))
 
 // --- Fixture: a Steam library with one installed wallpaper -----------------
@@ -51,14 +54,12 @@ fs.writeFileSync(
 afterAll(() => fs.rmSync(library, { recursive: true, force: true }))
 
 import { wallpaperService } from './wallpaper'
-import { wallpaperStateManager } from './state-manager/state-manager'
-
-const makeProc = () => ({ kill: vi.fn() }) as unknown as ChildProcess
+import { supervisorService } from '../supervisor/supervisor'
 
 beforeEach(async () => {
   vi.clearAllMocks()
   mockPlaylistService.resolveSteamLibraryPaths.mockResolvedValue([library])
-  wallpaperStateManager.reset()
+  await supervisorService.stop()
   await wallpaperService.diagnose({ kind: 'invalidateCache' })
 })
 
@@ -68,13 +69,13 @@ describe('wallpaperService catalog', () => {
   it('shares one library scan between callers that arrive while it runs', async () => {
     const results = await Promise.all([
       wallpaperService.catalog(),
-      wallpaperService.query(),
+      wallpaperService.catalog(),
       wallpaperService.catalog(),
     ])
 
     expect(mockPlaylistService.resolveSteamLibraryPaths).toHaveBeenCalledOnce()
-    expect(results[0].map((w) => w.title)).toEqual(['Forest Stream'])
-    expect(results[1].wallpapers).toBe(results[0])
+    expect(results[0].wallpapers.map((w) => w.title)).toEqual(['Forest Stream'])
+    expect(results[2].wallpapers).toBe(results[0].wallpapers)
   })
 
   it('scans again after the cache is invalidated', async () => {
@@ -88,7 +89,11 @@ describe('wallpaperService catalog', () => {
 
 describe('wallpaperService.getActive', () => {
   it('returns active wallpapers from project.json without scanning the library', async () => {
-    wallpaperStateManager.register(['eDP-1'], makeProc(), { backgroundId: wallpaperPath })
+    await supervisorService.start([], {
+      stdio: 'ignore',
+      screens: ['eDP-1'],
+      wallpaper: { backgroundId: wallpaperPath },
+    })
 
     const active = await wallpaperService.getActive()
 
@@ -113,8 +118,8 @@ describe('wallpaperService.getActive during restore', () => {
     })
     vi.resetModules()
     const { wallpaperService: service } = await import('./wallpaper')
-    const { backendSupervisor } = await import('../../utils/backend-supervisor')
-    return { service, backendSupervisor }
+    const { supervisorService: supervisor } = await import('../supervisor/supervisor')
+    return { service, supervisor }
   }
 
   afterAll(() => {
@@ -124,9 +129,9 @@ describe('wallpaperService.getActive during restore', () => {
   })
 
   it('keeps a restored screen while process work is running, then prunes it once idle', async () => {
-    const { service, backendSupervisor } = await loadWithRestoredScreen()
+    const { service, supervisor } = await loadWithRestoredScreen()
     const restore = Promise.withResolvers<void>()
-    const restoring = backendSupervisor.run(() => restore.promise)
+    const restoring = supervisor.run(() => restore.promise)
 
     expect((await service.getActive()).map((entry) => entry.screen)).toEqual(['eDP-1'])
 
@@ -134,5 +139,37 @@ describe('wallpaperService.getActive during restore', () => {
     await restoring
     // pgrep (mocked) finds no backend for eDP-1, so the idle prune drops it
     expect(await service.getActive()).toEqual([])
+  })
+})
+
+describe('wallpaperService.apply playlist', () => {
+  it('keeps a screen that shared a backend with the playlist target on its wallpaper', async () => {
+    const shared = await supervisorService.start(['--bg', '/wp/1'], {
+      screens: ['eDP-1', 'HDMI-1'],
+      wallpaper: { backgroundId: '/wp/1' },
+      stdio: 'ignore',
+    })
+    mockPlaylistService.startProcess.mockImplementation(
+      async (name: string, screens: string[], _stamp: boolean, launch) => {
+        await launch(screens, ['--screen-root', screens[0], '--playlist', name], {
+          backgroundId: '/wp/2',
+        })
+        return { success: true, screens }
+      },
+    )
+
+    await wallpaperService.apply({
+      kind: 'playlist',
+      name: 'Mix',
+      screens: ['eDP-1'],
+      stampLastApplied: false,
+    })
+
+    const records = supervisorService.screens()
+    expect(records.get('eDP-1')?.playlist).toBe('Mix')
+    expect(records.get('HDMI-1')?.options.backgroundId).toBe('/wp/1')
+    expect(records.get('HDMI-1')?.proc).toBeDefined()
+    expect(records.get('HDMI-1')?.proc).not.toBe(shared)
+    expect(records.get('HDMI-1')?.proc).not.toBe(records.get('eDP-1')?.proc)
   })
 })

@@ -2,73 +2,37 @@ import type { Wallpaper, WallpaperOverrides } from '../../../shared/constants/wa
 import type {
   MutationResult,
   ActiveWallpaperEntry,
+  ApplyResult,
   DebugInfo,
   OverrideMutation,
   ServiceAction,
   ApplyTarget,
 } from './wallpaper.types'
 
-// ── Main wallpaper service — thin facade with condensed API ────────────────
+// ── Wallpaper service — what the library holds and what each screen shows ──
 
 export interface IWallpaperService {
-  /** Installed wallpapers and when each was last applied, for the library grid. */
-  query(): Promise<{
-    wallpapers: Wallpaper[]
-    appliedHistory: Record<string, number>
-  }>
+  /** Installed wallpapers from one shared, cached library scan, and when each was last applied. */
+  catalog(): Promise<{ wallpapers: Wallpaper[]; appliedHistory: Record<string, number> }>
 
-  /** Installed wallpapers from the same cached scan as `query`. */
-  catalog(): Promise<Wallpaper[]>
-
-  /** Wallpapers active on each screen, without waiting on a library scan. */
+  /**
+   * What each screen shows: wallpaper, title, thumbnail, playlist and paused
+   * state. Never waits on a library scan, so it answers right after launch.
+   */
   getActive(): Promise<ActiveWallpaperEntry[]>
 
-  /** Whether the linux-wallpaperengine backend is on the host PATH. */
-  isBackendInstalled(): Promise<boolean>
+  /** Put something on screens: a wallpaper, a random one or a playlist; or reapply or restore the current ones. */
+  apply(target: ApplyTarget): Promise<ApplyResult>
 
-  /**
-   * Bring back the wallpapers saved from the last run, replacing any backends
-   * a crashed run left behind. Called once at launch.
-   */
-  restore(): Promise<MutationResult>
-
-  /** Kill every backend this instance owns as the app quits, keeping saved wallpapers. */
-  shutdown(): void
-
-  // Apply a wallpaper or reapply all
-  apply(target: ApplyTarget): Promise<MutationResult>
-
-  /** Start a playlist's backend on `screens`, replacing whatever they were running. */
-  startPlaylist(
-    playlistName: string,
-    screens: string[],
-    stampLastApplied: boolean,
-  ): Promise<{ success: boolean; error?: string }>
-
-  // Stop one screen or all
+  /** Stop one screen, several, or all of them. Playlists stop the same way. */
   stop(screen?: string | string[]): Promise<MutationResult>
 
-  /**
-   * Freeze (SIGSTOP) one screen or all. Works for wallpaper and playlist
-   * processes alike, since both run as tracked backend processes.
-   */
-  pause(screen?: string | string[]): Promise<MutationResult>
+  /** Freeze (SIGSTOP) or resume (SIGCONT) one screen, several, or all of them. */
+  setPaused(paused: boolean, screen?: string | string[]): Promise<MutationResult>
 
-  /** Unfreeze (SIGCONT) previously paused screens. */
-  resume(screen?: string | string[]): Promise<MutationResult>
-
-  /** Apply a random wallpaper, preferring one that is not already active. */
-  applyRandom(screen?: string): Promise<MutationResult & { wallpaperTitle?: string }>
-
-  /** Screen keys with an active wallpaper process. */
-  getActiveScreens(): string[]
-
-  /** Screen keys whose wallpaper process is paused. */
-  getPausedScreens(): string[]
-
-  // Per-wallpaper override CRUD
+  /** Read, save or reset one wallpaper's overrides. */
   overrides(mutation: OverrideMutation): Promise<WallpaperOverrides | void>
 
-  // Debug logs, cache invalidation, cleanup
+  /** Debug logs, cache invalidation and cleanup. */
   diagnose(action: ServiceAction): Promise<DebugInfo | MutationResult | void>
 }

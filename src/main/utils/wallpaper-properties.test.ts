@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { parseProjectProperties, serializePropertyValue } from './properties'
+import { parseProjectProperties, serializePropertyValue } from './wallpaper-properties'
 
 const project = (properties: Record<string, unknown>) => ({ general: { properties } })
 

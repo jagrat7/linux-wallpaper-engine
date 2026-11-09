@@ -1,6 +1,5 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import type { ChildProcess } from 'node:child_process'
 import { CACHE_TTL, type AppSettings } from '../../../shared/constants/app'
 import {
   AGE_RATINGS,
@@ -9,7 +8,7 @@ import {
   type Wallpaper,
   type WallpaperType,
 } from '../../../shared/constants/wallpaper'
-import { backendArgPattern, hostExecFileAsync, shouldUseFlatpakSpawn } from '../../utils/host'
+import { hostExecFileAsync } from '../../utils/host'
 
 type ImageType = 'jpeg' | 'png' | 'bmp'
 export type TimedCache<T> = {
@@ -87,47 +86,6 @@ export const pickRandomWallpaper = (
   const unused = wallpapers.filter((wallpaper) => !activeIds.has(wallpaper.path))
   const pool = unused.length > 0 ? unused : wallpapers
   return pool[Math.floor(Math.random() * pool.length)]
-}
-
-export const signalWallpaperProcess = async (
-  signal: 'SIGSTOP' | 'SIGCONT',
-  proc: ChildProcess | undefined,
-  pattern: string | null,
-): Promise<boolean> => {
-  if (proc && !shouldUseFlatpakSpawn()) {
-    try {
-      return proc.kill(signal)
-    } catch {
-      return false
-    }
-  }
-  if (!pattern) return false
-  const flag = signal === 'SIGSTOP' ? '-STOP' : '-CONT'
-  try {
-    await hostExecFileAsync('pkill', [flag, '-f', pattern])
-    return true
-  } catch {
-    return false
-  }
-}
-
-// Matches backend command lines by argv[0], including Nix-style wrapped binaries.
-// Needs -f: plain pgrep only sees the 15-char comm, which truncates the name.
-export const BACKEND_PROCESS_PATTERN = '^[^ ]*linux-wallpaperengine[^ ]*( |$)'
-
-/** `pid cmdline` lines of running backend processes; empty when none run. */
-export const listBackendProcesses = async (): Promise<string[]> => {
-  const { stdout } = await hostExecFileAsync('pgrep', ['-af', BACKEND_PROCESS_PATTERN]).catch(
-    () => ({ stdout: '' }),
-  )
-  return stdout.split('\n').filter((line) => line.trim().length > 0)
-}
-
-/** Whether a backend process is rendering `screen`, judged from `listBackendProcesses` output. */
-export const isScreenBackendRunning = (screen: string, processes: string[]): boolean => {
-  if (screen === 'default') return processes.some((line) => !line.includes('--screen-root'))
-  const pattern = new RegExp(backendArgPattern('--screen-root', screen))
-  return processes.some((line) => pattern.test(line))
 }
 
 export async function parseImageHeader(imagePath: string) {
