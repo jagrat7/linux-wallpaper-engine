@@ -145,7 +145,7 @@ export function StatusBar({ className }: StatusBarProps) {
       <div className="flex items-center gap-4">
         <div className="text-muted-foreground flex items-center gap-2 text-sm">
           <Monitor className="size-3.5" />
-          <span>{primaryDisplay?.name ?? 'No Display'}</span>
+          <span>{activeWallpaper?.screen ?? primaryDisplay?.name ?? 'No Display'}</span>
           {hasMultipleScreens && (
             <Tooltip>
               <TooltipTrigger asChild>
