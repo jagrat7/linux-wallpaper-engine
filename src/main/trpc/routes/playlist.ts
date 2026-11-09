@@ -22,13 +22,7 @@ const playlistSettingsSchema = z.object({
 })
 
 function startPlaylist(playlistName: string, screens: string[], stampLastApplied: boolean) {
-  return playlistService.startProcess(
-    playlistName,
-    screens,
-    stampLastApplied,
-    (screenKeys, proc, args, options) =>
-      wallpaperService.apply({ kind: 'register', screens: screenKeys, proc, args, options }),
-  )
+  return wallpaperService.startPlaylist(playlistName, screens, stampLastApplied)
 }
 
 export const playlistRouter = trpc.router({

@@ -1,4 +1,11 @@
-import { spawn, exec, execFile, type ChildProcess, type SpawnOptions } from 'node:child_process'
+import {
+  spawn,
+  spawnSync,
+  exec,
+  execFile,
+  type ChildProcess,
+  type SpawnOptions,
+} from 'node:child_process'
 import { promisify } from 'node:util'
 import * as fs from 'node:fs'
 
@@ -120,6 +127,20 @@ export const hostExecFileAsync = (
     })
   }
   return execFilePromise(file, args) as Promise<{ stdout: string; stderr: string }>
+}
+
+/**
+ * Blocking execFile that routes through `flatpak-spawn --host` when inside a
+ * Flatpak. Only for work that must finish before the process exits, such as
+ * killing backends during quit. Returns whether the command exited with 0.
+ */
+export const hostExecFileSync = (file: string, args: string[]): boolean => {
+  const result = shouldUseFlatpakSpawn()
+    ? spawnSync('flatpak-spawn', [...getEnvForwardArgs(), '--host', file, ...args], {
+        stdio: 'ignore',
+      })
+    : spawnSync(file, args, { stdio: 'ignore' })
+  return result.status === 0
 }
 
 export const hostCommandExists = async (command: string): Promise<boolean> => {

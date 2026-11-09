@@ -113,7 +113,9 @@ void app.whenReady().then(() => {
   setAutostart(settings.getSetting('launchOnLogin'))
 
   // Restore after the flatpak bypass is applied, since it decides how backends spawn
-  void wallpaperService.restore()
+  wallpaperService
+    .restore()
+    .catch((error: unknown) => console.error('Restoring saved wallpapers failed:', error))
 
   // Register protocol handler for local files
   protocol.handle('local-file', (request) => {
@@ -175,6 +177,12 @@ app.on('before-quit', () => {
   isQuitting = true
   appTray?.dispose()
   appTray = null
+})
+
+// Backends die with the app; the next launch restores them from saved state.
+// Electron routes SIGTERM, SIGINT and SIGHUP through this same quit sequence
+app.on('will-quit', () => {
+  if (isPrimaryInstance) wallpaperService.shutdown()
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

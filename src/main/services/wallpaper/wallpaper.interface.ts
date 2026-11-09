@@ -21,11 +21,24 @@ export interface IWallpaperService {
   // Catalog only: the same cached scan, without the backend check or active state
   catalog(): Promise<Wallpaper[]>
 
-  /** Bring back the wallpapers saved from the last run. Called once at launch. */
-  restore(): Promise<void>
+  /**
+   * Bring back the wallpapers saved from the last run, replacing any backends
+   * a crashed run left behind. Called once at launch.
+   */
+  restore(): Promise<MutationResult>
 
-  // Apply, register external process, or reapply all
+  /** Kill every backend this instance owns as the app quits, keeping saved wallpapers. */
+  shutdown(): void
+
+  // Apply a wallpaper or reapply all
   apply(target: ApplyTarget): Promise<MutationResult>
+
+  /** Start a playlist's backend on `screens`, replacing whatever they were running. */
+  startPlaylist(
+    playlistName: string,
+    screens: string[],
+    stampLastApplied: boolean,
+  ): Promise<{ success: boolean; error?: string }>
 
   // Stop one screen or all
   stop(screen?: string | string[]): Promise<MutationResult>

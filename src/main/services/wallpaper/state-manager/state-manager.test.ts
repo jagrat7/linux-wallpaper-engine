@@ -125,3 +125,27 @@ describe('wallpaperStateManager paused state', () => {
     })
   })
 })
+
+describe('wallpaperStateManager process ownership', () => {
+  it('keeps a screen active when its replaced process exits late', () => {
+    const old = makeProc()
+    wallpaperStateManager.register(['eDP-1', 'HDMI-1'], old, makeOptions('/wp/old'))
+    wallpaperStateManager.register(['eDP-1', 'HDMI-1'], makeProc(), makeOptions('/wp/new'))
+
+    const { screens } = wallpaperStateManager.cleanupExitedProcess(old)
+
+    expect(screens).toEqual([])
+    expect(wallpaperStateManager.getActive().get('HDMI-1')?.backgroundId).toBe('/wp/new')
+  })
+
+  it('only clears the screens an exiting process still drives', () => {
+    const shared = makeProc()
+    wallpaperStateManager.register(['eDP-1', 'HDMI-1'], shared, makeOptions('/wp/old'))
+    wallpaperStateManager.register(['HDMI-1'], makeProc(), makeOptions('/wp/new'))
+
+    const { screens } = wallpaperStateManager.cleanupExitedProcess(shared)
+
+    expect(screens).toEqual(['eDP-1'])
+    expect([...wallpaperStateManager.getActive().keys()]).toEqual(['HDMI-1'])
+  })
+})
