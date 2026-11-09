@@ -18,12 +18,21 @@ import { setAutostart } from './utils/autostart.ts'
 import { resolveAssetPath } from './utils/assets.ts'
 import { createAppTray, type AppTray } from './utils/tray.ts'
 import { invalidationService } from './services/invalidation.ts'
+import { wallpaperService } from './services/wallpaper/wallpaper.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
 import { DEV_TARGETS, type DevTarget } from '../shared/constants/development.ts'
 
 // Global ref to tray to avoid GC
 let appTray: AppTray | null = null
 let isQuitting = false
+
+// One instance owns every wallpaper backend. A second launch (autostart plus the
+// launcher, say) hands off to the first instead of restoring on top of it
+const isPrimaryInstance = app.requestSingleInstanceLock()
+if (!isPrimaryInstance) {
+  console.log('Linux Wallpaper Engine is already running, focusing that window instead')
+  app.quit()
+}
 
 systemThemeService.configureElectronPlatform(nativeTheme, systemPreferences)
 
@@ -95,11 +104,16 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 void app.whenReady().then(() => {
+  if (!isPrimaryInstance) return
+
   // Sync flatpak bypass from saved settings
   setFlatpakBypass(settings.getSetting('flatpakBypass'))
 
   // Write / delete autostart file from saved settings
   setAutostart(settings.getSetting('launchOnLogin'))
+
+  // Restore after the flatpak bypass is applied, since it decides how backends spawn
+  void wallpaperService.restore()
 
   // Register protocol handler for local files
   protocol.handle('local-file', (request) => {
@@ -114,6 +128,14 @@ void app.whenReady().then(() => {
     appTray = createAppTray({ mainWindow, appIcon, isQuitting: () => isQuitting })
 
     if (settings.getSetting('enableSystemTray')) appTray.ensure()
+
+    app.on('second-instance', () => {
+      // The window is already gone while this instance is quitting
+      if (mainWindow.isDestroyed()) return
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+    })
 
     mainWindow.on('close', (e) => {
       if (shouldMinimizeOnClose() && !isQuitting) {

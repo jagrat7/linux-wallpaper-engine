@@ -63,9 +63,7 @@ class WallpaperService implements IWallpaperService {
   private reapplyTimer: ReturnType<typeof setTimeout> | null = null
   private state = wallpaperStateManager
 
-  private constructor() {
-    void this.syncAndReapply()
-  }
+  private constructor() {}
 
   static getInstance(): WallpaperService {
     if (!WallpaperService.instance) {
@@ -101,6 +99,38 @@ class WallpaperService implements IWallpaperService {
   /** Installed wallpapers from the same cached scan as `query`, without backend checks. */
   catalog(): Promise<Wallpaper[]> {
     return this.getWallpapers()
+  }
+
+  // ── Launch ─────────────────────────────────────────────────────────────
+
+  /**
+   * Bring back the wallpapers saved from the last run. Called once from main
+   * after this instance holds the single-instance lock, so a second launch
+   * never restores on top of the first.
+   */
+  async restore(): Promise<void> {
+    if (this.state.getActive().size === 0) return
+
+    try {
+      const settings = await settingsService.loadSettings()
+      const processes = await listBackendProcesses()
+
+      if (settings.windowMode) {
+        if (processes.length === 0) {
+          await this.reapplyAll()
+        }
+        return
+      }
+
+      for (const screen of this.state.getActive().keys()) {
+        if (!isScreenBackendRunning(screen, processes)) {
+          await this.reapplyAll()
+          return
+        }
+      }
+    } catch {
+      await this.reapplyAll()
+    }
   }
 
   // ── Apply ──────────────────────────────────────────────────────────────
@@ -843,31 +873,6 @@ class WallpaperService implements IWallpaperService {
       disableParallax: options.disableParallax ?? settings.disableParallax,
       disableParticles: options.disableParticles ?? settings.disableParticles,
       noFullscreenPause: options.noFullscreenPause ?? !settings.pauseOnFullscreen,
-    }
-  }
-
-  private async syncAndReapply(): Promise<void> {
-    if (this.state.getActive().size === 0) return
-
-    try {
-      const settings = await settingsService.loadSettings()
-      const processes = await listBackendProcesses()
-
-      if (settings.windowMode) {
-        if (processes.length === 0) {
-          await this.reapplyAll()
-        }
-        return
-      }
-
-      for (const screen of this.state.getActive().keys()) {
-        if (!isScreenBackendRunning(screen, processes)) {
-          await this.reapplyAll()
-          return
-        }
-      }
-    } catch {
-      await this.reapplyAll()
     }
   }
 
