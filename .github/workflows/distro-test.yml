@@ -17,7 +17,11 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: Git ref to build and test, such as a release tag
+        description: Git ref to build and test, such as a release commit
+        type: string
+        default: ''
+      version:
+        description: Version to build as, when it isn't the one in package.json yet
         type: string
         default: ''
 
@@ -39,6 +43,13 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
+
+      # A release button run builds main as the version it's about to release
+      - name: Use the release version
+        if: inputs.version != ''
+        run: npm pkg set version="$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -85,6 +96,13 @@ jobs:
           ref: ${{ inputs.ref }}
           persist-credentials: false
 
+      # A release button run builds main as the version it's about to release
+      - name: Use the release version
+        if: inputs.version != ''
+        run: npm pkg set version="$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -121,6 +139,13 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
+
+      # A release button run builds main as the version it's about to release
+      - name: Use the release version
+        if: inputs.version != ''
+        run: npm pkg set version="$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
 
       - uses: cachix/install-nix-action@v31
 
