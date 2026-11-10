@@ -1,35 +1,110 @@
 name: Release
-run-name: Release ${{ inputs.tag || github.ref_name }}
+run-name: Release ${{ github.event_name == 'push' && 'from package.json' || inputs.version || inputs.bump }}
 
-# Push a version tag (vX.Y.Z, matching package.json) to release it: CI checks the
-# code, builds and tests every package on its distro, creates the GitHub release,
-# then publishes the AUR package. To finish a release that failed partway, run it
-# from the Actions tab with the same tag: it uploads only the assets the release is
-# missing and never replaces published ones, so their checksums (and the AUR
-# PKGBUILD's) stay valid. Tags from before this workflow don't match package.json.
+# Two ways to start a release; both build, test and publish the same way:
+#  - Actions → Release → Run workflow: pick patch, minor or major, or type an exact
+#    version. The run raises package.json's version, and once the release is out it
+#    opens and squash-merges a "Release vX.Y.Z" PR that puts the new version on main.
+#  - Merge a change to "version" in package.json into main. It's released unless the
+#    v<version> tag already exists, so other package.json changes release nothing.
+# A version with a suffix (0.5.0-beta.1), or the pre-release box, makes a pre-release:
+# not marked Latest, AppImages don't update to it, and the AUR package is left alone.
+# The workflow makes the tag itself; pushing a tag by hand doesn't release anything.
+# If a run fails partway, re-run its failed jobs: the release job reuses the tag and
+# uploads only the files the release is missing, never replacing published ones, so
+# their checksums (and the AUR PKGBUILD's) stay valid.
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths: [package.json]
   workflow_dispatch:
     inputs:
-      tag:
-        description: Tag of a release to finish, e.g. v0.5.0
-        required: true
+      bump:
+        description: Part of the version to raise
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      version:
+        description: Exact version instead, e.g. 0.5.0 or 0.5.0-beta.1 (optional)
+        type: string
+        required: false
+      prerelease:
+        description: Mark as a pre-release
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+# One release at a time, and never cancel one partway
 concurrency:
-  group: release-${{ inputs.tag || github.ref_name }}
+  group: release
   cancel-in-progress: false
 
-env:
-  TAG: ${{ inputs.tag || github.ref_name }}
-
 jobs:
+  version:
+    name: Pick the version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.pick.outputs.version }}
+      tag: ${{ steps.pick.outputs.tag }}
+      prerelease: ${{ steps.pick.outputs.prerelease }}
+      release: ${{ steps.pick.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          BUMP: ${{ inputs.bump }}
+          EXACT: ${{ inputs.version }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          current="$(node -p "require('./package.json').version")"
+          if [[ "$EVENT" == workflow_dispatch ]]; then
+            if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+              echo "::error::Run Release from main, not $GITHUB_REF_NAME"
+              exit 1
+            fi
+            version="$(node scripts/ci/next-version.mjs "$current" "$BUMP" "$EXACT")"
+          else
+            version="$current"
+          fi
+          tag="v$version"
+
+          release=true
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            if [[ "$EVENT" == workflow_dispatch ]]; then
+              echo "::error::$tag is already released; pick a newer version"
+              exit 1
+            fi
+            echo "::notice::$tag is already released; this package.json change isn't a new version"
+            release=false
+          fi
+
+          prerelease=false
+          if [[ "$version" == *-* || "$PRERELEASE" == true ]]; then prerelease=true; fi
+
+          echo "Current version $current, releasing $tag (pre-release: $prerelease, release: $release)"
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "prerelease=$prerelease"
+            echo "release=$release"
+          } >>"$GITHUB_OUTPUT"
+
   checks:
-    name: Version and tests
+    name: Type check and tests
+    needs: version
+    if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -37,7 +112,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.TAG }}
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
@@ -48,47 +122,68 @@ jobs:
         with:
           node-version: 24
 
-      - name: Tag matches package.json
-        run: |
-          version="$(node -p "require('./package.json').version")"
-          if [[ "$TAG" != "v$version" ]]; then
-            echo "::error::Tag $TAG does not match package.json version $version"
-            exit 1
-          fi
-
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun run test
 
   packages:
     name: Build and test packages
-    needs: checks
+    needs: [version, checks]
     uses: ./.github/workflows/distro-test.yml
     with:
-      ref: ${{ inputs.tag || github.ref_name }}
+      ref: ${{ github.sha }}
+      version: ${{ needs.version.outputs.version }}
 
   release:
     name: GitHub release
-    needs: packages
+    needs: [version, packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
+      PRERELEASE: ${{ needs.version.outputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       # The exact files the distro tests installed and launched
       - uses: actions/download-artifact@v4
         with:
           name: packages
           path: release
 
+      # The tag points at what was built: this commit, plus the new version in
+      # package.json when the run raised it. A token-pushed tag starts no workflows.
+      - name: Tag the release
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists from an earlier attempt; reusing it"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [[ "$(node -p "require('./package.json').version")" != "$VERSION" ]]; then
+            npm pkg set version="$VERSION"
+            git commit -qam "Release $TAG"
+          fi
+          git tag -a "$TAG" -m "Linux Wallpaper Engine $TAG"
+          git push origin "$TAG"
+
       - name: Create the release, or add what it is missing
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
         run: |
           ls -l release
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" release/* --verify-tag --generate-notes --title "$TAG"
+            flags=(--latest)
+            if [[ "$PRERELEASE" == true ]]; then flags=(--prerelease --latest=false); fi
+            gh release create "$TAG" release/* --verify-tag --generate-notes --title "$TAG" "${flags[@]}"
             exit 0
           fi
           # Replacing a published file would change its checksum under the same version
@@ -101,12 +196,67 @@ jobs:
             fi
           done
 
+  # Button runs only: puts the released version on main. main only takes changes
+  # through PRs, so this opens one and squash-merges it. It starts from the latest
+  # main, so commits merged during the release don't get in the way.
+  version-pr:
+    name: Version PR
+    needs: [version, release]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Open and merge the version PR
+        run: |
+          npm pkg set version="$VERSION"
+          if git diff --quiet; then
+            echo "main already has version $VERSION"
+            exit 0
+          fi
+          branch="release/$TAG"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git commit -qam "Release $TAG"
+          git push --force origin "$branch"
+
+          url="$(gh pr list --head "$branch" --state open --json url --jq '.[0].url')"
+          if [[ -z "$url" ]]; then
+            url="$(gh pr create --base main --head "$branch" --title "Release $TAG" \
+              --body "Sets package.json to $VERSION, the version [$TAG]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG) was released as. Opened by the [Release run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID).")"
+          fi
+          echo "Version PR: $url"
+          # GitHub needs a moment to work out whether a new PR can be merged
+          for attempt in 1 2 3 4 5 6; do
+            gh pr merge "$url" --squash && exit 0
+            sleep 10
+          done
+          echo "::error::Couldn't merge $url; merge it by hand so the next release counts from $VERSION"
+          exit 1
+
   aur:
     name: AUR package
-    needs: release
+    needs: [version, release]
+    if: needs.version.outputs.prerelease != 'true'
     uses: ./.github/workflows/publish-aur.yml
     with:
-      tag: ${{ inputs.tag || github.ref_name }}
+      tag: ${{ needs.version.outputs.tag }}
       # The PKGBUILD the distro tests built, not the default branch's
-      pkgbuild_ref: ${{ inputs.tag || github.ref_name }}
+      pkgbuild_ref: ${{ needs.version.outputs.tag }}
     secrets: inherit

@@ -61,15 +61,23 @@ Releases are built and tested in CI, not on a laptop. The `Distro tests` workflo
 
 ### Releasing
 
-Releases are built, tested and published by the `Release` workflow (`.github/workflows/release.yml`):
+Releases are built, tested and published by the `Release` workflow (`.github/workflows/release.yml`). Nobody tags commits by hand; start a release in one of two ways:
 
 ```bash
-# 1. Bump "version" in package.json, commit, and merge to main
-# 2. Tag that commit and push the tag
-git tag v0.5.0 && git push origin v0.5.0
+# 1. The button: Actions → Release → Run workflow, or from a terminal
+gh workflow run release.yml -f bump=minor                 # 0.4.12 → 0.5.0
+gh workflow run release.yml -f version=0.5.0-beta.1       # an exact version
+gh workflow run release.yml -f bump=patch -f prerelease=true
+
+# 2. Merge a PR that changes "version" in package.json into main
 ```
 
-The tag must match `package.json`. CI then runs the type check and tests, builds every package, installs and launches each one on its distro (`Distro tests`), creates the GitHub release with generated notes, and publishes the AUR package (that last job waits for approval in the `aur` environment). If a release fails partway, run `Release` from the Actions tab with the same tag: it uploads only the files the release is missing and never replaces published ones, so their checksums and the AUR package stay valid. Tags from before this workflow (v0.4.12 and earlier) don't match `package.json` and can't be rerun.
+Either way, CI runs the type check and tests, builds every package as that version, installs and launches each one on its distro (`Distro tests`), tags the commit it built, creates the GitHub release with generated notes, and publishes the AUR package (that job waits for approval in the `aur` environment). A button run then opens a `Release vX.Y.Z` PR that sets `package.json` to the new version and squash-merges it, so run `git pull` afterwards.
+
+- `patch`, `minor` and `major` count up from `package.json` on main. Raising a pre-release finishes it: `patch` on `0.5.0-beta.1` releases `0.5.0`.
+- A version with a suffix (`0.5.0-beta.1`, `0.5.0-rc.1`), or the pre-release box, makes a pre-release. It isn't marked Latest, AppImages don't update to it, and the AUR package stays on the last full release.
+- A `package.json` change that keeps an already-released version releases nothing, and pushing a `v*` tag by hand doesn't release anything either.
+- If a run fails partway, re-run its failed jobs. The release job reuses the tag and uploads only the files the release is missing, never replacing published ones, so their checksums and the AUR package stay valid.
 
 ### Nix Devshell
 
