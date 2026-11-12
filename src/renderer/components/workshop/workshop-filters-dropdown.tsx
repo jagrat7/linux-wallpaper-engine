@@ -14,6 +14,7 @@ import {
 } from '@/contexts/workshop-search-context'
 import { FilterSection } from '@/components/wallpaper/filter-section'
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from '../../../shared/constants/wallpaper'
+import { WORKSHOP_RESOLUTION_OPTIONS } from '../../../shared/constants/workshop'
 
 const TYPE_ITEMS = FILTER_TYPE_OPTIONS.filter((o) => o.value !== 'all').map((o) => ({
   key: o.value,
@@ -21,6 +22,11 @@ const TYPE_ITEMS = FILTER_TYPE_OPTIONS.filter((o) => o.value !== 'all').map((o) 
 }))
 
 const AGE_RATING_ITEMS = AGE_RATING_OPTIONS.map((opt) => ({
+  key: opt.value,
+  label: opt.label,
+}))
+
+const RESOLUTION_ITEMS = WORKSHOP_RESOLUTION_OPTIONS.map((opt) => ({
   key: opt.value,
   label: opt.label,
 }))
@@ -33,14 +39,18 @@ export function WorkshopFiltersDropdown() {
     filterAgeRating,
     setFilterAgeRating,
     toggleFilterAgeRating,
+    filterResolution,
+    setFilterResolution,
+    toggleResolution,
   } = useWorkshopFilter()
 
-  const activeFilterCount = filterType.length + filterAgeRating.length
+  const activeFilterCount = filterType.length + filterAgeRating.length + filterResolution.length
 
   const handleClearAll = (e: React.MouseEvent) => {
     e.stopPropagation()
     setFilterType([])
     setFilterAgeRating([])
+    setFilterResolution([])
   }
 
   return (
@@ -104,6 +114,19 @@ export function WorkshopFiltersDropdown() {
           badge={
             filterType.length > 0 ? (
               <span className="text-primary">{filterType.length} selected</span>
+            ) : undefined
+          }
+        />
+
+        <FilterSection
+          label="Resolution"
+          items={RESOLUTION_ITEMS}
+          selected={filterResolution}
+          onToggle={toggleResolution}
+          multi
+          badge={
+            filterResolution.length > 0 ? (
+              <span className="text-primary">{filterResolution.length} selected</span>
             ) : undefined
           }
         />
