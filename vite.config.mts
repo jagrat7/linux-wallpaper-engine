@@ -166,6 +166,15 @@ export default defineConfig((env: ForgeConfigEnv) => {
             'react/no-multi-comp': 'off',
           },
         },
+        {
+          // The dev-only design page: its five page files are shared with other projects (the
+          // design-page skill), so they are exempted here rather than rewritten
+          files: ['src/renderer/design/**'],
+          rules: {
+            'react/no-multi-comp': 'off',
+            'local/scrollbar-styled-only': 'off',
+          },
+        },
       ],
       options: {
         typeAware: true,
