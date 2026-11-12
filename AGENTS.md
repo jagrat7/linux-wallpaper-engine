@@ -6,3 +6,4 @@
   - One action with a discriminated input (`apply({ kind: 'random' })`) instead of `applyRandom`, `applyPlaylist`, ...
   - One read that returns a snapshot (`getActive()`) instead of a getter per field (`getActiveScreens`, `getPausedScreens`, ...)
   - Pure helpers that need no service state go in utils, not on the service
+- `/design` (dev only, `#/design` in `bun dev`) shows the design system: tokens from `src/renderer/styles/global.css` and a demo of every UI component. A new file in `src/renderer/components/ui/` needs a `src/renderer/design/demos/<name>.demo.tsx`, written from the component's own variants; the page lists any component without one. Rerun `bun scripts/design-preset.ts` after changing `components.json`
