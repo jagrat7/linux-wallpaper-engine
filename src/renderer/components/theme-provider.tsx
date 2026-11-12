@@ -3,7 +3,8 @@ import { DEFAULT_SETTINGS } from '../../shared/constants/app'
 import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants/theme'
 import { trpc } from '../lib/trpc'
 
-const STORAGE_KEY = 'wallpaper-engine-theme'
+/** Where the user's theme choice is kept in localStorage */
+export const THEME_STORAGE_KEY = 'wallpaper-engine-theme'
 const THEME_CLASSES = THEME_OPTIONS.map((option) => option.value)
 const cssVariable = (key: string) =>
   `--${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`
@@ -23,7 +24,7 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undef
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [mode, setMode] = useState<ThemeOption>(
-    () => (localStorage.getItem(STORAGE_KEY) as ThemeOption | null) ?? DEFAULT_SETTINGS.theme,
+    () => (localStorage.getItem(THEME_STORAGE_KEY) as ThemeOption | null) ?? DEFAULT_SETTINGS.theme,
   )
   const { data: systemTheme } = trpc.settings.systemTheme.useQuery(undefined, {
     enabled: mode === 'system',
@@ -57,7 +58,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const value = {
     mode,
     setMode: (newMode: ThemeOption) => {
-      localStorage.setItem(STORAGE_KEY, newMode)
+      localStorage.setItem(THEME_STORAGE_KEY, newMode)
       setMode(newMode)
     },
   }

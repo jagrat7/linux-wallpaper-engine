@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkshopRouteImport } from './routes/workshop'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as DisplaysRouteImport } from './routes/displays'
+import { Route as DesignRouteImport } from './routes/design'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlaylistsIndexRouteImport } from './routes/playlists/index'
 import { Route as PlaylistsEditorRouteImport } from './routes/playlists/editor'
@@ -29,6 +30,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const DisplaysRoute = DisplaysRouteImport.update({
   id: '/displays',
   path: '/displays',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignRoute = DesignRouteImport.update({
+  id: '/design',
+  path: '/design',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -49,6 +55,7 @@ const PlaylistsEditorRoute = PlaylistsEditorRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/design': typeof DesignRoute
   '/displays': typeof DisplaysRoute
   '/settings': typeof SettingsRoute
   '/workshop': typeof WorkshopRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/design': typeof DesignRoute
   '/displays': typeof DisplaysRoute
   '/settings': typeof SettingsRoute
   '/workshop': typeof WorkshopRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/design': typeof DesignRoute
   '/displays': typeof DisplaysRoute
   '/settings': typeof SettingsRoute
   '/workshop': typeof WorkshopRoute
@@ -76,6 +85,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/design'
     | '/displays'
     | '/settings'
     | '/workshop'
@@ -84,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/design'
     | '/displays'
     | '/settings'
     | '/workshop'
@@ -92,6 +103,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/design'
     | '/displays'
     | '/settings'
     | '/workshop'
@@ -101,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DesignRoute: typeof DesignRoute
   DisplaysRoute: typeof DisplaysRoute
   SettingsRoute: typeof SettingsRoute
   WorkshopRoute: typeof WorkshopRoute
@@ -131,6 +144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DisplaysRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/design': {
+      id: '/design'
+      path: '/design'
+      fullPath: '/design'
+      preLoaderRoute: typeof DesignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -157,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DesignRoute: DesignRoute,
   DisplaysRoute: DisplaysRoute,
   SettingsRoute: SettingsRoute,
   WorkshopRoute: WorkshopRoute,
