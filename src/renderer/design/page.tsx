@@ -42,7 +42,7 @@ import {
 } from './icons'
 import { project } from './project'
 import { readTokens, type Theme } from './tokens'
-import type { DemoModule, ExtraEntry, Sources } from './types'
+import type { DemoModule, ExtraEntry, Preset, Sources } from './types'
 import { Button, Sortable, SortableHandle, SortableItem, cn } from './ui'
 
 const capital = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
@@ -700,15 +700,19 @@ const LIBRARIES: Record<string, string> = {
     is read from components.json and the stylesheet as they are now. A choice the setup doesn't
     say is left out. */
 function choices({ sources: { shadcn, preset }, tokens }: Design) {
-  const values = preset.values ?? {}
+  const values: NonNullable<Preset['values']> = preset.values ?? {}
   /** A choice shadcn/create has no option for, so the preset code holds a stand-in for it. */
   const own = (name: string) => preset.fallbacks?.includes(name)
   const named = (name: string | undefined) => (name ? words(name) : undefined)
+  /** A choice by its name in the preset: the project's own value (or "Custom", if the page
+      can't tell what it is) when the preset only holds a stand-in. */
+  const choice = (name: keyof typeof values, mine?: string): { value?: string; own?: boolean } =>
+    own(name) ? { value: mine || 'Custom', own: true } : { value: named(values[name]) }
   const sans = tokens.fontFace('font-sans')
   const list: { label: string; value?: string; own?: boolean; glyph: ReactNode }[] = [
     {
       label: 'Component library',
-      value: preset.base && (LIBRARIES[preset.base] ?? preset.base),
+      value: preset.base ? (LIBRARIES[preset.base] ?? preset.base) : undefined,
       glyph: <Blocks />,
     },
     {
@@ -721,29 +725,25 @@ function choices({ sources: { shadcn, preset }, tokens }: Design) {
       value: words(shadcn.tailwind.baseColor),
       glyph: <span className="bg-muted-foreground size-4 rounded-full" />,
     },
-    {
-      label: 'Theme',
-      value: own('theme') ? project.name : named(values.theme),
-      own: own('theme'),
-      glyph: <Marker className="size-4" />,
-    },
-    {
-      label: 'Chart colour',
-      value: named(values.chartColor),
-      glyph: <span className="bg-chart-2 size-4 rounded-full" />,
-    },
+    { label: 'Theme', ...choice('theme', project.name), glyph: <Marker className="size-4" /> },
+    // Only where the stylesheet has chart colours to show.
+    ...(tokens.value('light', 'chart-2')
+      ? [
+          {
+            label: 'Chart colour',
+            ...choice('chartColor'),
+            glyph: <span className="bg-chart-2 size-4 rounded-full" />,
+          },
+        ]
+      : []),
     {
       label: 'Heading',
-      value: own('fontHeading')
-        ? tokens.fontFace('font-heading') || sans
-        : named(values.fontHeading),
-      own: own('fontHeading'),
+      ...choice('fontHeading', tokens.fontFace('font-heading') || sans),
       glyph: <span className="font-sans text-[15px] font-bold">Aa</span>,
     },
     {
       label: 'Font',
-      value: own('font') ? sans : named(values.font),
-      own: own('font'),
+      ...choice('font', sans),
       glyph: <span className="font-sans text-[15px]">Aa</span>,
     },
     {
@@ -753,8 +753,7 @@ function choices({ sources: { shadcn, preset }, tokens }: Design) {
     },
     {
       label: 'Radius',
-      value: own('radius') ? tokens.radius : named(values.radius),
-      own: own('radius'),
+      ...choice('radius', tokens.radius),
       glyph: (
         <span
           className="size-4 border-t-2 border-r-2 border-current"
@@ -762,10 +761,10 @@ function choices({ sources: { shadcn, preset }, tokens }: Design) {
         />
       ),
     },
-    { label: 'Menu', value: named(shadcn.menuColor ?? values.menuColor), glyph: <Menu /> },
+    { label: 'Menu', ...choice('menuColor', named(shadcn.menuColor)), glyph: <Menu /> },
     {
       label: 'Menu accent',
-      value: named(shadcn.menuAccent ?? values.menuAccent),
+      ...choice('menuAccent', named(shadcn.menuAccent)),
       glyph: <MousePointer2 />,
     },
   ]

@@ -4,7 +4,7 @@
 //
 //   bun scripts/design-preset.ts
 //
-// Set the two paths below for the project.
+// Set the two paths below for the project, and its package runner if it isn't bun.
 
 import { execSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
@@ -25,10 +25,8 @@ writeFileSync(
     {
       // The component library: base (Base UI), radix or aria.
       base: info.config?.base,
-      // `shadcn info` gives null for a style it has no preset for (new-york); the page types
-      // those as optional, so they are left out rather than written as null.
-      code: info.preset?.code ?? undefined,
-      values: info.preset?.values ?? undefined,
+      code: info.preset?.code,
+      values: info.preset?.values,
       // Choices this project makes that shadcn/create has no option for (its own theme, fonts
       // or radius). For these, `values` holds the preset's stand-in, not what the project uses.
       fallbacks: info.preset?.fallbacks,

@@ -51,7 +51,7 @@ function declarations(body: string): Declarations {
   return out
 }
 
-const LIGHT = /^(:root|html|:host)$/
+const LIGHT = /^(:root|html|:host|(:root|html)?\.light)$/
 const DARK = /^(:root|html)?(\.dark|\[[\w-]+=["']?dark["']?\])$/
 const COLOUR =
   /^(#|(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|light-dark)\()|^(transparent|currentcolor|white|black)$/i
@@ -136,8 +136,8 @@ export function readTokens(css: string, designMd = '', ownName = 'Project') {
   /** A flat scale in the front matter: `spacing:` or `rounded:`. */
   const scale = (key: 'spacing' | 'rounded'): { name: string; px: number }[] =>
     under(key).flatMap((line) => {
-      const [, name, px] = line.match(/^ {2}(\S+):\s*(\d+)px/) ?? []
-      return name ? [{ name, px: Number(px) }] : []
+      const [, name, size, unit] = line.match(/^ {2}(\S+):\s*([\d.]+)(px|rem)\b/) ?? []
+      return name ? [{ name, px: Number(size) * (unit === 'rem' ? 16 : 1) }] : []
     })
 
   const radiusPx = Number.parseFloat(light.radius ?? '0') * (light.radius?.endsWith('rem') ? 16 : 1)
@@ -165,11 +165,19 @@ export function readTokens(css: string, designMd = '', ownName = 'Project') {
     else if (prop && last) last[prop] = declared.replace(/^"|"$/g, '')
   }
 
-  const WEIGHT: Record<string, string> = { '400': '', '500': 'font-medium', '700': 'font-bold' }
+  const WEIGHT: Record<string, string> = {
+    '400': '',
+    '500': 'font-medium',
+    '600': 'font-semibold',
+    '700': 'font-bold',
+  }
+  /** Whether a face is the one `font-mono` names; by its name alone if there is no such token. */
+  const isMono = (face = '') =>
+    fontFace('font-mono') ? face.includes(fontFace('font-mono')) : face.includes('Mono')
   const typeRole = (role: Record<string, string>, name: string): TypeRole => ({
     name,
     classes: [
-      role.fontFamily?.includes('Mono') ? 'font-mono' : '',
+      isMono(role.fontFamily) ? 'font-mono' : '',
       role.fontSize && `text-[${role.fontSize}]`,
       role.lineHeight && `leading-[${role.lineHeight}]`,
       WEIGHT[role.fontWeight ?? '400'] ?? `font-[${role.fontWeight}]`,
@@ -208,22 +216,41 @@ export function readTokens(css: string, designMd = '', ownName = 'Project') {
       .map(([name, declared]) => `--${name}:${declared};`)
       .join('')
 
-  // The `--color-*` aliases resolve where they are declared, on <html>. Each scope restates them.
-  const aliases = variables(
-    Object.fromEntries(Object.entries(inline).filter(([name]) => name.startsWith('color-'))),
+  // Each scope sets only what it must. First, the variables dark changes, at that theme's
+  // values. Second, whatever is worked out from another variable, because that is resolved where
+  // it is declared, on <html>, and would carry the page's theme into the panel: the `--color-*`
+  // and `--radius-*` names, and theme variables that point at another. Anything else in the
+  // stylesheet (a density scale, a media query's overrides) is left alone.
+  const settable = (values: Declarations) =>
+    Object.fromEntries(
+      Object.entries(values).filter(([name, declared]) => !declared.includes(`var(--${name})`)),
+    )
+  const derived = variables(
+    settable({
+      ...Object.fromEntries(
+        Object.entries(inline).filter(([name]) => /^(color|radius)-/.test(name)),
+      ),
+      ...Object.fromEntries(
+        Object.entries(light).filter(
+          ([name, declared]) => declared.includes('var(') && !(name in dark),
+        ),
+      ),
+    }),
   )
-  // The project's own tokens that dark changes, at their light values. Not the ones the theme
-  // sets itself (those are in `light`), nor one that only names itself (`--x: var(--x)`).
-  const ownByDay = Object.fromEntries(
-    Object.keys(dark)
-      .filter((name) => !(name in light) && (name in own || name in inline))
-      .map((name) => [name, own[name] ?? inline[name] ?? ''])
-      .filter(([name, declared]) => !declared?.includes(`var(--${name})`)),
+  const day = settable(
+    Object.fromEntries(
+      Object.keys(dark).flatMap((name) => {
+        const declared = light[name] ?? own[name] ?? inline[name]
+        return declared === undefined ? [] : [[name, declared]]
+      }),
+    ),
   )
+  // With one theme the page keeps the site's own `color-scheme`, whichever it is.
+  const scheme = (theme: Theme) => (themes.length > 1 ? `color-scheme:${theme}` : '')
 
   const themeCss = [
-    `html[data-design-theme="light"],.design-light{${variables({ ...light, ...ownByDay })}${aliases}color-scheme:light}`,
-    `html[data-design-theme="dark"],.design-dark{${variables(dark)}${aliases}color-scheme:dark}`,
+    `html[data-design-theme="light"],.design-light{${variables(day)}${derived}${scheme('light')}}`,
+    `html[data-design-theme="dark"],.design-dark{${variables(settable(dark))}${derived}${scheme('dark')}}`,
   ].join('\n')
 
   return {

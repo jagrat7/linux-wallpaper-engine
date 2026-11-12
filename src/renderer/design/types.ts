@@ -7,7 +7,8 @@ import type { Theme, Tokens } from './tokens'
 
 export type DemoMeta = {
   title: string
-  /** The UI component files this demo shows, without `.tsx`. */
+  /** The UI component files this demo shows, without `.tsx`: `button`, or `folder/name` for one
+      in a subfolder. */
   components: string[]
   /** For the project's own components, which live outside the UI folder: the file, from the
       repo root, and what it exports. A demo with this goes under "Custom components". */
@@ -19,9 +20,9 @@ export type DemoModule = { default: ComponentType; meta: DemoMeta }
 /** What `shadcn info --json` says (design-preset.ts writes it). Older setups have no preset. */
 export type Preset = {
   /** The component library: base (Base UI), radix or aria. */
-  base?: string
-  code?: string
-  values?: Partial<
+  base?: string | null
+  code?: string | null
+  values?: null | Partial<
     Record<
       | 'theme'
       | 'chartColor'
@@ -36,7 +37,7 @@ export type Preset = {
   >
   /** Choices the project makes that shadcn/create has no option for (its own theme or fonts).
       For these, `values` holds the preset's stand-in, not what the project uses. */
-  fallbacks?: string[]
+  fallbacks?: string[] | null
 }
 
 /** Plain text and JSON only, so a server can read it and hand it to the page. */
