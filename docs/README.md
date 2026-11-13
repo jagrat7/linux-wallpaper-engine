@@ -188,6 +188,8 @@ Then simply consume the package:
   
 ![Settings](settings.png)
 
+- **Single instance and start page** — Launching the app again brings the running window forward, even from the tray. `wallpaperx --page workshop` opens it on a page (`installed`, `workshop`, `playlists`, `displays` or `settings`), on a fresh start or in the running window.
+
 ## 🔮 Future Features
 
 - A single installation for both the backend and the UI.

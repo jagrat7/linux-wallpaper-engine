@@ -22,14 +22,19 @@ import { wallpaperService } from './services/wallpaper/wallpaper.ts'
 import { supervisorService } from './services/supervisor/supervisor.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
 import { DEV_TARGETS, type DevTarget } from '../shared/constants/development.ts'
+import { APP_PAGE_ROUTES, type AppPage } from '../shared/constants/app.ts'
+import { pageFromArgv, pageFromLaunchData, revealWindow } from './utils/launch.ts'
 
 // Global ref to tray to avoid GC
 let appTray: AppTray | null = null
 let isQuitting = false
 
+// `--page <name>` opens the app on that page, on a fresh start or in the running instance
+const launchPage = pageFromArgv(process.argv)
+
 // One instance owns every wallpaper backend. A second launch (autostart plus the
-// launcher, say) hands off to the first instead of restoring on top of it
-const isPrimaryInstance = app.requestSingleInstanceLock()
+// launcher, say) hands its page to the first instead of restoring on top of it
+const isPrimaryInstance = app.requestSingleInstanceLock({ page: launchPage })
 if (!isPrimaryInstance) {
   console.log('Linux Wallpaper Engine is already running, focusing that window instead')
   app.quit()
@@ -66,7 +71,7 @@ protocol.registerSchemesAsPrivileged([
   },
 ])
 
-const createWindow = () => {
+const createWindow = (page: AppPage = 'installed') => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -86,12 +91,14 @@ const createWindow = () => {
     if (!shouldMinimizeOnStartup()) mainWindow.show()
   })
 
-  // and load the index.html of the app.
+  // and load the index.html of the app, on `page` (the renderer uses a hash router)
+  const hash = APP_PAGE_ROUTES[page]
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    void mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
+    void mainWindow.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#${hash}`)
   } else {
     void mainWindow.loadFile(
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      { hash },
     )
   }
 
@@ -126,18 +133,16 @@ void app.whenReady().then(() => {
   })
 
   if (opensWindow) {
-    const mainWindow = createWindow()
+    const mainWindow = createWindow(launchPage)
 
     appTray = createAppTray({ mainWindow, appIcon, isQuitting: () => isQuitting })
 
     if (settings.getSetting('enableSystemTray')) appTray.ensure()
 
-    app.on('second-instance', () => {
+    app.on('second-instance', (_event, _argv, _workingDirectory, data) => {
       // The window is already gone while this instance is quitting
       if (mainWindow.isDestroyed()) return
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.show()
-      mainWindow.focus()
+      revealWindow(mainWindow, pageFromLaunchData(data))
     })
 
     mainWindow.on('close', (e) => {
