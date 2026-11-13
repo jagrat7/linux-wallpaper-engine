@@ -28,30 +28,28 @@ import {
 } from 'react'
 
 import { DATA } from './demo'
+import { project } from './project'
+import { readTokens, type Theme } from './tokens'
+import type { DemoModule, ExtraEntry, Preset, Sources } from './types'
 import {
   Blocks,
+  Button,
   ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Menu,
   Moon,
   MousePointer2,
   Search,
   Shapes,
-  Sun,
-} from './icons'
-import { project } from './project'
-import { readTokens, type Theme } from './tokens'
-import type { DemoModule, ExtraEntry, Preset, Sources } from './types'
-import {
-  Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   Sortable,
   SortableHandle,
   SortableItem,
+  Sun,
   buttonVariants,
   cn,
 } from './ui'
@@ -420,7 +418,7 @@ export default function DesignPage({ sources }: { sources: Sources }) {
                     aria-label={`Switch to ${other} mode`}
                     title={`Switch to ${other} mode`}
                   >
-                    {theme === 'dark' ? <Sun /> : <Moon />}
+                    {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
                   </Button>
                 )}
               </div>
@@ -599,7 +597,11 @@ function Index({
           aria-label={allClosed ? 'Unfold all sections' : 'Fold all sections'}
           title={allClosed ? 'Unfold all sections' : 'Fold all sections'}
         >
-          {allClosed ? <ChevronsUpDown /> : <ChevronsDownUp />}
+          {allClosed ? (
+            <ChevronsUpDown className="size-4" />
+          ) : (
+            <ChevronsDownUp className="size-4" />
+          )}
         </Button>
       </div>
 
@@ -723,7 +725,7 @@ function choices({ sources: { shadcn, preset }, tokens }: Design) {
     {
       label: 'Component library',
       value: preset.base ? (LIBRARIES[preset.base] ?? preset.base) : undefined,
-      glyph: <Blocks />,
+      glyph: <Blocks className="size-4" />,
     },
     {
       label: 'Style',
@@ -759,7 +761,7 @@ function choices({ sources: { shadcn, preset }, tokens }: Design) {
     {
       label: 'Icon library',
       value: named(shadcn.iconLibrary ?? values.iconLibrary),
-      glyph: <Shapes />,
+      glyph: <Shapes className="size-4" />,
     },
     {
       label: 'Radius',
@@ -771,11 +773,15 @@ function choices({ sources: { shadcn, preset }, tokens }: Design) {
         />
       ),
     },
-    { label: 'Menu', ...choice('menuColor', named(shadcn.menuColor)), glyph: <Menu /> },
+    {
+      label: 'Menu',
+      ...choice('menuColor', named(shadcn.menuColor)),
+      glyph: <Menu className="size-4" />,
+    },
     {
       label: 'Menu accent',
       ...choice('menuAccent', named(shadcn.menuAccent)),
-      glyph: <MousePointer2 />,
+      glyph: <MousePointer2 className="size-4" />,
     },
   ]
   return list.filter((choice) => choice.value)
