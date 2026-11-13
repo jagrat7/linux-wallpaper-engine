@@ -14,6 +14,7 @@ export const project: Project = {
       Linux Wallpaper Engine
     </a>
   ),
+  editor: (file) => `/__open-in-editor?file=${encodeURIComponent(file)}`,
   uiImport: '@/components/ui',
   demos: Object.values(import.meta.glob<DemoModule>('./demos/*.demo.tsx', { eager: true })),
   // theme-provider.tsx: a theme class on <html>, the choice in localStorage. The page writes

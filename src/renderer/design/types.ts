@@ -57,8 +57,9 @@ export type Sources = {
     tailwind: { baseColor: string }
   }
   preset: Preset
-  /** Every file in the UI components folder: its name without `.tsx`, and its source. */
-  components: { name: string; code: string }[]
+  /** Every file in the UI components folder: its name without `.tsx`, its source, and its path
+      from the repo root (for the link that opens it). */
+  components: { name: string; code: string; file?: string }[]
   /** The app's own source files (not the design page), with paths from the repo root. They are
       searched to say where each component is used. */
   app: { path: string; code: string }[]
@@ -103,6 +104,9 @@ export type Project = {
   /** Classes for the page's own chrome: its running text, and its controls (a corner radius,
       say, where the components' own doesn't suit). */
   classes?: { body?: string; control?: string }
+  /** The dev server's address for opening a file in the editor, given the file's path from the
+      repo root. With it, the file names on the page open their file when clicked. */
+  editor?: (file: string) => string
   /** Anything the demos need mounted once on the page, such as a toaster. */
   after?: ComponentType<{ theme: Theme }>
 }
