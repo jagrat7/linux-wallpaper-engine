@@ -22,6 +22,7 @@ export const sources: Sources = {
     // Named from the UI folder down, so a file in a subfolder is `folder/name`.
   ).map(([path, code]) => ({
     name: path.slice('../components/ui/'.length, -'.tsx'.length),
+    file: `src/renderer/${path.slice('../'.length)}`,
     code,
   })),
   // Every source file that can import a component, but not this page, and nothing that can't
