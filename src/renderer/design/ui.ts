@@ -10,3 +10,15 @@ export {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+export {
+  Blocks,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Menu,
+  Moon,
+  MousePointer2,
+  Search,
+  Shapes,
+  Sun,
+} from 'lucide-react'
