@@ -9,8 +9,8 @@
 // dark side by side, whichever theme the page itself is in (tokens.ts, themeCss, says how).
 //
 // Nothing is typed in twice. Tokens come from the stylesheet and DESIGN.md (tokens.ts), and
-// components from the demo files in ./demos. Each component's parts and the files that use it
-// are read from the source as well.
+// components from the demo files in ./demos. The files that use each component are read from
+// the source as well.
 //
 // This file is the same in every project. What differs is in project.tsx and sources.ts.
 
@@ -43,7 +43,18 @@ import {
 import { project } from './project'
 import { readTokens, type Theme } from './tokens'
 import type { DemoModule, ExtraEntry, Preset, Sources } from './types'
-import { Button, Sortable, SortableHandle, SortableItem, cn } from './ui'
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Sortable,
+  SortableHandle,
+  SortableItem,
+  buttonVariants,
+  cn,
+} from './ui'
 
 const capital = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
 const words = (id: string) => id.split('-').map(capital).join(' ')
@@ -68,23 +79,14 @@ function read(sources: Sources) {
   const uiDemos = demos.filter((demo) => !demo.meta.custom)
   const customDemos = demos.filter((demo) => demo.meta.custom)
 
-  // Every component in the UI folder: to name the ones no demo shows yet, to list each one's
-  // parts (what it exports), and to find the files that import it.
+  // Every component in the UI folder: to name the ones no demo shows yet, and to find the files
+  // that import each.
   const components = sources.components.map((c) => c.name).sort()
   const shown = new Set(demos.flatMap((demo) => demo.meta.components))
   const missing = components.filter((name) => !shown.has(name))
 
-  /** The components a file exports, without the name they share: Card / Header / Title. */
-  const parts = Object.fromEntries(
-    sources.components.map(({ name, code }) => {
-      const names = (code.match(/export \{([^}]+)\}/)?.[1] ?? '')
-        .split(',')
-        .map((n) => n.trim())
-        .filter((n) => /^[A-Z]/.test(n))
-      const root = names.find((n) => names.every((other) => other.startsWith(n))) ?? ''
-      return [name, names.map((n) => (n === root ? n : n.slice(root.length))).join(' / ')]
-    }),
-  )
+  /** Where each component's file is, for the projects that say. */
+  const fileOf = Object.fromEntries(sources.components.map(({ name, file }) => [name, file]))
 
   const users = Object.fromEntries(
     components.map((name) => {
@@ -97,6 +99,13 @@ function read(sources: Sources) {
       ]
     }),
   )
+  /** The folders every app file is under, which the list of uses leaves off. */
+  const paths = sources.app.map((file) => file.path.split('/').slice(0, -1))
+  const shared = (paths[0] ?? []).filter((_, i) =>
+    paths.every((path) => path.slice(0, i + 1).join('/') === paths[0]?.slice(0, i + 1).join('/')),
+  )
+  const appRoot = shared.length > 0 ? `${shared.join('/')}/` : ''
+
   const usedIn = (names: string[]) =>
     [...new Set(names.flatMap((name) => users[name] ?? []))].sort()
 
@@ -142,7 +151,8 @@ function read(sources: Sources) {
     customDemos,
     components,
     missing,
-    parts,
+    fileOf,
+    appRoot,
     usedIn,
     usedCount: components.filter((name) => (users[name] ?? []).length > 0).length,
     tokenCount: tokens.groups.reduce((sum, group) => sum + group.tokens.length, 0),
@@ -938,32 +948,31 @@ function shapeEntries(design: Design) {
   ]
 }
 
-/** One demo: where it comes from and what it is made of, then the demo itself. */
+/** One demo: where it comes from and how many files use it, then the demo itself. */
 function Component({ demo: { default: Demo, meta } }: { demo: DemoModule }) {
-  const { usedIn, parts } = useDesign()
+  const { usedIn, fileOf, appRoot } = useDesign()
   const files = usedIn(meta.components)
   return (
     <Entry
       title={meta.title}
       meta={
         meta.custom
-          ? [meta.custom.file, meta.custom.exports]
+          ? [<File key="file" path={meta.custom.file} />, meta.custom.exports]
           : [
-              meta.components.map((name) => `${name}.tsx`).join(' · '),
-              meta.components.length === 1 && parts[meta.components[0] ?? ''],
+              <span key="files">
+                {meta.components.map((name, i) => (
+                  <Fragment key={name}>
+                    {i > 0 && ' · '}
+                    <File path={fileOf[name]}>{name}.tsx</File>
+                  </Fragment>
+                ))}
+              </span>,
               files.length === 0 ? (
-                'Not used yet'
+                <span key="used" className="ml-auto">
+                  Not used yet
+                </span>
               ) : (
-                <details key="used" className="open:basis-full">
-                  <summary className="text-foreground cursor-pointer">
-                    Used in {files.length} {files.length === 1 ? 'file' : 'files'}
-                  </summary>
-                  <ul className="mt-1 grid gap-0.5">
-                    {files.map((file) => (
-                      <li key={file}>{file}</li>
-                    ))}
-                  </ul>
-                </details>
+                <Uses key="used" files={files} root={appRoot} />
               ),
             ]
       }
@@ -1008,6 +1017,59 @@ function Section({
         <SectionId value={id}>{children}</SectionId>
       </div>
     </details>
+  )
+}
+
+/** Asks the dev server to open a file in the editor, where the project says how
+    (`project.editor`). */
+const openFile = (path: string) => {
+  if (project.editor) fetch(project.editor(path)).catch(() => undefined)
+}
+
+/** How many files use a component, at the right of its heading: a menu of them, each of which
+    opens its file. */
+function Uses({ files, root }: { files: string[]; root: string }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          buttonVariants({ variant: 'outline', size: 'sm' }),
+          DATA,
+          'group/uses ml-auto h-6 gap-1 px-2 font-normal',
+        )}
+      >
+        {files.length} {files.length === 1 ? 'use' : 'uses'}
+        <ChevronRight className="size-3 rotate-90 transition-transform group-aria-expanded/uses:-rotate-90" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="max-h-80 w-auto max-w-[min(34rem,80vw)]">
+        {files.map((file) => (
+          <DropdownMenuItem
+            key={file}
+            title={file}
+            className={`${DATA} cursor-pointer`}
+            onClick={() => openFile(file)}
+          >
+            {file.startsWith(root) ? file.slice(root.length) : file}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/** A file's name. Where the project says how to open a file (`project.editor`) and the path is
+    known, a click opens it in the editor. */
+function File({ path, children }: { path?: string; children?: ReactNode }) {
+  if (!project.editor || !path) return <span>{children ?? path}</span>
+  return (
+    <button
+      type="button"
+      title="Open in the editor"
+      className="hover:text-foreground cursor-pointer text-left underline-offset-2 hover:underline"
+      onClick={() => openFile(path)}
+    >
+      {children ?? path}
+    </button>
   )
 }
 
