@@ -5,7 +5,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 
-interface FilterItem {
+export interface FilterItem {
   key: string
   label: string
   icon?: React.ReactNode
