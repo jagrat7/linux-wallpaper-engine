@@ -39,6 +39,7 @@ export interface WorkshopItem {
   author: string
   ageRating?: AgeRating
   type: WallpaperType
+  resolution?: string
   tags: string[]
   previewUrl?: string
 }

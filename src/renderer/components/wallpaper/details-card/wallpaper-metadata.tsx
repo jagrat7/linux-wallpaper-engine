@@ -20,19 +20,23 @@ export function WallpaperMetadata({ wallpaper }: { wallpaper: Wallpaper }) {
           Resolution
         </span>
         <span>
-          {wallpaper.resolution.width > 0 && wallpaper.resolution.height > 0
-            ? `${wallpaper.resolution.width}x${wallpaper.resolution.height}`
-            : 'N/A'}
+          {wallpaper.resolutionLabel ??
+            (wallpaper.resolution.width > 0 && wallpaper.resolution.height > 0
+              ? `${wallpaper.resolution.width}x${wallpaper.resolution.height}`
+              : 'N/A')}
         </span>
       </div>
 
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground flex items-center gap-2">
-          <HardDrive className="size-4" />
-          Size
-        </span>
-        <span>{formatFileSize(wallpaper.fileSize)}</span>
-      </div>
+      {/* Steam's item listing has no file size, so an uninstalled Workshop item would show 0 B. */}
+      {(wallpaper.installed || wallpaper.fileSize > 0) && (
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground flex items-center gap-2">
+            <HardDrive className="size-4" />
+            Size
+          </span>
+          <span>{formatFileSize(wallpaper.fileSize)}</span>
+        </div>
+      )}
     </div>
   )
 }

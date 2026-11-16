@@ -5,7 +5,7 @@ import {
   type WallpaperType,
 } from '../../../shared/constants/wallpaper'
 import type { AppSettings } from '../../../shared/constants/app'
-import { FIRST_PAGE } from '../../../shared/constants/workshop'
+import { FIRST_PAGE, WORKSHOP_RESOLUTION_OPTIONS } from '../../../shared/constants/workshop'
 import type { DiscoverSectionConfig, WorkshopItem } from './workshop.types'
 
 type WorkshopFilterSettings = Pick<
@@ -71,6 +71,15 @@ export function parseWorkshopType(tags: string[]): WallpaperType {
   }
 
   return 'scene'
+}
+
+// Steam's resolution tag on an item ("3840 x 2160", "Dynamic resolution", ...), in Steam's casing.
+export function parseWorkshopResolution(tags: string[]): string | undefined {
+  const normalizedTags = new Set(tags.map((tag) => tag.trim().toLowerCase()))
+
+  return WORKSHOP_RESOLUTION_OPTIONS.find((option) =>
+    normalizedTags.has(option.label.toLowerCase()),
+  )?.label
 }
 
 export function toWorkshopResolutionTag(value: string): string | null {
@@ -275,6 +284,7 @@ export function mapWorkshopItems(
       author: item.owner.steamId64.toString(),
       ageRating: parseWorkshopAgeRating(item.tags),
       type: parseWorkshopType(item.tags),
+      resolution: parseWorkshopResolution(item.tags),
       tags: item.tags,
       previewUrl: item.previewUrl ?? undefined,
     }))

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test'
 import { WORKSHOP_RESOLUTION_OPTIONS } from '../../../shared/constants/workshop'
-import { buildFilterCombinations, toWorkshopResolutionTag } from './workshop.utils'
+import {
+  buildFilterCombinations,
+  mapWorkshopItems,
+  parseWorkshopResolution,
+  toWorkshopResolutionTag,
+} from './workshop.utils'
 
 const noFilters = {
   workshopFilterType: [],
@@ -74,5 +79,37 @@ describe('WORKSHOP_RESOLUTION_OPTIONS', () => {
   it('has no duplicate values', () => {
     const values = WORKSHOP_RESOLUTION_OPTIONS.map((option) => option.value)
     expect(new Set(values).size).toBe(values.length)
+  })
+})
+
+describe('parseWorkshopResolution', () => {
+  it('returns the size tag in Steam casing', () => {
+    expect(parseWorkshopResolution(['Wallpaper', 'Scene', '3840 x 2160'])).toBe('3840 x 2160')
+    expect(parseWorkshopResolution(['dynamic resolution'])).toBe('Dynamic resolution')
+  })
+
+  it('returns tags without a size as-is', () => {
+    expect(parseWorkshopResolution(['Ultrawide Standard Definition'])).toBe(
+      'Ultrawide Standard Definition',
+    )
+  })
+
+  it('returns undefined when the item has no resolution tag', () => {
+    expect(parseWorkshopResolution(['Wallpaper', 'Nature'])).toBeUndefined()
+  })
+})
+
+describe('mapWorkshopItems', () => {
+  it('carries the resolution tag onto each item', () => {
+    const [item] = mapWorkshopItems([
+      {
+        publishedFileId: 1n,
+        title: 'Test',
+        owner: { steamId64: 2n },
+        tags: ['Wallpaper', 'Scene', '2560 x 1440'],
+      },
+    ])
+
+    expect(item.resolution).toBe('2560 x 1440')
   })
 })

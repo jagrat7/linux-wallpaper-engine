@@ -201,3 +201,9 @@ export const CURATED_DISCOVER_SECTION_CONFIGS: DiscoverSectionConfig[] = [
     rankedByTrendDays: 30,
   },
 ]
+
+// Genre tags offered in the Workshop filters menu: the curated Discover sections' tags, so the menu
+// and Discover agree on spelling.
+export const WORKSHOP_TAG_OPTIONS = CURATED_DISCOVER_SECTION_CONFIGS.flatMap((section) =>
+  (section.requiredTags ?? []).map((tag) => ({ label: section.title, value: tag })),
+)

@@ -14,7 +14,7 @@ import {
 } from '@/contexts/workshop-search-context'
 import { FilterSection } from '@/components/wallpaper/filter-section'
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from '../../../shared/constants/wallpaper'
-import { WORKSHOP_RESOLUTION_OPTIONS } from '../../../shared/constants/workshop'
+import { WORKSHOP_RESOLUTION_OPTIONS, WORKSHOP_TAG_OPTIONS } from '../../../shared/constants/workshop'
 
 const TYPE_ITEMS = FILTER_TYPE_OPTIONS.filter((o) => o.value !== 'all').map((o) => ({
   key: o.value,
@@ -31,6 +31,11 @@ const RESOLUTION_ITEMS = WORKSHOP_RESOLUTION_OPTIONS.map((opt) => ({
   label: opt.label,
 }))
 
+const TAG_ITEMS = WORKSHOP_TAG_OPTIONS.map((opt) => ({
+  key: opt.value,
+  label: opt.label,
+}))
+
 export function WorkshopFiltersDropdown() {
   const {
     filterType,
@@ -42,15 +47,19 @@ export function WorkshopFiltersDropdown() {
     filterResolution,
     setFilterResolution,
     toggleResolution,
+    filterTags,
+    setFilterTags,
+    toggleTag,
   } = useWorkshopFilter()
 
-  const activeFilterCount = filterType.length + filterAgeRating.length + filterResolution.length
+  const activeFilterCount = filterType.length + filterAgeRating.length + filterResolution.length + filterTags.length
 
   const handleClearAll = (e: React.MouseEvent) => {
     e.stopPropagation()
     setFilterType([])
     setFilterAgeRating([])
     setFilterResolution([])
+    setFilterTags([])
   }
 
   return (
@@ -127,6 +136,19 @@ export function WorkshopFiltersDropdown() {
           badge={
             filterResolution.length > 0 ? (
               <span className="text-primary">{filterResolution.length} selected</span>
+            ) : undefined
+          }
+        />
+
+        <FilterSection
+          label="Tags"
+          items={TAG_ITEMS}
+          selected={filterTags}
+          onToggle={toggleTag}
+          multi
+          badge={
+            filterTags.length > 0 ? (
+              <span className="text-primary">{filterTags.length} selected</span>
             ) : undefined
           }
         />
