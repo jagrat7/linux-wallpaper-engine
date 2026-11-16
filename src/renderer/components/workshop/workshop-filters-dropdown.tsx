@@ -15,7 +15,10 @@ import {
 } from '@/contexts/workshop-search-context'
 import { FilterSubmenu } from '@/components/wallpaper/filter-submenu'
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from '../../../shared/constants/wallpaper'
-import { WORKSHOP_RESOLUTION_OPTIONS, WORKSHOP_TAG_OPTIONS } from '../../../shared/constants/workshop'
+import {
+  WORKSHOP_RESOLUTION_OPTIONS,
+  WORKSHOP_TAG_OPTIONS,
+} from '../../../shared/constants/workshop'
 
 const TYPE_ITEMS = FILTER_TYPE_OPTIONS.filter((o) => o.value !== 'all').map((o) => ({
   key: o.value,
@@ -53,7 +56,8 @@ export function WorkshopFiltersDropdown() {
     toggleTag,
   } = useWorkshopFilter()
 
-  const activeFilterCount = filterType.length + filterAgeRating.length + filterResolution.length + filterTags.length
+  const activeFilterCount =
+    filterType.length + filterAgeRating.length + filterResolution.length + filterTags.length
 
   const handleClearAll = (e: React.MouseEvent) => {
     e.stopPropagation()

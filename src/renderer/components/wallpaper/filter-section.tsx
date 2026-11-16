@@ -1,9 +1,5 @@
-import { Check } from 'lucide-react'
-import {
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
+import { FilterMenuItem } from '@/components/wallpaper/filter-menu-item'
 
 export interface FilterItem {
   key: string
@@ -37,20 +33,13 @@ export function FilterSection({
       </DropdownMenuLabel>
       <div className="scrollbar-styled max-h-32 overflow-y-auto px-1">
         {items.map((item) => (
-          <DropdownMenuItem
+          <FilterMenuItem
             key={item.key}
-            onClick={(e) => {
-              if (multi) e.preventDefault()
-              onToggle(item.key)
-            }}
-            className="flex items-center justify-between rounded-lg text-xs"
-          >
-            <span className="flex items-center gap-2 truncate">
-              {item.icon}
-              {item.label}
-            </span>
-            {selected.includes(item.key) && <Check className="text-primary size-3.5 shrink-0" />}
-          </DropdownMenuItem>
+            item={item}
+            selected={selected.includes(item.key)}
+            onToggle={onToggle}
+            multi={multi}
+          />
         ))}
       </div>
     </>

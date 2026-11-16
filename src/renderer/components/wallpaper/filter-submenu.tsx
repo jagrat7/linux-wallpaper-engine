@@ -1,11 +1,10 @@
-import { Check } from 'lucide-react'
 import {
-  DropdownMenuItem,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { FilterItem } from './filter-section'
+import { FilterMenuItem } from '@/components/wallpaper/filter-menu-item'
+import type { FilterItem } from '@/components/wallpaper/filter-section'
 
 interface FilterSubmenuProps {
   label: string
@@ -26,20 +25,13 @@ export function FilterSubmenu({ label, items, selected, onToggle }: FilterSubmen
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent className="scrollbar-styled max-h-72 w-56 overflow-y-auto rounded-xl">
         {items.map((item) => (
-          <DropdownMenuItem
+          <FilterMenuItem
             key={item.key}
-            onClick={(e) => {
-              e.preventDefault()
-              onToggle(item.key)
-            }}
-            className="flex items-center justify-between rounded-lg text-xs"
-          >
-            <span className="flex items-center gap-2 truncate">
-              {item.icon}
-              {item.label}
-            </span>
-            {selected.includes(item.key) && <Check className="text-primary size-3.5 shrink-0" />}
-          </DropdownMenuItem>
+            item={item}
+            selected={selected.includes(item.key)}
+            onToggle={onToggle}
+            multi
+          />
         ))}
       </DropdownMenuSubContent>
     </DropdownMenuSub>
