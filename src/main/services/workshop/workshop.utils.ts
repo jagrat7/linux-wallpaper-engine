@@ -73,7 +73,12 @@ export function parseWorkshopType(tags: string[]): WallpaperType {
   return 'scene'
 }
 
-// Steam's resolution tag on an item ("3840 x 2160", "Dynamic resolution", ...), in Steam's casing.
+/**
+ * Finds the Steam resolution tag on a Workshop item, e.g. "3840 x 2160" or "Dynamic resolution".
+ *
+ * @param tags - The item's Steam tags, in any casing.
+ * @returns The matching tag in Steam's casing, or undefined when the item has no resolution tag.
+ */
 export function parseWorkshopResolution(tags: string[]): string | undefined {
   const normalizedTags = new Set(tags.map((tag) => tag.trim().toLowerCase()))
 
