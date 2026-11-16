@@ -128,19 +128,6 @@ export function WorkshopFiltersDropdown() {
         />
 
         <FilterSection
-          label="Resolution"
-          items={RESOLUTION_ITEMS}
-          selected={filterResolution}
-          onToggle={toggleResolution}
-          multi
-          badge={
-            filterResolution.length > 0 ? (
-              <span className="text-primary">{filterResolution.length} selected</span>
-            ) : undefined
-          }
-        />
-
-        <FilterSection
           label="Tags"
           items={TAG_ITEMS}
           selected={filterTags}
@@ -149,6 +136,19 @@ export function WorkshopFiltersDropdown() {
           badge={
             filterTags.length > 0 ? (
               <span className="text-primary">{filterTags.length} selected</span>
+            ) : undefined
+          }
+        />
+
+        <FilterSection
+          label="Resolution"
+          items={RESOLUTION_ITEMS}
+          selected={filterResolution}
+          onToggle={toggleResolution}
+          multi
+          badge={
+            filterResolution.length > 0 ? (
+              <span className="text-primary">{filterResolution.length} selected</span>
             ) : undefined
           }
         />
