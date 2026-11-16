@@ -277,7 +277,14 @@ type WorkshopSourceItem = {
   previewUrl?: string | null
 }
 
-// Pure mapper — filtering is done server-side via requiredTags so every item reaching here is already in-scope.
+/**
+ * Maps raw Steam Workshop items to the app's `WorkshopItem` shape: author, age rating, type and
+ * resolution tag are parsed from the item's tags. Pure mapper: filtering is done server-side via
+ * requiredTags, so every item reaching here is already in scope.
+ *
+ * @param items - Items from a Steam UGC query; null and undefined entries are skipped.
+ * @returns The mapped items, in input order.
+ */
 export function mapWorkshopItems(
   items: Array<WorkshopSourceItem | null | undefined>,
 ): WorkshopItem[] {
