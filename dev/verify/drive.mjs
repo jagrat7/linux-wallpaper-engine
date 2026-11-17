@@ -40,7 +40,8 @@ const locate = (page) => {
   if (flags.row) {
     const row = page.locator(`div:has(> span:text-is(${JSON.stringify(flags.row)}))`).last()
     loc = row.getByRole(flags.role ?? 'switch')
-  } else if (flags.role) loc = page.getByRole(flags.role, flags.name ? { name: flags.name, exact } : {})
+  } else if (flags.role)
+    loc = page.getByRole(flags.role, flags.name ? { name: flags.name, exact } : {})
   else if (flags.label) loc = page.getByLabel(flags.label, { exact })
   else if (flags.placeholder) loc = page.getByPlaceholder(flags.placeholder, { exact })
   else if (flags.text) loc = page.getByText(flags.text, { exact })
@@ -144,7 +145,12 @@ try {
   }
 } catch (error) {
   // Short, greppable failure instead of a stack trace; non-zero exit fails the step
-  console.error(`drive ${command} failed: ${String(error.message ?? error).split('\n').slice(0, 4).join(' | ')}`)
+  console.error(
+    `drive ${command} failed: ${String(error.message ?? error)
+      .split('\n')
+      .slice(0, 4)
+      .join(' | ')}`,
+  )
   process.exitCode = 1
 } finally {
   // Disconnect only: closing would kill the browser/app we are attached to
