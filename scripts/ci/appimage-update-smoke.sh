@@ -13,6 +13,8 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 mkdir -p "$out_dir"
 out_dir="$(realpath "$out_dir")"
 work="$(mktemp -d)"
+# mktemp makes it private; the container's tester user copies the AppImage out of it
+chmod 755 "$work"
 port="${SMOKE_CDP_PORT:-9444}"
 feed_port="${SMOKE_FEED_PORT:-8765}"
 name="lwe-update-smoke-$$"
