@@ -122,11 +122,18 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
 ### Shared
 
 - **Constants** — `src/shared/constants/`
+- **Types** — Don't redefine a shared type. Look in `src/shared/constants/` first; it probably already exists
 - **Import aliases** — Use `@` or `~` import aliases instead of relative paths (e.g. `import { cn } from '@/lib/utils'`)
 
 ### "Backend" (`src/main/`)
 
 - **Services** — `src/main/services/`, follow the singleton pattern. Keep complex logic here, not in the API layer. Big services should be split into smaller, focused services and utilities
+- **Service docs** — Add JSDoc to service functions and methods
+- **Service files** — Don't litter a service folder with one-off files. Try adding the code to the service's utils file first
+- **Service interfaces** — Keep them small, like the APIs of tRPC, React Query or Zod: a few verbs that take a typed input, not one method per case. Adding a member to a service interface is heavily discouraged, so first see whether the behavior fits an existing one:
+  - One action with a discriminated input (`apply({ kind: 'random' })`) instead of `applyRandom`, `applyPlaylist`, ...
+  - One read that returns a snapshot (`getActive()`) instead of a getter per field (`getActiveScreens`, `getPausedScreens`, ...)
+  - Pure helpers that need no service state go in utils, not on the service
 - **Service imports** — A nested service's public file matches its folder name (singular for a plural folder), such as `../../services/wallpaper/wallpaper` or `../../services/playlists/playlist`. Call the service API from outside its folder. Oxlint rejects imports into other files in a service folder from outside it.
 - **tRPC routes** — `src/main/trpc/routes/`, this layer is for assembling service calls and returning data. Low-complexity logic (e.g. `window.ts`) can live here directly, but anything more complex should go in a service. You should always validate tRPC input with Zod
 
@@ -135,6 +142,7 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
 - **Hooks** — `src/renderer/hooks/`, create reusable hooks for UI logic
 - **Utility functions** — `src/renderer/lib/utils.ts` (e.g. `cn()` for classnames, date formatting)
 - **UI components** — use existing shadcn/ui components in `components/ui/` or install new ones via shadcn CLI for React
+- **Design page** — `/design` (dev only, `#/design` in `bun dev`) shows the design system: the tokens from `src/renderer/styles/global.css` and a demo of every UI component. A new file in `src/renderer/components/ui/` needs a `src/renderer/design/demos/<name>.demo.tsx`, written from the component's own variants; the page lists any component without one. Rerun `bun scripts/design-preset.ts` after changing `components.json`
 - **Styling** — use Tailwind CSS
 
 ### Configuration (`forge.config.ts`, `vite.*.config.mts`)
