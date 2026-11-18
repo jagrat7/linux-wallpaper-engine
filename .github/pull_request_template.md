@@ -8,7 +8,7 @@
 
 ## Diagram
 
-<!-- Optional. A short, high-level diagram (e.g. Mermaid) of the change. Leave this out when it adds nothing, or for UI changes that have screenshots. -->
+<!-- A short, high-level diagram (e.g. Mermaid) of the change. Leave this out when it adds nothing, or for UI changes that have screenshots. -->
 
 ## Evidence
 
