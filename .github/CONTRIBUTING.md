@@ -170,7 +170,7 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
    ```
 
 4. Push to your fork and open a pull request against `main`
-5. In the PR description, explain what you changed and link any related issues (e.g. "Addresses #12")
+5. Fill in the PR template: why the change is needed, what changed, and evidence that it works. Link any related issues (e.g. "Addresses #12")
 
 ### Branch Naming
 
