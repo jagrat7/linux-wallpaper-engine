@@ -1,3 +1,9 @@
 - dont shared redfine types, look at /src/shared/constants to see if it already exists
 - add jsdocs for services
 - Avoid litering services with one of files, try to see if you can add it to utils first
+- Adding new members (methods or properties) to a service interface is heavily discouraged. First see whether the behavior fits an existing member, for example as a new `kind` of an existing action or a field on an existing result
+- Keep service interfaces small, like the APIs of tRPC, React Query, React hooks, Zod or the AI SDK: a few verbs that take a typed input, not one method per case
+  - One action with a discriminated input (`apply({ kind: 'random' })`) instead of `applyRandom`, `applyPlaylist`, ...
+  - One read that returns a snapshot (`getActive()`) instead of a getter per field (`getActiveScreens`, `getPausedScreens`, ...)
+  - Pure helpers that need no service state go in utils, not on the service
+- `/design` (dev only, `#/design` in `bun dev`) shows the design system: tokens from `src/renderer/styles/global.css` and a demo of every UI component. A new file in `src/renderer/components/ui/` needs a `src/renderer/design/demos/<name>.demo.tsx`, written from the component's own variants; the page lists any component without one. Rerun `bun scripts/design-preset.ts` after changing `components.json`

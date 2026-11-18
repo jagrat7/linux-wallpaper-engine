@@ -93,20 +93,35 @@ The app follows a 3-layer Electron architecture:
 
 ```text
 src/
-├── main/              # Electron main process (backend)
-│   ├── services/      # Business logic (singleton pattern)
-│   └── trpc/routes/   # tRPC API endpoints
-├── renderer/          # React UI (frontend)
-│   ├── components/    # UI components (+ shadcn/ui in components/ui/)
-│   ├── hooks/         # Custom React hooks
-│   ├── contexts/      # React context providers
-│   ├── routes/        # TanStack Router pages
-│   └── lib/           # Utilities (cn, formatFileSize, etc.)
-├── preload/           # IPC bridge
-└── shared/            # Types & constants shared across layers
+├── main/                  # Electron main process (backend)
+│   ├── services/          # Business logic (singleton pattern)
+│   │   └── <name>/        # Bigger services: <name>.ts, .interface.ts, .types.ts, .utils.ts, tests
+│   ├── trpc/routes/       # tRPC API endpoints
+│   ├── utils/             # Main-process helpers (tray, autostart, launch, version)
+│   └── development/       # Dev-only gateway that serves tRPC and media to a browser tab
+├── renderer/              # React UI (frontend)
+│   ├── components/        # UI components by feature (+ shadcn/ui in components/ui/)
+│   ├── hooks/             # Custom React hooks
+│   ├── contexts/          # React context providers (+ Jotai atoms in contexts/atoms/)
+│   ├── routes/            # TanStack Router pages (routeTree.gen.ts is generated)
+│   ├── design/            # Dev-only /design page (+ component demos in design/demos/)
+│   ├── styles/            # global.css: Tailwind theme tokens
+│   └── lib/               # Utilities (cn, tRPC client, platform)
+├── preload/               # IPC bridge
+└── shared/
+    ├── constants/         # Types & constants shared across layers
+    └── utils/             # Pure helpers shared across layers
+
+dev/                       # Dev tooling: custom Oxlint rules, app verification driver
+scripts/                   # Design preset, tray icon generation, publishing
+distro/                    # Packaging for AUR and Nix
+docs/                      # Screenshots and feature docs (docs/features/)
+assets/                    # App icons, favicons and tray icons
 
 forge.config.ts            # Electron Forge (packaging, makers, publishers)
 vite.config.mts            # Vite+ config: main, preload and renderer builds, plus lint, fmt and test
+components.json            # shadcn/ui config
+flake.nix                  # Nix package and devshell
 ```
 
 Each build in `vite.config.mts` has `@` and `~` aliases pointing to its respective `src/` subdirectory.
@@ -117,16 +132,23 @@ TLDR: UI React stuff is in `renderer/` and the "backend" logic is in `main/`.
 
 ## Development Guide
 
-Make your best effort to keep it DRY and organized. Before writing new code, check if something reusable already exists. If feel this is not most optimial way to do things, do let me know. Here's where things go:
+Make your best effort to keep it DRY and organized. Before writing new code, check if something reusable already exists. If you feel this is not most optimial way to do things, do let me know. Here's where things go:
 
 ### Shared
 
 - **Constants** — `src/shared/constants/`
+- **Types** — Don't redefine a shared type. Look in `src/shared/constants/` first; it probably already exists
 - **Import aliases** — Use `@` or `~` import aliases instead of relative paths (e.g. `import { cn } from '@/lib/utils'`)
 
 ### "Backend" (`src/main/`)
 
 - **Services** — `src/main/services/`, follow the singleton pattern. Keep complex logic here, not in the API layer. Big services should be split into smaller, focused services and utilities
+- **Service docs** — Add JSDoc to service functions and methods
+- **Service files** — Don't litter a service folder with one-off files. Try adding the code to the service's utils file first
+- **Service interfaces** — Keep them small, like the APIs of tRPC, React Query or Zod: a few verbs that take a typed input, not one method per case. Adding a member to a service interface is heavily discouraged, so first see whether the behavior fits an existing one:
+  - One action with a discriminated input (`apply({ kind: 'random' })`) instead of `applyRandom`, `applyPlaylist`, ...
+  - One read that returns a snapshot (`getActive()`) instead of a getter per field (`getActiveScreens`, `getPausedScreens`, ...)
+  - Pure helpers that need no service state go in utils, not on the service
 - **Service imports** — A nested service's public file matches its folder name (singular for a plural folder), such as `../../services/wallpaper/wallpaper` or `../../services/playlists/playlist`. Call the service API from outside its folder. Oxlint rejects imports into other files in a service folder from outside it.
 - **tRPC routes** — `src/main/trpc/routes/`, this layer is for assembling service calls and returning data. Low-complexity logic (e.g. `window.ts`) can live here directly, but anything more complex should go in a service. You should always validate tRPC input with Zod
 
@@ -135,12 +157,13 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
 - **Hooks** — `src/renderer/hooks/`, create reusable hooks for UI logic
 - **Utility functions** — `src/renderer/lib/utils.ts` (e.g. `cn()` for classnames, date formatting)
 - **UI components** — use existing shadcn/ui components in `components/ui/` or install new ones via shadcn CLI for React
+- **Design page** — `/design` (dev only, `#/design` in `bun dev`) shows the design system: the tokens from `src/renderer/styles/global.css` and a demo of every UI component. A new file in `src/renderer/components/ui/` needs a `src/renderer/design/demos/<name>.demo.tsx`, written from the component's own variants; the page lists any component without one. Rerun `bun scripts/design-preset.ts` after changing `components.json`
 - **Styling** — use Tailwind CSS
 
-### Configuration (`forge.config.ts`, `vite.*.config.mts`)
+### Configuration (`forge.config.ts`, `vite.config.mts`)
 
 - **Forge config** — controls packaging, makers, and publishing. Changes here affect how the app is built and distributed
-- **Vite configs** — one per layer (main, renderer, preload). The renderer config includes React, TanStack Router, and Tailwind plugins
+- **Vite config** — one `vite.config.mts` picks the main, preload or renderer build from the Forge target. The renderer build includes the React, TanStack Router and Tailwind plugins. Lint, format and test settings live here too
 
 ### Code Rules
 
@@ -170,7 +193,7 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
    ```
 
 4. Push to your fork and open a pull request against `main`
-5. In the PR description, explain what you changed and link any related issues (e.g. "Addresses #12")
+5. Fill in the PR template: why the change is needed, what changed, and evidence that it works. Link any related issues (e.g. "Addresses #12")
 
 ### Branch Naming
 

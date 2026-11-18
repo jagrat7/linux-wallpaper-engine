@@ -154,9 +154,25 @@ export default defineConfig((env: ForgeConfigEnv) => {
           },
         },
         {
+          // Every scrollbar uses the scrollbar-styled utility from src/renderer/styles/global.css
+          files: ['src/renderer/**'],
+          rules: {
+            'local/scrollbar-styled-only': 'error',
+          },
+        },
+        {
           files: ['src/renderer/components/ui/**'],
           rules: {
             'react/no-multi-comp': 'off',
+          },
+        },
+        {
+          // The dev-only design page: its five page files are shared with other projects (the
+          // design-page skill), so they are exempted here rather than rewritten
+          files: ['src/renderer/design/**'],
+          rules: {
+            'react/no-multi-comp': 'off',
+            'local/scrollbar-styled-only': 'off',
           },
         },
       ],

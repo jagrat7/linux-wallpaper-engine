@@ -35,7 +35,7 @@ export function WallpaperDetailsShell({
       exit={{ '--details-opacity': 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className={cn(
-        'border-border bg-card scrollbar-thin sticky top-0 max-h-[calc(100vh_-_var(--status-bar-h,0rem)_-_2rem)] w-full shrink-0 overflow-y-auto rounded-xl border',
+        'border-border bg-card scrollbar-styled sticky top-0 max-h-[calc(100vh_-_var(--status-bar-h,0rem)_-_2rem)] w-full shrink-0 overflow-y-auto rounded-xl border',
         // The selected preview supplies the background. Keep its surface stable
         // while that image loads/fades, and animate the glass itself: an opacity
         // wrapper would block its backdrop blur until the wrapper reaches 1.

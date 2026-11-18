@@ -1,21 +1,19 @@
 import { z } from 'zod'
 import { trpc } from '../trpc'
 import { wallpaperService, type DebugInfo } from '../../services/wallpaper/wallpaper'
-import { playlistService } from '../../services/playlists/playlist'
+import { listProperties } from '../../utils/wallpaper-properties'
+import { hostCommandExists } from '../../utils/host'
 import { engineOverridesSchema } from '../../../shared/constants/wallpaper'
-import { settingsService } from '../../services/settings'
 import { compatibilityService } from '../../services/compatibility'
 export const wallpaperRouter = trpc.router({
   // Check if linux-wallpaperengine is installed
   checkBackend: trpc.procedure.query(async () => {
-    const { backendInstalled } = await wallpaperService.query()
-    return { installed: backendInstalled }
+    return { installed: await hostCommandExists('linux-wallpaperengine') }
   }),
 
   // Get all wallpapers and apply history (from a single service query)
   getWallpapers: trpc.procedure.query(async () => {
-    const { wallpapers, appliedHistory } = await wallpaperService.query()
-    return { wallpapers, appliedHistory }
+    return wallpaperService.catalog()
   }),
 
   // Invalidate wallpaper cache so the next query triggers a fresh scan
@@ -31,7 +29,7 @@ export const wallpaperRouter = trpc.router({
 
   // List a wallpaper's customizable properties (read from its project.json)
   listProperties: trpc.procedure.input(z.object({ path: z.string() })).query(async ({ input }) => {
-    return wallpaperService.listProperties(input.path)
+    return listProperties(input.path)
   }),
 
   // Apply a wallpaper
@@ -61,15 +59,7 @@ export const wallpaperRouter = trpc.router({
       }),
     )
     .mutation(async ({ input }) => {
-      const settings = await settingsService.loadSettings()
-
-      const options = wallpaperService.buildApplyOptions(settings, input)
-
-      const result = await wallpaperService.apply({ kind: 'wallpaper', options })
-      if (result.success && result.screens) {
-        playlistService.clearActivePlaylist(result.screens)
-      }
-      return result
+      return wallpaperService.apply({ kind: 'wallpaper', options: input })
     }),
 
   // Stop wallpaper(s). Pass all screens in one call so a shared process is
@@ -78,29 +68,24 @@ export const wallpaperRouter = trpc.router({
   stopWalpaper: trpc.procedure
     .input(z.object({ screen: z.union([z.string(), z.array(z.string())]).optional() }).optional())
     .mutation(async ({ input }) => {
-      const result = await wallpaperService.stop(input?.screen)
-      if (result.success && result.screens) {
-        playlistService.clearActivePlaylist(result.screens)
-      }
-      return result
+      return wallpaperService.stop(input?.screen)
     }),
 
   pause: trpc.procedure
     .input(z.object({ screen: z.union([z.string(), z.array(z.string())]).optional() }).optional())
-    .mutation(({ input }) => wallpaperService.pause(input?.screen)),
+    .mutation(({ input }) => wallpaperService.setPaused(true, input?.screen)),
 
   resume: trpc.procedure
     .input(z.object({ screen: z.union([z.string(), z.array(z.string())]).optional() }).optional())
-    .mutation(({ input }) => wallpaperService.resume(input?.screen)),
+    .mutation(({ input }) => wallpaperService.setPaused(false, input?.screen)),
 
   random: trpc.procedure
     .input(z.object({ screen: z.string().optional() }).optional())
-    .mutation(({ input }) => wallpaperService.applyRandom(input?.screen)),
+    .mutation(({ input }) => wallpaperService.apply({ kind: 'random', screen: input?.screen })),
 
   // Get currently active wallpapers
   getActiveWallpaper: trpc.procedure.query(async () => {
-    const { active } = await wallpaperService.query()
-    return active
+    return wallpaperService.getActive()
   }),
 
   // Save per-wallpaper setting overrides
@@ -150,8 +135,7 @@ export const wallpaperRouter = trpc.router({
 
   // Start bulk compatibility scan
   scanAll: trpc.procedure.mutation(async () => {
-    const { wallpapers } = await wallpaperService.query()
-    return compatibilityService.scanAll(wallpapers)
+    return compatibilityService.scanAll((await wallpaperService.catalog()).wallpapers)
   }),
 
   // Get scan progress (for polling)
@@ -162,7 +146,7 @@ export const wallpaperRouter = trpc.router({
   // Get scan results report (joined with wallpaper titles)
   getScanReport: trpc.procedure.query(async () => {
     const report = compatibilityService.getScanReport()
-    const { wallpapers } = await wallpaperService.query()
+    const { wallpapers } = await wallpaperService.catalog()
     const titleMap = new Map(wallpapers.map((w) => [w.path, w.title]))
     return report.map((entry) => ({
       ...entry,

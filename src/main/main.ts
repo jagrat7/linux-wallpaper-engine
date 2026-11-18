@@ -18,12 +18,27 @@ import { setAutostart } from './utils/autostart.ts'
 import { resolveAssetPath } from './utils/assets.ts'
 import { createAppTray, type AppTray } from './utils/tray.ts'
 import { invalidationService } from './services/invalidation.ts'
+import { wallpaperService } from './services/wallpaper/wallpaper.ts'
+import { supervisorService } from './services/supervisor/supervisor.ts'
 import { systemThemeService } from './services/system-theme/system-theme.ts'
 import { DEV_TARGETS, type DevTarget } from '../shared/constants/development.ts'
+import { APP_PAGE_ROUTES, type AppPage } from '../shared/constants/app.ts'
+import { pageFromArgv, pageFromLaunchData, revealWindow } from './utils/launch.ts'
 
 // Global ref to tray to avoid GC
 let appTray: AppTray | null = null
 let isQuitting = false
+
+// `--page <name>` opens the app on that page, on a fresh start or in the running instance
+const launchPage = pageFromArgv(process.argv)
+
+// One instance owns every wallpaper backend. A second launch (autostart plus the
+// launcher, say) hands its page to the first instead of restoring on top of it
+const isPrimaryInstance = app.requestSingleInstanceLock({ page: launchPage })
+if (!isPrimaryInstance) {
+  console.log('Linux Wallpaper Engine is already running, focusing that window instead')
+  app.quit()
+}
 
 systemThemeService.configureElectronPlatform(nativeTheme, systemPreferences)
 
@@ -56,7 +71,7 @@ protocol.registerSchemesAsPrivileged([
   },
 ])
 
-const createWindow = () => {
+const createWindow = (page: AppPage = 'installed') => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -76,12 +91,14 @@ const createWindow = () => {
     if (!shouldMinimizeOnStartup()) mainWindow.show()
   })
 
-  // and load the index.html of the app.
+  // and load the index.html of the app, on `page` (the renderer uses a hash router)
+  const hash = APP_PAGE_ROUTES[page]
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    void mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
+    void mainWindow.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#${hash}`)
   } else {
     void mainWindow.loadFile(
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      { hash },
     )
   }
 
@@ -95,11 +112,18 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 void app.whenReady().then(() => {
+  if (!isPrimaryInstance) return
+
   // Sync flatpak bypass from saved settings
   setFlatpakBypass(settings.getSetting('flatpakBypass'))
 
   // Write / delete autostart file from saved settings
   setAutostart(settings.getSetting('launchOnLogin'))
+
+  // Restore after the flatpak bypass is applied, since it decides how backends spawn
+  wallpaperService
+    .apply({ kind: 'restore' })
+    .catch((error: unknown) => console.error('Restoring saved wallpapers failed:', error))
 
   // Register protocol handler for local files
   protocol.handle('local-file', (request) => {
@@ -109,11 +133,17 @@ void app.whenReady().then(() => {
   })
 
   if (opensWindow) {
-    const mainWindow = createWindow()
+    const mainWindow = createWindow(launchPage)
 
     appTray = createAppTray({ mainWindow, appIcon, isQuitting: () => isQuitting })
 
     if (settings.getSetting('enableSystemTray')) appTray.ensure()
+
+    app.on('second-instance', (_event, _argv, _workingDirectory, data) => {
+      // The window is already gone while this instance is quitting
+      if (mainWindow.isDestroyed()) return
+      revealWindow(mainWindow, pageFromLaunchData(data))
+    })
 
     mainWindow.on('close', (e) => {
       if (shouldMinimizeOnClose() && !isQuitting) {
@@ -153,6 +183,12 @@ app.on('before-quit', () => {
   isQuitting = true
   appTray?.dispose()
   appTray = null
+})
+
+// Backends die with the app; the next launch restores them from saved state.
+// Electron routes SIGTERM, SIGINT and SIGHUP through this same quit sequence
+app.on('will-quit', () => {
+  if (isPrimaryInstance) supervisorService.shutdown()
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

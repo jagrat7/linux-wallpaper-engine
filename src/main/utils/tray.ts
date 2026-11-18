@@ -9,8 +9,8 @@ import {
   type NativeImage,
 } from 'electron'
 import { invalidationService } from '../services/invalidation'
-import { playlistService } from '../services/playlists/playlist'
 import { wallpaperService } from '../services/wallpaper/wallpaper'
+import { supervisorService } from '../services/supervisor/supervisor'
 import { APP_NAME } from '../../shared/constants/app'
 import { isPlaybackInvalidationKey } from '../../shared/constants/wallpaper'
 import { resolveAssetPath } from './assets'
@@ -58,11 +58,7 @@ const runTrayAction = async (
 }
 
 // Stops playlists too, since they run as the same tracked backend processes
-const stopAllWallpapers = async () => {
-  const result = await wallpaperService.stop()
-  if (result.success) playlistService.clearActivePlaylist()
-  return result
-}
+const stopAllWallpapers = () => wallpaperService.stop()
 
 /**
  * Owns the system tray: the tray icon, the live context menu
@@ -86,11 +82,10 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
   // Pause/resume/stop work for playlists too — a playlist runs as the same
   // tracked backend process, so freezing it halts rendering and rotation.
   const buildTrayContextMenu = () => {
-    const activeScreens = wallpaperService.getActiveScreens()
-    const pausedScreens = wallpaperService.getPausedScreens()
-    const hasActive = activeScreens.length > 0
-    const hasPaused = pausedScreens.length > 0
-    const hasUnpaused = activeScreens.some((screen) => !pausedScreens.includes(screen))
+    const screens = [...supervisorService.screens().values()]
+    const hasActive = screens.length > 0
+    const hasPaused = screens.some((screen) => screen.paused)
+    const hasUnpaused = screens.some((screen) => !screen.paused)
 
     return Menu.buildFromTemplate([
       {
@@ -103,19 +98,24 @@ export const createAppTray = ({ mainWindow, appIcon, isQuitting }: AppTrayOption
         label: 'Pause Wallpaper',
         icon: trayMenuIcon('pause'),
         enabled: hasUnpaused,
-        click: () => runTrayAction(() => wallpaperService.pause(), 'Failed to pause wallpapers'),
+        click: () =>
+          runTrayAction(() => wallpaperService.setPaused(true), 'Failed to pause wallpapers'),
       },
       {
         label: 'Resume Wallpaper',
         icon: trayMenuIcon('play'),
         enabled: hasPaused,
-        click: () => runTrayAction(() => wallpaperService.resume(), 'Failed to resume wallpapers'),
+        click: () =>
+          runTrayAction(() => wallpaperService.setPaused(false), 'Failed to resume wallpapers'),
       },
       {
         label: 'Random Wallpaper',
         icon: trayMenuIcon('shuffle'),
         click: () =>
-          runTrayAction(() => wallpaperService.applyRandom(), 'Failed to apply a random wallpaper'),
+          runTrayAction(
+            () => wallpaperService.apply({ kind: 'random' }),
+            'Failed to apply a random wallpaper',
+          ),
       },
       {
         label: 'Stop Wallpaper',

@@ -81,7 +81,7 @@ export function DebugLogDialog({ open, onClose, screen }: DebugLogDialogProps) {
           </div>
         )}
 
-        <div className="bg-muted/50 border-border text-foreground scrollbar-thin min-h-0 flex-1 overflow-y-auto rounded-md border p-3 font-mono text-xs break-all whitespace-pre-wrap">
+        <div className="bg-muted/50 border-border text-foreground scrollbar-styled min-h-0 flex-1 overflow-y-auto rounded-md border p-3 font-mono text-xs break-all whitespace-pre-wrap">
           {logs.length === 0 ? (
             <p className="text-muted-foreground italic">Waiting for output...</p>
           ) : (

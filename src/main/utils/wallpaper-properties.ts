@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import { PROPERTY_CONTROL_TYPES, type WallpaperProperty } from '../../../shared/constants/wallpaper'
+import { PROPERTY_CONTROL_TYPES, type WallpaperProperty } from '../../shared/constants/wallpaper'
 
 // Serialize a project.json property value into the string form used for
 // `--set-property name=value` (booleans as 1/0, everything else verbatim).

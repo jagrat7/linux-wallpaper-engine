@@ -1,30 +1,23 @@
-import type { ChildProcess } from 'node:child_process'
 import type { playlistService } from './playlist'
 import { settingsService } from '../settings'
-import {
-  backendArgPattern,
-  hostCommandExists,
-  hostExecFileAsync,
-  hostSpawn,
-} from '../../utils/host'
+import { hostCommandExists } from '../../utils/host'
 import {
   BACKEND_NOT_INSTALLED_ERROR_MESSAGE,
   applyOverridesToSettings,
   type ApplyWallpaperOptions,
 } from '../../../shared/constants/wallpaper'
 
-// Injected by the caller to avoid a circular import with the wallpaper service
-// (which uses this module to restart playlists when screens are released).
-export type RegisterProcessFn = (
+// Starts the backend and records it against `screens`. Injected by the wallpaper
+// service, which owns every backend, to avoid a circular import with it
+export type LaunchBackendFn = (
   screens: string[],
-  proc: ChildProcess,
   args: string[],
   options: ApplyWallpaperOptions,
-) => void | Promise<unknown>
+) => Promise<unknown>
 
 type PlaylistProcessService = Pick<
   typeof playlistService,
-  'getPlaylist' | 'stampLastApplied' | 'resolveWallpaperEngineAssetsDir' | 'setActivePlaylist'
+  'getPlaylist' | 'stampLastApplied' | 'resolveWallpaperEngineAssetsDir'
 >
 
 export async function startPlaylistProcess(
@@ -32,7 +25,7 @@ export async function startPlaylistProcess(
   playlistName: string,
   screens: string[],
   stampLastApplied: boolean,
-  register: RegisterProcessFn,
+  launch: LaunchBackendFn,
 ): Promise<{ success: boolean; error?: string }> {
   const playlist = await service.getPlaylist(playlistName)
   if (!playlist) {
@@ -70,30 +63,10 @@ export async function startPlaylistProcess(
   }
 
   try {
-    // Kill orphaned processes so a restart can't double-spawn on a screen
-    if (!settings.windowMode) {
-      for (const screen of screenKeys) {
-        try {
-          await hostExecFileAsync('pkill', ['-9', '-f', backendArgPattern('--screen-root', screen)])
-        } catch {
-          /* no process found is ok */
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
-
-    const debugMode = settingsService.getSetting('debugMode')
-    const proc = hostSpawn('linux-wallpaperengine', args, {
-      detached: true,
-      stdio: debugMode ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'ignore', 'pipe'],
-    })
-
-    await register(screenKeys, proc, args, {
+    await launch(screenKeys, args, {
       backgroundId: playlist.items[0],
       screen: settings.windowMode ? undefined : screens.length === 1 ? screens[0] : undefined,
     })
-
-    service.setActivePlaylist(playlistName, screenKeys)
 
     return { success: true }
   } catch (error) {

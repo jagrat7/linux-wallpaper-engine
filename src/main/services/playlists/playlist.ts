@@ -1,7 +1,6 @@
 import * as fs from 'node:fs/promises'
 import type { Playlist } from '../../../shared/constants/playlist'
-import { storeService, type ActivePlaylistInfo } from '../store'
-import { startPlaylistProcess, type RegisterProcessFn } from './playlist-runner'
+import { startPlaylistProcess, type LaunchBackendFn } from './playlist-runner'
 import {
   findSteamConfigPath,
   ensureSteamConfigPath,
@@ -15,7 +14,6 @@ import {
 class PlaylistService {
   private static instance: PlaylistService | null = null
   private configPath: string | null = null
-  private playlistStore = storeService.activeWallpapers
 
   static getInstance(): PlaylistService {
     if (!PlaylistService.instance) {
@@ -28,9 +26,9 @@ class PlaylistService {
     playlistName: string,
     screens: string[],
     stampLastApplied: boolean,
-    register: RegisterProcessFn,
+    launch: LaunchBackendFn,
   ): Promise<{ success: boolean; error?: string }> {
-    return startPlaylistProcess(this, playlistName, screens, stampLastApplied, register)
+    return startPlaylistProcess(this, playlistName, screens, stampLastApplied, launch)
   }
 
   resolveSteamLibraryPaths = resolveSteamLibraryPaths
@@ -185,43 +183,6 @@ class PlaylistService {
     } catch {
       // Best-effort — don't block the apply flow
     }
-  }
-
-  // ── Active playlist state ──────────────────────────────────────────────
-
-  getActivePlaylists(): ActivePlaylistInfo[] {
-    return Object.values(this.getActivePlaylistEntries())
-  }
-
-  getActivePlaylistEntries(): Record<string, ActivePlaylistInfo> {
-    const entries = this.playlistStore.get('activePlaylists') ?? {}
-    const legacy = this.playlistStore.get('activePlaylist')
-    if (!legacy || entries[legacy.screen]) return entries
-    return { ...entries, [legacy.screen]: legacy }
-  }
-
-  setActivePlaylist(name: string, screens: string[]): void {
-    const entries = this.getActivePlaylistEntries()
-    for (const screen of screens) {
-      entries[screen] = { name, screen }
-    }
-    this.playlistStore.set('activePlaylists', entries)
-    this.playlistStore.set('activePlaylist', null)
-  }
-
-  clearActivePlaylist(screens?: string[]): void {
-    if (!screens) {
-      this.playlistStore.set('activePlaylists', {})
-      this.playlistStore.set('activePlaylist', null)
-      return
-    }
-
-    const entries = this.getActivePlaylistEntries()
-    for (const screen of screens) {
-      delete entries[screen]
-    }
-    this.playlistStore.set('activePlaylists', entries)
-    this.playlistStore.set('activePlaylist', null)
   }
 }
 
