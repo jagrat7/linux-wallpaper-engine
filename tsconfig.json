@@ -7,7 +7,8 @@
     "forge.config.ts",
     "forge.env.d.ts",
     "vite.config.mts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "dev/**/*.ts"
   ],
   "compilerOptions": {
     "target": "ESNext",
