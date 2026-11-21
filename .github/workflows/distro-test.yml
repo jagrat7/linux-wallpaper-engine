@@ -96,8 +96,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-${{ matrix.distro }}
+          # One per attempt, so a rerun keeps the failed attempt's logs and doesn't clash with them
+          name: smoke-${{ matrix.distro }}-attempt-${{ github.run_attempt }}
           path: smoke-output
-          # A rerun of a failed test replaces that attempt's logs instead of failing
-          overwrite: true
           if-no-files-found: ignore
