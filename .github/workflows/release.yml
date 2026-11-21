@@ -92,7 +92,8 @@ jobs:
             release=false
           fi
           # Never go backwards, say from a package.json set to an old version by mistake
-          latest="$(gh release view --json tagName --jq .tagName 2>/dev/null || true)"
+          # A lookup error fails the run rather than skipping the check
+          latest="$(gh release view --json tagName --jq .tagName)"
           if [[ "$release" == true && -n "$latest" ]] &&
             ! node scripts/ci/next-version.mjs "${latest#v}" patch "$version" >/dev/null 2>&1; then
             echo "::error::$tag isn't newer than the latest release, $latest"
@@ -193,9 +194,8 @@ jobs:
             fi
           done
           # An upload cut short leaves gh's draft behind; publish it now it's complete
-          if [[ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" == true ]]; then
-            gh release edit "$TAG" --draft=false
-          fi
+          draft="$(gh release view "$TAG" --json isDraft --jq .isDraft)"
+          if [[ "$draft" == true ]]; then gh release edit "$TAG" --draft=false; fi
 
   # Button runs only: puts the released version on main. main only takes changes
   # through PRs, so this opens one and squash-merges it. It starts from the latest
