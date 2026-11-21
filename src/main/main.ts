@@ -13,7 +13,6 @@ import { createIPCHandler } from 'trpc-electron/main'
 import { createTrpcContext } from './trpc/context.ts'
 import { appRouter } from './trpc/router.ts'
 import { settingsService as settings } from './services/settings.ts'
-import { setFlatpakBypass } from './utils/host.ts'
 import { setAutostart } from './utils/autostart.ts'
 import { resolveAssetPath } from './utils/assets.ts'
 import { createAppTray, type AppTray } from './utils/tray.ts'
@@ -114,13 +113,9 @@ const createWindow = (page: AppPage = 'installed') => {
 void app.whenReady().then(() => {
   if (!isPrimaryInstance) return
 
-  // Sync flatpak bypass from saved settings
-  setFlatpakBypass(settings.getSetting('flatpakBypass'))
-
   // Write / delete autostart file from saved settings
   setAutostart(settings.getSetting('launchOnLogin'))
 
-  // Restore after the flatpak bypass is applied, since it decides how backends spawn
   wallpaperService
     .apply({ kind: 'restore' })
     .catch((error: unknown) => console.error('Restoring saved wallpapers failed:', error))

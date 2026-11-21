@@ -44,11 +44,10 @@ export interface AppSettings {
   dismissedScanReminder: boolean
   dismissedUpdateVersion: string | null
 
-  // Debug & Flatpak
+  // Debug
   debugMode: boolean
   windowMode: boolean
   windowGeometry: string | null
-  flatpakBypass: boolean
 
   // Persisted filter & sort preferences
   filterType: WallpaperFilterType[]
@@ -104,11 +103,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dismissedScanReminder: false,
   dismissedUpdateVersion: null,
 
-  // Debug & Flatpak
+  // Debug
   debugMode: false,
   windowMode: false,
   windowGeometry: null,
-  flatpakBypass: false,
 
   // Filters & sort
   filterType: [],

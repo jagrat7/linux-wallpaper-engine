@@ -59,6 +59,15 @@ linux-wallpaperengine --screen-root DP-2 --bg /home/$USER/.local/share/Steam/ste
 
 Grab the latest package from [GitHub Releases](https://github.com/jagrat7/linux-wallpaper-engine/releases) for your distro.
 
+> **Coming from the Flatpak?** It isn't built anymore. Its settings stay in its sandbox, so before you first open the new install, copy them to where other installs look. This leaves an existing profile alone:
+>
+> ```bash
+> dest="${XDG_CONFIG_HOME:-$HOME/.config}/Linux Wallpaper Engine"
+> if [ -e "$dest" ]; then echo "Already exists, not overwriting: $dest"
+> else mkdir -p "$(dirname "$dest")" && cp -r ~/.var/app/com.github.jagrat7.LinuxWallpaperEngine/config/"Linux Wallpaper Engine" "$dest"
+> fi
+> ```
+
 #### Debian / Ubuntu (.deb)
 
 ```bash
@@ -69,12 +78,6 @@ sudo apt install ./linux-wallpaper-engine_<version>_amd64.deb
 
 ```bash
 sudo dnf install ./linux-wallpaper-engine-<version>.x86_64.rpm
-```
-
-#### Flatpak
-
-```bash
-flatpak install --user ./com.github.jagrat7.LinuxWallpaperEngine_stable_x86_64.flatpak
 ```
 
 #### ZIP (Portable)
@@ -169,7 +172,6 @@ Then simply consume the package:
 
   - Wouldn't be a linux experience without it not working on your system. Enter **debug mode** when applying a wallpaper to see what's happening:
 ![Debug Mode](debug-mode.png)
-![Flatpak Compatibility Settings](comp-add.png)
 <br />
 
 - **Multi-Monitor Support** — Detect all connected displays, apply different wallpapers per screen, and view your monitor layout at a glance

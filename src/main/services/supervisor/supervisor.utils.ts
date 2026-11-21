@@ -1,10 +1,5 @@
 import type { ChildProcess } from 'node:child_process'
-import {
-  backendArgPattern,
-  escapeRegExp,
-  hostExecFileAsync,
-  shouldUseFlatpakSpawn,
-} from '../../utils/host'
+import { backendArgPattern, escapeRegExp, hostExecFileAsync } from '../../utils/host'
 import type { ScreenRecords, SavedScreens } from './supervisor.types'
 
 // ── Finding backends by command line ───────────────────────────────────────
@@ -44,16 +39,8 @@ export const screenPattern = (
 // ── Signals ────────────────────────────────────────────────────────────────
 
 /**
- * The signal that kills one backend handle. Under Flatpak the handle is
- * flatpak-spawn, which forwards SIGTERM to the host backend but would die
- * alone on SIGKILL.
- */
-export const killSignal = (flatpak: boolean): NodeJS.Signals => (flatpak ? 'SIGTERM' : 'SIGKILL')
-
-/**
- * Freeze or resume a backend. Signals the handle when there is one outside
- * Flatpak; otherwise (a restored screen, or a handle that only reaches
- * flatpak-spawn) signals the host backend by `pattern`. Never falls back to the
+ * Freeze or resume a backend. Signals the handle when there is one; otherwise
+ * (a restored screen) signals the backend by `pattern`. Never falls back to the
  * bare executable name, which would hit every backend on the machine.
  */
 export const signalBackend = async (
@@ -61,7 +48,7 @@ export const signalBackend = async (
   proc: ChildProcess | undefined,
   pattern: string | null,
 ): Promise<boolean> => {
-  if (proc && !shouldUseFlatpakSpawn()) {
+  if (proc) {
     try {
       return proc.kill(signal)
     } catch {

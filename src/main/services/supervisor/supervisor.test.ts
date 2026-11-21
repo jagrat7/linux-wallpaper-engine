@@ -15,8 +15,6 @@ const { mockHost, mockStore, saved } = vi.hoisted(() => {
       hostSpawn: vi.fn(),
       hostExecFileAsync:
         vi.fn<(file: string, args: string[]) => Promise<{ stdout: string; stderr: string }>>(),
-      hostExecFileSync: vi.fn(),
-      shouldUseFlatpakSpawn: vi.fn(),
     },
     mockStore: {
       get: vi.fn(
@@ -61,7 +59,6 @@ beforeEach(() => {
     return proc
   })
   mockHost.hostExecFileAsync.mockResolvedValue({ stdout: '', stderr: '' })
-  mockHost.shouldUseFlatpakSpawn.mockReturnValue(false)
 })
 
 describe('supervisorService.run', () => {
@@ -339,17 +336,13 @@ describe('supervisorService.setPaused', () => {
 })
 
 describe('supervisorService.kill', () => {
-  it('sends SIGKILL, or SIGTERM under Flatpak for flatpak-spawn to forward', async () => {
+  it('sends SIGKILL', async () => {
     const supervisor = await loadSupervisor()
-    const native = await supervisor.start([], { stdio })
-    const flatpak = await supervisor.start([], { stdio })
+    const proc = await supervisor.start([], { stdio })
 
-    supervisor.kill(native)
-    mockHost.shouldUseFlatpakSpawn.mockReturnValue(true)
-    supervisor.kill(flatpak)
+    supervisor.kill(proc)
 
     expect(spawned[0].kill).toHaveBeenCalledWith('SIGKILL')
-    expect(spawned[1].kill).toHaveBeenCalledWith('SIGTERM')
   })
 
   it('resumes a frozen backend first, since it would hold SIGTERM until then', async () => {
@@ -438,22 +431,6 @@ describe('supervisorService.shutdown', () => {
 
     expect(spawned[0].kill).toHaveBeenCalledWith('SIGKILL')
     expect(spawned[1].kill).toHaveBeenCalledWith('SIGKILL')
-    expect(mockHost.hostExecFileSync).not.toHaveBeenCalled()
     await expect(supervisor.start([], { stdio })).rejects.toThrow('The app is quitting')
-  })
-
-  it('under Flatpak, also kills each screen backend on the host by its pattern', async () => {
-    const supervisor = await loadSupervisor()
-    await supervisor.start([], { stdio, screens: ['eDP-1'], wallpaper: wallpaper() })
-    mockHost.shouldUseFlatpakSpawn.mockReturnValue(true)
-
-    supervisor.shutdown()
-
-    expect(spawned[0].kill).toHaveBeenCalledWith('SIGTERM')
-    expect(mockHost.hostExecFileSync).toHaveBeenCalledWith('pkill', [
-      '-9',
-      '-f',
-      backendArgPattern('--screen-root', 'eDP-1'),
-    ])
   })
 })
