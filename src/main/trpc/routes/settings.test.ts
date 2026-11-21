@@ -103,7 +103,7 @@ describe('settingsRouter', () => {
           input[key] = 90
         }
 
-        await caller.update(input as never)
+        await caller.update(input)
 
         expect(mockWallpaperService.apply).toHaveBeenCalledWith({ kind: 'reapply' })
       })
@@ -128,7 +128,7 @@ describe('settingsRouter', () => {
           input[key] = 'dark'
         }
 
-        await caller.update(input as never)
+        await caller.update(input)
 
         expect(mockWallpaperService.apply).not.toHaveBeenCalled()
       })

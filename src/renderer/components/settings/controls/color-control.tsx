@@ -40,7 +40,7 @@ export function ColorControl({ value, onChange }: ColorControlProps) {
   // Identity must stay stable or the picker's emit effect re-fires on every
   // render with the same color.
   const handleChange = useCallback<NonNullable<ColorPickerProps['onChange']>>((rgb) => {
-    const [r, g, b] = rgb as number[]
+    const [r, g, b] = rgb
     onChangeRef.current(rgbToHex(r, g, b))
   }, [])
 

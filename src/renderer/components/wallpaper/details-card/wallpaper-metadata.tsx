@@ -1,7 +1,7 @@
 import { HardDrive, Layers, Monitor } from 'lucide-react'
 import { type Wallpaper } from '../wallpaper-card'
 import { formatFileSize } from '@/lib/utils'
-import { WALLPAPER_TYPE_LABELS } from '../../../../shared/constants/wallpaper'
+import { WALLPAPER_TYPE_OPTIONS } from '../../../../shared/constants/wallpaper'
 
 export function WallpaperMetadata({ wallpaper }: { wallpaper: Wallpaper }) {
   return (
@@ -11,7 +11,9 @@ export function WallpaperMetadata({ wallpaper }: { wallpaper: Wallpaper }) {
           <Layers className="size-4" />
           Type
         </span>
-        <span>{WALLPAPER_TYPE_LABELS[wallpaper.type]}</span>
+        <span>
+          {WALLPAPER_TYPE_OPTIONS.find((option) => option.value === wallpaper.type)?.label}
+        </span>
       </div>
 
       <div className="flex items-center justify-between text-sm">

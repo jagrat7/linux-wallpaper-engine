@@ -52,7 +52,7 @@ export function PlaylistRow({
   // Get wallpapers for this playlist
   const playlistWallpapers = playlist.items
     .map((path) => wallpapers.find((w) => w.path === path))
-    .filter(Boolean) as Wallpaper[]
+    .filter((wallpaper) => wallpaper !== undefined)
 
   // Translate vertical wheel/trackpad scroll into horizontal carousel movement
   const [carouselApi, setCarouselApi] = useState<CarouselApi>()

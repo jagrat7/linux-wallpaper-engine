@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { CACHE_TTL, type AppSettings } from '../../../shared/constants/app'
 import {
+  AGE_RATING_VALUES,
   AGE_RATINGS,
   type AgeRating,
   type ApplyWallpaperOptions,
@@ -161,9 +162,7 @@ export function parseWallpaperType(rawType?: string): WallpaperType {
 
 // project.json contentrating holds the Steam rating tag (Everyone / Questionable / Mature)
 export function parseContentRating(contentRating?: string): AgeRating | undefined {
-  return (Object.keys(AGE_RATINGS) as AgeRating[]).find(
-    (rating) => AGE_RATINGS[rating].workshopTag === contentRating,
-  )
+  return AGE_RATING_VALUES.find((rating) => AGE_RATINGS[rating].workshopTag === contentRating)
 }
 
 const PREVIEW_CANDIDATES = ['preview.jpg', 'preview.png', 'preview.gif']

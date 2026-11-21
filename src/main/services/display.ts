@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import {
@@ -10,6 +11,18 @@ import {
 } from '../../shared/constants/display'
 import { hostExecAsync } from '../utils/host'
 import { settingsService } from './settings'
+
+const hyprlandMonitorsSchema = z.array(
+  z.object({
+    name: z.string().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    refreshRate: z.number().optional(),
+    focused: z.boolean().optional(),
+  }),
+)
 
 export interface Display {
   id: string
@@ -82,15 +95,13 @@ export const displayService = {
       const { stdout } = await hostExecAsync(DISPLAY_COMMANDS.wlrRandr)
       const lines = stdout.split('\n')
 
-      let currentDisplay: Partial<Display> | null = null
+      let currentDisplay: Display | null = null
 
       for (const line of lines) {
         // Output line: "eDP-1 \"AU Optronics 0x243D\" (1920x1080, scale 1.00)"
         const outputMatch = line.match(/^(\S+)\s+"[^"]*"\s+\((\d+)x(\d+)/)
         if (outputMatch) {
-          if (currentDisplay && currentDisplay.name) {
-            displays.push(currentDisplay as Display)
-          }
+          if (currentDisplay) displays.push(currentDisplay)
           const [, name, width, height] = outputMatch
           currentDisplay = {
             id: name,
@@ -123,9 +134,7 @@ export const displayService = {
         }
       }
 
-      if (currentDisplay && currentDisplay.name) {
-        displays.push(currentDisplay as Display)
-      }
+      if (currentDisplay) displays.push(currentDisplay)
 
       if (displays.length > 0) {
         return displays
@@ -137,7 +146,7 @@ export const displayService = {
     // Try Hyprland's native monitor API
     try {
       const { stdout } = await hostExecAsync(DISPLAY_COMMANDS.hyprlandMonitors)
-      const monitors = JSON.parse(stdout) as Partial<Display & { focused: boolean }>[]
+      const monitors = hyprlandMonitorsSchema.parse(JSON.parse(stdout))
 
       for (const monitor of monitors) {
         if (!monitor.name || !monitor.width || !monitor.height) continue
