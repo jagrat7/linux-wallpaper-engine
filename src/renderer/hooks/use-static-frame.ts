@@ -3,19 +3,14 @@ import { useEffect, useState } from 'react'
 const cache = new Map<string, string>()
 
 export function useStaticFrame(src: string | null): string | null {
-  const [staticUrl, setStaticUrl] = useState<string | null>(src ? (cache.get(src) ?? null) : null)
+  // undefined while the frame for src is still loading
+  const current = src ? cache.get(src) : null
+  // The last resolved frame, held while the next one loads so the background crossfades
+  const [staticUrl, setStaticUrl] = useState<string | null>(current ?? null)
+  if (current !== undefined && current !== staticUrl) setStaticUrl(current)
 
   useEffect(() => {
-    if (!src) {
-      setStaticUrl(null)
-      return undefined
-    }
-
-    const cached = cache.get(src)
-    if (cached) {
-      setStaticUrl(cached)
-      return undefined
-    }
+    if (!src || cache.has(src)) return undefined
 
     const controller = new AbortController()
     const { signal } = controller

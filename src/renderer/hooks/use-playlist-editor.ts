@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { z } from 'zod'
 import {
   PLAYLIST_ORDER_VALUES,
@@ -90,13 +90,6 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
       }
     },
   })
-
-  // Sync local + form state when the source playlist changes
-  useEffect(() => {
-    const defaults = buildDefaults(editPlaylist)
-    setSelectedPaths(defaults.wallpapers)
-    form.reset(defaults)
-  }, [editPlaylist])
 
   // O(1) lookup for selection checks
   const selectedSet = useMemo(() => new Set(selectedPaths), [selectedPaths])

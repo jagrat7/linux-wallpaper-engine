@@ -36,8 +36,7 @@ const connect = async () => {
   throw new Error(`no CDP endpoint on port ${port} after 60s`)
 }
 
-const bannerText = async (locator) =>
-  (await locator.locator('..').innerText()).replace(/\s+/g, ' ')
+const bannerText = async (locator) => (await locator.locator('..').innerText()).replace(/\s+/g, ' ')
 
 const checkUpdate = async (page) => {
   const available = page.getByText('Update available:')

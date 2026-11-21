@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { trpc } from '@/lib/trpc'
 import { WallpaperDetailsShell } from '../wallpaper/details-card/wallpaper-details'
 import { WorkshopActionButtons } from './action-buttons'
@@ -23,7 +23,6 @@ interface WorkshopWallpaperDetailsProps {
 
 export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpaperDetailsProps) {
   const [isApplying, setIsApplying] = useState(false)
-  const [localIsDownloading, setLocalIsDownloading] = useState(false)
   const [showBackendDialog, setShowBackendDialog] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const workshopId = wallpaper.workshopId ?? wallpaper.id
@@ -35,19 +34,20 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
   const utils = trpc.useUtils()
   const isUnsubscribed = unsubscribedWorkshopIds.has(workshopId)
 
+  const subscribeMutation = trpc.workshop.subscribe.useMutation({
+    onSuccess: () => removeUnsubscribedWorkshopId(workshopId),
+  })
+
   const { data: workshopStatus } = trpc.workshop.status.useQuery(
     { workshopId },
     // Stop polling once unsubscribed — Steam keeps files until app close
     // so status would still return a path, but the user already unsubscribed.
-    { refetchInterval: localIsDownloading ? 1000 : 3000, enabled: !isUnsubscribed },
-  )
-
-  const subscribeMutation = trpc.workshop.subscribe.useMutation({
-    onSuccess: () => {
-      removeUnsubscribedWorkshopId(workshopId)
-      setLocalIsDownloading(true)
+    {
+      refetchInterval: (query) =>
+        subscribeMutation.isSuccess && !query.state.data?.path ? 1000 : 3000,
+      enabled: !isUnsubscribed,
     },
-  })
+  )
 
   const unsubscribeMutation = trpc.workshop.unsubscribe.useMutation()
 
@@ -59,17 +59,10 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
   const wallpaperPath = isUnsubscribed ? null : (workshopStatus?.path ?? null)
   const downloadProgress = workshopStatus?.download ?? null
 
-  // Derive from server status so state survives navigation away and back;
-  // localIsDownloading covers the brief window before the first poll returns.
+  // Derive from server status so state survives navigation away and back; a
+  // successful subscribe covers the brief window before the first poll returns.
   const isDownloading =
-    !isUnsubscribed && (localIsDownloading || (downloadProgress != null && !wallpaperPath))
-
-  // Clear local flag once server confirms download complete (path available)
-  useEffect(() => {
-    if (localIsDownloading && wallpaperPath) {
-      setLocalIsDownloading(false)
-    }
-  }, [localIsDownloading, wallpaperPath])
+    !isUnsubscribed && !wallpaperPath && (subscribeMutation.isSuccess || downloadProgress != null)
 
   const activeScreens = activeWallpapers
     .filter((w) => w.wallpaper.backgroundId === wallpaperPath)
