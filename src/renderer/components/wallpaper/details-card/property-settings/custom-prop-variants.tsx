@@ -68,5 +68,8 @@ export function PropertyControl({ property, value, onChange }: PropertyControlPr
           className="h-8 w-36 text-xs"
         />
       )
+
+    default:
+      return null
   }
 }

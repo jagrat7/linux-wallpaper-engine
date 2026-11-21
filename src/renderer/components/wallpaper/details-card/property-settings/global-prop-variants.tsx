@@ -55,5 +55,8 @@ export function GlobalOverrideControl({
           onCheckedChange={(checked) => onUpdate(field.key, checked)}
         />
       )
+
+    default:
+      return null
   }
 }

@@ -123,9 +123,11 @@ export default defineConfig({
       'react/react-in-jsx-scope': 'off',
       'react/no-multi-comp': 'error',
       'react/set-state-in-effect': 'warn',
-      'react/incompatible-library': 'warn',
       'react/refs': 'warn',
       'react-hooks/exhaustive-deps': 'warn',
+      'react/incompatible-library': 'off',
+      'react/capitalized-calls': 'off',
+      'react/exhaustive-effect-dependencies': 'off',
       'react/no-children-prop': 'warn',
       'vite-plus/prefer-vite-plus-imports': 'error',
     },
@@ -151,6 +153,14 @@ export default defineConfig({
         files: ['src/renderer/**'],
         rules: {
           'local/scrollbar-styled-only': 'error',
+        },
+      },
+      {
+        // steamworks.js declares UGCQueryType and UGCType as ambient const enums, which
+        // isolatedModules can't reference, so the Steam query calls pass their numeric values
+        files: ['src/main/services/workshop/workshop.ts'],
+        rules: {
+          'typescript/no-unsafe-enum-assignment': 'off',
         },
       },
       {

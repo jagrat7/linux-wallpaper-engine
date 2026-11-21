@@ -29,6 +29,7 @@ export const ErrorMessage = ({
 
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [message, setMessage, autoDismissTimeout])
 
   if (!message) return null

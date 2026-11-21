@@ -77,7 +77,7 @@ export function VirtualizedWallpaperGrid({
   // scroll element (scrollMargin) so rows position correctly below the banner.
   useLayoutEffect(() => {
     const node = parentRef.current
-    if (!node) return
+    if (!node) return undefined
 
     const measure = () => {
       setWidth(node.clientWidth)

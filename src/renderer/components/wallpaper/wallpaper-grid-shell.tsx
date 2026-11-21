@@ -28,7 +28,7 @@ export function WallpaperGridShell({ children, details, detailsKey }: WallpaperG
 
   useLayoutEffect(() => {
     const node = shellRef.current
-    if (!node) return
+    if (!node) return undefined
 
     const measure = () => setWidth(node.clientWidth)
     measure()

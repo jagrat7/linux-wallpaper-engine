@@ -58,7 +58,7 @@ export function PlaylistRow({
   const [carouselApi, setCarouselApi] = useState<CarouselApi>()
 
   useEffect(() => {
-    if (!carouselApi) return
+    if (!carouselApi) return undefined
     const root = carouselApi.rootNode()
     const onWheel = (event: WheelEvent) => {
       const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY

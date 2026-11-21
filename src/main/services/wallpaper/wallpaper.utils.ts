@@ -137,16 +137,8 @@ export async function parseImageHeader(imagePath: string) {
 }
 
 function matchHeader(buffer: Buffer, imageType: ImageType) {
-  switch (imageType) {
-    case 'jpeg':
-      return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
-
-    case 'png':
-      return buffer.readUInt32BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
-
-    case 'bmp':
-      return buffer.readUInt16BE(0) === IMAGE_HEADERS_IDENTIFIERS[imageType]
-  }
+  const header = imageType === 'png' ? buffer.readUInt32BE(0) : buffer.readUInt16BE(0)
+  return header === IMAGE_HEADERS_IDENTIFIERS[imageType]
 }
 
 export function expandPath(p: string): string {
