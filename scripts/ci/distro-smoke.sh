@@ -70,10 +70,11 @@ case "$distro" in
     ;;
   arch)
     # Builds the AUR PKGBUILD from this run's zip instead of the published release.
-    # -d skips linux-wallpaperengine, which is itself an AUR package. pkgver can't
-    # hold a hyphen, so a pre-release like 0.5.0-beta.1 becomes 0.5.0_beta.1.
+    # pacman installs the package's declared dependencies itself, so a missing one
+    # fails here; only linux-wallpaperengine, itself an AUR package, is assumed.
+    # pkgver can't hold a hyphen, so a pre-release like 0.5.0-beta.1 becomes 0.5.0_beta.1.
     pkgver="${version//-/_}"
-    in_root "pacman -Syu --noconfirm --needed -q xorg-server-xvfb xorg-xauth alsa-lib gtk3 mesa nss >/dev/null
+    in_root "pacman -Syu --noconfirm --needed -q xorg-server-xvfb xorg-xauth >/dev/null
       useradd -m builder
       install -d -o builder /home/builder/pkg
       cd /home/builder/pkg
@@ -83,7 +84,7 @@ case "$distro" in
       cp /LICENSE LICENSE-$pkgver
       chown -R builder /home/builder/pkg
       sudo -u builder makepkg -d --skipchecksums --noconfirm >/dev/null
-      pacman -Udd --noconfirm wallpaperx-bin-*.pkg.tar.zst >/dev/null"
+      pacman -U --noconfirm --assume-installed linux-wallpaperengine wallpaperx-bin-*.pkg.tar.zst >/dev/null"
     pkg_files="pacman -Qlq wallpaperx-bin"
     ;;
 esac

@@ -5,11 +5,12 @@
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // playwright-core comes from dev/verify/.tools/, installed by `dev/verify/lwe setup`
 const toolsDir =
   process.env.LWE_TOOLS_DIR ??
-  path.join(path.dirname(new URL(import.meta.url).pathname), '../../dev/verify/.tools')
+  path.join(path.dirname(fileURLToPath(import.meta.url)), '../../dev/verify/.tools')
 const { chromium } = createRequire(path.join(toolsDir, 'package.json'))('playwright-core')
 
 const [port, outDir] = process.argv.slice(2)

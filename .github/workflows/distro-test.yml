@@ -98,4 +98,6 @@ jobs:
         with:
           name: smoke-${{ matrix.distro }}
           path: smoke-output
+          # A rerun of a failed test replaces that attempt's logs instead of failing
+          overwrite: true
           if-no-files-found: ignore
