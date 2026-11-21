@@ -127,9 +127,125 @@ jobs:
       ref: ${{ github.sha }}
       version: ${{ needs.version.outputs.version }}
 
+  # GitHub's generated list of PRs since the latest full release. Generating it needs
+  # write access, so it's its own job and the notes job stays read-only.
+  changelog:
+    name: List the changes
+    needs: version
+    if: needs.version.outputs.release == 'true' && needs.version.outputs.prerelease != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      contents: write
+    outputs:
+      body: ${{ steps.generate.outputs.body }}
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # The tag doesn't exist yet, so GitHub lists the PRs up to the commit being built
+      - id: generate
+        run: |
+          previous="$(gh release view --json tagName --jq .tagName)"
+          body="$(gh api "repos/$GH_REPO/releases/generate-notes" \
+            -f tag_name="$TAG" -f target_commitish="$GITHUB_SHA" -f previous_tag_name="$previous" \
+            --jq .body)"
+          echo "$body"
+          eof="EOF_$(openssl rand -hex 8)"
+          printf 'body<<%s\n%s\n%s\n' "$eof" "$body" "$eof" >>"$GITHUB_OUTPUT"
+
+  # A short summary from Claude over that list, following .github/release-notes-prompt.md.
+  # Claude never holds a token that can write. If anything here fails, the release goes
+  # out with GitHub's generated notes; pre-releases always do.
+  notes:
+    name: Write release notes
+    needs: [version, changelog]
+    if: ${{ !cancelled() && needs.changelog.outputs.body != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Save the list
+        env:
+          CHANGELOG: ${{ needs.changelog.outputs.body }}
+        run: |
+          mkdir -p release-notes
+          printf '%s\n' "$CHANGELOG" >release-notes/generated.md
+
+      # Its own timeout, so a stuck run fails this step instead of cancelling the job
+      - name: Write the summary
+        id: summary
+        continue-on-error: true
+        timeout-minutes: 12
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Write the release notes summary for ${{ needs.version.outputs.tag }} of ${{ github.repository }}.
+            Follow .github/release-notes-prompt.md exactly.
+          # No network tools: PR bodies are untrusted, so Claude can read PRs and nothing else
+          claude_args: --allowedTools "Read,Write,Bash(gh pr view:*)"
+
+      # Summary, then "Plus N more", the full list folded, and New Contributors last.
+      # Only from a finished run: one cut short may have left a partial summary.
+      - name: Assemble the notes
+        if: steps.summary.outcome == 'success'
+        run: |
+          cd release-notes
+          [[ -s generated.md && -s summary.md ]] || { echo "::warning::No summary; the release keeps GitHub's notes"; exit 0; }
+          # Drop any screenshot that doesn't load, say from a mistyped link
+          for url in $(grep -oE 'https://github\.com/user-attachments/assets/[A-Za-z0-9-]+' summary.md | sort -u); do
+            code="$(curl -sL -r 0-0 --max-time 10 -o /dev/null -w '%{http_code}' "$url" || true)"
+            if [[ "$code" != 200 && "$code" != 206 ]]; then
+              echo "::warning::Dropped a screenshot that doesn't load ($code): $url"
+              sed -i "s|!\[[^]]*\]($url[^)]*)||g" summary.md
+            fi
+          done
+          awk '/^## What.s Changed/ {next} /^## New Contributors/ {skip=1} /^\*\*Full Changelog\*\*/ {skip=0} !skip' \
+            generated.md >changelog.md
+          awk '/^## New Contributors/ {on=1; print "### New Contributors"; next} /^\*\*Full Changelog\*\*/ {on=0} on' \
+            generated.md >contributors.md
+          # Count each PR once, and only the covered ones that are in this release
+          grep -oE '/pull/[0-9]+$' changelog.md | cut -d/ -f3 | sort -u >prs.txt
+          { grep -oE '^[0-9]+$' covered.txt 2>/dev/null || true; } | sort -u >covered-prs.txt
+          more="$(comm -23 prs.txt covered-prs.txt | wc -l)"
+          {
+            printf '%s\n\n' "$(cat summary.md)"
+            if ((more == 1)); then echo '### Plus 1 more bug fix or improvement.'; fi
+            if ((more > 1)); then echo "### Plus $more more bug fixes and performance improvements."; fi
+            echo
+            printf '<details>\n<summary>Full changelog</summary>\n\n'
+            printf '%s\n' "$(sed -e '/./,$!d' changelog.md)"
+            printf '\n</details>\n'
+            if grep -q '^\* ' contributors.md; then echo; sed -e '/^$/d' contributors.md; fi
+          } >notes.md
+          cat notes.md >>"$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        if: hashFiles('release-notes/notes.md') != ''
+        with:
+          name: release-notes
+          path: release-notes/notes.md
+
   release:
     name: GitHub release
-    needs: [version, checks, packages]
+    needs: [version, checks, packages, notes]
+    # Waits for the notes but doesn't need them: a skipped, failed or timed-out
+    # notes job leaves GitHub's generated notes
+    if: ${{ !cancelled() && needs.checks.result == 'success' && needs.packages.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -152,6 +268,13 @@ jobs:
         with:
           name: packages
           path: release
+
+      # Missing when the notes job was skipped or failed
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: release-notes
+          path: release-notes
 
       # The tag points at what was built: this commit, plus the new version in
       # package.json when the run raised it. A token-pushed tag starts no workflows.
@@ -176,7 +299,9 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             flags=(--latest)
             if [[ "$PRERELEASE" == true ]]; then flags=(--prerelease --latest=false); fi
-            gh release create "$TAG" release/* --verify-tag --generate-notes --title "$TAG" "${flags[@]}"
+            notes=(--generate-notes)
+            if [[ -s release-notes/notes.md ]]; then notes=(--notes-file release-notes/notes.md); fi
+            gh release create "$TAG" release/* --verify-tag "${notes[@]}" --title "$TAG" "${flags[@]}"
             exit 0
           fi
           # Replacing a published file would change its checksum under the same version.
