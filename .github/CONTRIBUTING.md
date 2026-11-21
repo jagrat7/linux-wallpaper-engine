@@ -72,7 +72,7 @@ gh workflow run release.yml -f bump=patch -f prerelease=true
 # 2. Merge a PR that changes "version" in package.json into main
 ```
 
-Either way, CI runs the type check and tests, builds every package as that version, installs and launches each one on its distro (`Distro tests`), tags the commit it built, creates the GitHub release with generated notes, and publishes the AUR package (that job waits for approval in the `aur` environment). A button run then opens a `Release vX.Y.Z` PR that sets `package.json` to the new version and squash-merges it, so run `git pull` afterwards.
+Either way, CI runs the `Checks` workflow while it builds every package as that version and installs and launches each one on its distro (`Distro tests`). When both pass, it tags the commit it built, creates the GitHub release with generated notes, and publishes the AUR package (that job waits for approval in the `aur` environment). A button run then opens a `Release vX.Y.Z` PR that sets `package.json` to the new version and squash-merges it, so run `git pull` afterwards.
 
 - `patch`, `minor` and `major` count up from `package.json` on main. Raising a pre-release finishes it: `patch` on `0.5.0-beta.1` releases `0.5.0`.
 - A version with a suffix (`0.5.0-beta.1`, `0.5.0-rc.1`), or the pre-release box, makes a pre-release. It isn't marked Latest, AppImages don't update to it, and the AUR package stays on the last full release.

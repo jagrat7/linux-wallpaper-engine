@@ -101,34 +101,17 @@ jobs:
             echo "release=$release"
           } >>"$GITHUB_OUTPUT"
 
+  # Format, lint, Nix lockfile, typecheck and tests, alongside the package build
   checks:
-    name: Type check and tests
+    name: Checks
     needs: version
     if: needs.version.outputs.release == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - run: bun install --frozen-lockfile
-      - run: bun run typecheck
-      - run: bun run test
+    uses: ./.github/workflows/checks.yml
 
   packages:
     name: Build and test packages
-    needs: [version, checks]
+    needs: version
+    if: needs.version.outputs.release == 'true'
     uses: ./.github/workflows/distro-test.yml
     with:
       ref: ${{ github.sha }}
@@ -136,7 +119,7 @@ jobs:
 
   release:
     name: GitHub release
-    needs: [version, packages]
+    needs: [version, checks, packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -195,6 +178,10 @@ jobs:
               gh release upload "$TAG" "$file"
             fi
           done
+          # An upload cut short leaves gh's draft behind; publish it now it's complete
+          if [[ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" == true ]]; then
+            gh release edit "$TAG" --draft=false
+          fi
 
   # Button runs only: puts the released version on main. main only takes changes
   # through PRs, so this opens one and squash-merges it. It starts from the latest
