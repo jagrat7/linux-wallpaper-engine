@@ -4,12 +4,15 @@ on:
   pull_request:
   push:
     branches: [main]
+  # The Release workflow runs these checks before it publishes
+  workflow_call:
 
 permissions:
   contents: read
 
 concurrency:
-  group: checks-${{ github.ref }}
+  # The workflow name keeps a release's checks apart from a push's on the same ref
+  group: checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,7 +32,7 @@ jobs:
         with:
           bun-version: 1.4.4
 
-      # Forge and the Vite+ CLI run on Node; 24 is the LTS packaging is known to work on.
+      # electron-builder and the Vite+ CLI run on Node; 24 is the LTS packaging is known to work on.
       - uses: actions/setup-node@v4
         with:
           node-version: 24

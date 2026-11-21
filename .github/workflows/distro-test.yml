@@ -18,13 +18,23 @@ on:
       - .github/workflows/distro-test.yml
   workflow_dispatch:
   workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build and test, such as a release commit
+        type: string
+        default: ''
+      version:
+        description: Version to build as, when it isn't the one in package.json yet
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 concurrency:
-  group: distro-test-${{ github.ref }}
-  cancel-in-progress: true
+  group: distro-test-${{ inputs.ref || github.ref }}
+  # A release run must finish; only superseded PR runs are cancelled
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -34,7 +44,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
+
+      # A release button run builds main as the version it's about to release
+      - name: Use the release version
+        if: inputs.version != ''
+        run: npm pkg set version="$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -88,7 +106,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
+
+      # A release button run builds main as the version it's about to release
+      - name: Use the release version
+        if: inputs.version != ''
+        run: npm pkg set version="$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
 
       - uses: actions/setup-node@v4
         with:
@@ -125,7 +151,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
+
+      # A release button run builds main as the version it's about to release
+      - name: Use the release version
+        if: inputs.version != ''
+        run: npm pkg set version="$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
 
       - uses: cachix/install-nix-action@v31
 
