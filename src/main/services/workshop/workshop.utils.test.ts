@@ -110,24 +110,25 @@ describe('WORKSHOP_RESOLUTION_OPTIONS', () => {
 })
 
 describe('parseWorkshopResolution', () => {
-  it('returns the size tag in Steam casing', () => {
-    expect(parseWorkshopResolution(['Wallpaper', 'Scene', '3840 x 2160'])).toBe('3840 x 2160')
-    expect(parseWorkshopResolution(['dynamic resolution'])).toBe('Dynamic resolution')
+  it('reads the size from the resolution tag', () => {
+    expect(parseWorkshopResolution(['Wallpaper', 'Scene', '3840 x 2160'])).toEqual({
+      width: 3840,
+      height: 2160,
+    })
+    expect(parseWorkshopResolution(['ultrawide 3440 x 1440'])).toEqual({
+      width: 3440,
+      height: 1440,
+    })
   })
 
-  it('returns tags without a size as-is', () => {
-    expect(parseWorkshopResolution(['Ultrawide Standard Definition'])).toBe(
-      'Ultrawide Standard Definition',
-    )
-  })
-
-  it('returns undefined when the item has no resolution tag', () => {
-    expect(parseWorkshopResolution(['Wallpaper', 'Nature'])).toBeUndefined()
+  it('returns 0x0 for tags without a size or no resolution tag', () => {
+    expect(parseWorkshopResolution(['Dynamic resolution'])).toEqual({ width: 0, height: 0 })
+    expect(parseWorkshopResolution(['Wallpaper', 'Nature'])).toEqual({ width: 0, height: 0 })
   })
 })
 
 describe('mapWorkshopItems', () => {
-  it('carries the resolution tag onto each item', () => {
+  it('carries the resolution onto each item', () => {
     const [item] = mapWorkshopItems([
       {
         publishedFileId: 1n,
@@ -137,6 +138,6 @@ describe('mapWorkshopItems', () => {
       },
     ])
 
-    expect(item.resolution).toBe('2560 x 1440')
+    expect(item.resolution).toEqual({ width: 2560, height: 1440 })
   })
 })

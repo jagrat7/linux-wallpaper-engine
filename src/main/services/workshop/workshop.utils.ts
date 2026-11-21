@@ -2,6 +2,7 @@ import {
   AGE_RATINGS,
   FILTER_TYPE_OPTIONS,
   type AgeRating,
+  type Wallpaper,
   type WallpaperType,
 } from '../../../shared/constants/wallpaper'
 import type { AppSettings } from '../../../shared/constants/app'
@@ -73,12 +74,14 @@ export function parseWorkshopType(tags: string[]): WallpaperType {
   return 'scene'
 }
 
-export function parseWorkshopResolution(tags: string[]): string | undefined {
+export function parseWorkshopResolution(tags: string[]): Wallpaper['resolution'] {
   const normalizedTags = new Set(tags.map((tag) => tag.trim().toLowerCase()))
-
-  return WORKSHOP_RESOLUTION_OPTIONS.find((option) =>
+  const resolutionTag = WORKSHOP_RESOLUTION_OPTIONS.find((option) =>
     normalizedTags.has(option.label.toLowerCase()),
   )?.label
+  const size = resolutionTag?.match(/(\d+) x (\d+)/)
+
+  return size ? { width: Number(size[1]), height: Number(size[2]) } : { width: 0, height: 0 }
 }
 
 export function toWorkshopResolutionTag(value: string): string | null {

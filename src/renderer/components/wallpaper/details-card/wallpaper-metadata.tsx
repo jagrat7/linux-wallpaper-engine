@@ -20,10 +20,9 @@ export function WallpaperMetadata({ wallpaper }: { wallpaper: Wallpaper }) {
           Resolution
         </span>
         <span>
-          {wallpaper.resolutionLabel ??
-            (wallpaper.resolution.width > 0 && wallpaper.resolution.height > 0
-              ? `${wallpaper.resolution.width}x${wallpaper.resolution.height}`
-              : 'N/A')}
+          {wallpaper.resolution.width > 0 && wallpaper.resolution.height > 0
+            ? `${wallpaper.resolution.width}x${wallpaper.resolution.height}`
+            : 'N/A'}
         </span>
       </div>
 
