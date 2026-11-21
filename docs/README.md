@@ -59,6 +59,12 @@ linux-wallpaperengine --screen-root DP-2 --bg /home/$USER/.local/share/Steam/ste
 
 Grab the latest package from [GitHub Releases](https://github.com/jagrat7/linux-wallpaper-engine/releases) for your distro.
 
+> **Coming from the Flatpak?** It isn't built anymore. Your settings and playlists stay in its sandbox, so copy them over before you first open a new install:
+>
+> ```bash
+> cp -r ~/.var/app/com.github.jagrat7.LinuxWallpaperEngine/config/"Linux Wallpaper Engine" ~/.config/
+> ```
+
 #### Debian / Ubuntu (.deb)
 
 ```bash
