@@ -11,8 +11,10 @@ export function decodeWorkshopCursor(cursor: string | undefined | null): number 
   if (!cursor) return FIRST_PAGE
 
   try {
-    const decoded = JSON.parse(atob(cursor)) as { p?: unknown }
-    const page = Number(decoded?.p)
+    const decoded: unknown = JSON.parse(atob(cursor))
+    const page = Number(
+      typeof decoded === 'object' && decoded !== null && 'p' in decoded ? decoded.p : undefined,
+    )
     return Number.isFinite(page) && page >= FIRST_PAGE ? Math.floor(page) : FIRST_PAGE
   } catch {
     return FIRST_PAGE

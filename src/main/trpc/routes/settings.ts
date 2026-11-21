@@ -2,29 +2,13 @@ import { z } from 'zod'
 import { trpc } from '../trpc'
 import { settingsService, type AppSettings } from '../../services/settings'
 import { wallpaperService } from '../../services/wallpaper/wallpaper'
-import { THEME_OPTIONS, type ThemeOption } from '../../../shared/constants/theme'
-import { SCALING_OPTIONS, type ScalingOption } from '../../../shared/constants/display'
-import {
-  AGE_RATING_OPTIONS,
-  FILTER_TYPE_OPTIONS,
-  type AgeRating,
-  type WallpaperFilterType,
-} from '../../../shared/constants/wallpaper'
-import {
-  COMPATIBILITY_OPTIONS,
-  type CompatibilityStatus,
-} from '../../../shared/constants/compatibility'
-import {
-  SORT_OPTIONS,
-  type SortBy,
-  SORT_ORDER_OPTIONS,
-  type SortOrder,
-} from '../../../shared/constants/sort'
-import { WORKSHOP_SORT_OPTIONS, type WorkshopSortBy } from '../../../shared/constants/workshop'
-import {
-  WALLPAPER_GRID_DENSITY_OPTIONS,
-  type WallpaperGridDensity,
-} from '../../../shared/constants/grid'
+import { THEME_OPTIONS } from '../../../shared/constants/theme'
+import { SCALING_OPTIONS } from '../../../shared/constants/display'
+import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from '../../../shared/constants/wallpaper'
+import { COMPATIBILITY_OPTIONS } from '../../../shared/constants/compatibility'
+import { SORT_OPTIONS, SORT_ORDER_OPTIONS } from '../../../shared/constants/sort'
+import { WORKSHOP_SORT_OPTIONS } from '../../../shared/constants/workshop'
+import { WALLPAPER_GRID_DENSITY_OPTIONS } from '../../../shared/constants/grid'
 import { setAutostart } from '../../utils/autostart'
 import { systemThemeService } from '../../services/system-theme/system-theme'
 
@@ -63,9 +47,7 @@ const settingsSchema = z.object({
   audioProcessing: z.boolean().optional(),
 
   // Display
-  defaultScaling: z
-    .enum(SCALING_OPTIONS.map((o) => o.value) as [ScalingOption, ...ScalingOption[]])
-    .optional(),
+  defaultScaling: z.enum(SCALING_OPTIONS.map((o) => o.value)).optional(),
   disableMouse: z.boolean().optional(),
   disableParallax: z.boolean().optional(),
   disableParticles: z.boolean().optional(),
@@ -74,7 +56,7 @@ const settingsSchema = z.object({
   assetsDir: z.string().nullable().optional(),
 
   // App
-  theme: z.enum(THEME_OPTIONS.map((o) => o.value) as [ThemeOption, ...ThemeOption[]]).optional(),
+  theme: z.enum(THEME_OPTIONS.map((o) => o.value)).optional(),
   launchOnLogin: z.boolean().optional(),
   enableSystemTray: z.boolean().optional(),
   minimizeOnStartup: z.boolean().optional(),
@@ -85,14 +67,7 @@ const settingsSchema = z.object({
   showCompatibilityDot: z.boolean().optional(),
   showStatusBar: z.boolean().optional(),
   dynamicBackground: z.boolean().optional(),
-  wallpaperGridDensity: z
-    .enum(
-      WALLPAPER_GRID_DENSITY_OPTIONS.map((o) => o.value) as [
-        WallpaperGridDensity,
-        ...WallpaperGridDensity[],
-      ],
-    )
-    .optional(),
+  wallpaperGridDensity: z.enum(WALLPAPER_GRID_DENSITY_OPTIONS.map((o) => o.value)).optional(),
   dismissedScanReminder: z.boolean().optional(),
   dismissedUpdateVersion: z.string().nullable().optional(),
 
@@ -102,48 +77,19 @@ const settingsSchema = z.object({
   windowGeometry: windowGeometrySchema.optional(),
 
   // Persisted filter & sort preferences
-  filterType: z
-    .array(
-      z.enum(
-        FILTER_TYPE_OPTIONS.map((o) => o.value) as [WallpaperFilterType, ...WallpaperFilterType[]],
-      ),
-    )
-    .optional(),
-  filterAgeRating: z
-    .array(z.enum(AGE_RATING_OPTIONS.map((o) => o.value) as [AgeRating, ...AgeRating[]]))
-    .optional(),
+  filterType: z.array(z.enum(FILTER_TYPE_OPTIONS.map((o) => o.value))).optional(),
+  filterAgeRating: z.array(z.enum(AGE_RATING_OPTIONS.map((o) => o.value))).optional(),
   filterTags: z.array(z.string()).optional(),
   filterResolution: z.array(z.string()).optional(),
   favoriteDiscoverSectionIds: z.array(z.string()).optional(),
-  workshopFilterType: z
-    .array(
-      z.enum(
-        FILTER_TYPE_OPTIONS.map((o) => o.value) as [WallpaperFilterType, ...WallpaperFilterType[]],
-      ),
-    )
-    .optional(),
-  workshopFilterAgeRating: z
-    .array(z.enum(AGE_RATING_OPTIONS.map((o) => o.value) as [AgeRating, ...AgeRating[]]))
-    .optional(),
+  workshopFilterType: z.array(z.enum(FILTER_TYPE_OPTIONS.map((o) => o.value))).optional(),
+  workshopFilterAgeRating: z.array(z.enum(AGE_RATING_OPTIONS.map((o) => o.value))).optional(),
   workshopFilterTags: z.array(z.string()).optional(),
   workshopFilterResolution: z.array(z.string()).optional(),
-  filterCompatibility: z
-    .array(
-      z.enum(
-        COMPATIBILITY_OPTIONS.map((o) => o.value) as [
-          CompatibilityStatus,
-          ...CompatibilityStatus[],
-        ],
-      ),
-    )
-    .optional(),
-  sortBy: z.enum(SORT_OPTIONS.map((o) => o.value) as [SortBy, ...SortBy[]]).optional(),
-  sortOrder: z
-    .enum(SORT_ORDER_OPTIONS.map((o) => o.value) as [SortOrder, ...SortOrder[]])
-    .optional(),
-  workshopSortBy: z
-    .enum(WORKSHOP_SORT_OPTIONS.map((o) => o.value) as [WorkshopSortBy, ...WorkshopSortBy[]])
-    .optional(),
+  filterCompatibility: z.array(z.enum(COMPATIBILITY_OPTIONS.map((o) => o.value))).optional(),
+  sortBy: z.enum(SORT_OPTIONS.map((o) => o.value)).optional(),
+  sortOrder: z.enum(SORT_ORDER_OPTIONS.map((o) => o.value)).optional(),
+  workshopSortBy: z.enum(WORKSHOP_SORT_OPTIONS.map((o) => o.value)).optional(),
 })
 
 export const settingsRouter = trpc.router({

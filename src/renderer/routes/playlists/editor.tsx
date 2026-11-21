@@ -34,7 +34,7 @@ function PlaylistEditorPage() {
 
   return (
     <div className="h-full p-6">
-      <PlaylistEditorGrid editPlaylist={playlist ?? null} />
+      <PlaylistEditorGrid key={name ?? ''} editPlaylist={playlist ?? null} />
     </div>
   )
 }

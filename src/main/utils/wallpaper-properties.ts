@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { PROPERTY_CONTROL_TYPES, type WallpaperProperty } from '../../shared/constants/wallpaper'
@@ -10,47 +11,58 @@ export const serializePropertyValue = (value: unknown): string => {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
 }
 
-const isControlType = (type: unknown): type is WallpaperProperty['type'] =>
-  typeof type === 'string' && (PROPERTY_CONTROL_TYPES as readonly string[]).includes(type)
+const projectSchema = z.object({
+  general: z.object({ properties: z.record(z.string(), z.unknown()) }),
+})
+
+const optionalNumber = z.number().optional().catch(undefined)
+
+const propertySchema = z.object({
+  type: z.enum(PROPERTY_CONTROL_TYPES),
+  text: z.string().optional().catch(undefined),
+  value: z.unknown(),
+  min: optionalNumber,
+  max: optionalNumber,
+  step: optionalNumber,
+  order: optionalNumber,
+  index: optionalNumber,
+  options: z.array(z.unknown()).optional().catch(undefined),
+})
+
+const optionSchema = z.object({ label: z.union([z.string(), z.number()]), value: z.unknown() })
 
 // Extract user-settable properties from a parsed project.json. This reads the
 // same `general.properties` block the backend's PropertyParser consumes, so it
 // works even for wallpapers whose full project the backend fails to load.
 export function parseProjectProperties(project: unknown): WallpaperProperty[] {
-  const general = (project as { general?: { properties?: unknown } } | null)?.general
-  const props = general?.properties
-  if (!props || typeof props !== 'object') return []
+  const parsedProject = projectSchema.safeParse(project)
+  if (!parsedProject.success) return []
 
   const result: Array<WallpaperProperty & { sortKey: number }> = []
 
-  for (const [name, def] of Object.entries(props as Record<string, unknown>)) {
-    if (!def || typeof def !== 'object') continue
-    const d = def as Record<string, unknown>
-    if (!isControlType(d.type)) continue
+  for (const [name, def] of Object.entries(parsedProject.data.general.properties)) {
+    const parsed = propertySchema.safeParse(def)
+    if (!parsed.success) continue
+    const d = parsed.data
 
-    const options = Array.isArray(d.options)
-      ? (d.options as Array<Record<string, unknown>>)
-          .filter(
-            (o) => o && typeof o === 'object' && o.label !== undefined && o.value !== undefined,
-          )
-          .map((o) => ({ label: String(o.label), value: serializePropertyValue(o.value) }))
-      : undefined
+    const options = d.options?.flatMap((option) => {
+      const parsedOption = optionSchema.safeParse(option)
+      if (!parsedOption.success) return []
+      const { label, value } = parsedOption.data
+      if (value === undefined) return []
+      return [{ label: String(label), value: serializePropertyValue(value) }]
+    })
 
     result.push({
       name,
       type: d.type,
-      text: typeof d.text === 'string' ? d.text : name,
+      text: d.text ?? name,
       value: serializePropertyValue(d.value),
-      min: typeof d.min === 'number' ? d.min : undefined,
-      max: typeof d.max === 'number' ? d.max : undefined,
-      step: typeof d.step === 'number' ? d.step : undefined,
+      min: d.min,
+      max: d.max,
+      step: d.step,
       options,
-      sortKey:
-        typeof d.order === 'number'
-          ? d.order
-          : typeof d.index === 'number'
-            ? d.index
-            : Number.MAX_SAFE_INTEGER,
+      sortKey: d.order ?? d.index ?? Number.MAX_SAFE_INTEGER,
     })
   }
 

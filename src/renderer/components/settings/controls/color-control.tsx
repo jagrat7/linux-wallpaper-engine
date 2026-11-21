@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
 import { rgbToHex } from '@/lib/utils'
@@ -31,7 +31,9 @@ const SWATCHES = [
 
 export function ColorControl({ value, onChange }: ColorControlProps) {
   const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
+  useLayoutEffect(() => {
+    onChangeRef.current = onChange
+  })
   // Bumped when a color is applied directly (swatch/hex input) so the picker
   // remounts showing it; `hex` is carried along because the parent `value`
   // prop only updates on a later render.
@@ -40,7 +42,7 @@ export function ColorControl({ value, onChange }: ColorControlProps) {
   // Identity must stay stable or the picker's emit effect re-fires on every
   // render with the same color.
   const handleChange = useCallback<NonNullable<ColorPickerProps['onChange']>>((rgb) => {
-    const [r, g, b] = rgb as number[]
+    const [r, g, b] = rgb
     onChangeRef.current(rgbToHex(r, g, b))
   }, [])
 

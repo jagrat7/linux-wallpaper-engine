@@ -9,7 +9,7 @@ import {
   BROKEN_PATTERNS,
   MINOR_PATTERNS,
   COMPAT_IGNORE_PATTERNS,
-  COMPATIBILITY_SEVERITY,
+  COMPATIBILITY_CONFIG,
 } from '../../shared/constants/compatibility'
 import { storeService } from './store'
 import { invalidationService } from './invalidation'
@@ -107,7 +107,8 @@ class CompatibilityService {
     const shouldUpdate =
       !existingCompatibility ||
       (hasAutoResult &&
-        COMPATIBILITY_SEVERITY[status] > COMPATIBILITY_SEVERITY[existingCompatibility])
+        COMPATIBILITY_CONFIG[status].severity >
+          COMPATIBILITY_CONFIG[existingCompatibility].severity)
 
     if (!shouldUpdate) return
 
@@ -169,7 +170,7 @@ class CompatibilityService {
         })
       }
     }
-    return results.sort((a, b) => b.lastTested - a.lastTested)
+    return results.toSorted((a, b) => b.lastTested - a.lastTested)
   }
 
   getScanProgress(): ScanProgress {

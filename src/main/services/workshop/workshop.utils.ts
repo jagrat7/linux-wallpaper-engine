@@ -1,6 +1,7 @@
 import {
+  AGE_RATING_VALUES,
   AGE_RATINGS,
-  FILTER_TYPE_OPTIONS,
+  WALLPAPER_TYPE_OPTIONS,
   type AgeRating,
   type Wallpaper,
   type WallpaperType,
@@ -39,39 +40,21 @@ export function toSafeNumber(value: bigint): number {
   return Number(value)
 }
 
-const WORKSHOP_TYPE_TAGS = Object.fromEntries(
-  FILTER_TYPE_OPTIONS.filter(
-    (option): option is (typeof FILTER_TYPE_OPTIONS)[number] & { value: WallpaperType } =>
-      option.value !== 'all',
-  ).map((option) => [option.value, option.label]),
-) as Record<WallpaperType, string>
-
 export function parseWorkshopAgeRating(tags: string[]): AgeRating | undefined {
   const normalizedTags = new Set(tags.map((tag) => tag.trim().toLowerCase()))
 
-  for (const [ageRating, config] of Object.entries(AGE_RATINGS) as Array<
-    [AgeRating, (typeof AGE_RATINGS)[AgeRating]]
-  >) {
-    if (normalizedTags.has(config.workshopTag.toLowerCase())) {
-      return ageRating
-    }
-  }
-
-  return undefined
+  return AGE_RATING_VALUES.find((ageRating) =>
+    normalizedTags.has(AGE_RATINGS[ageRating].workshopTag.toLowerCase()),
+  )
 }
 
 export function parseWorkshopType(tags: string[]): WallpaperType {
   const normalizedTags = new Set(tags.map((tag) => tag.trim().toLowerCase()))
 
-  for (const [type, workshopTag] of Object.entries(WORKSHOP_TYPE_TAGS) as Array<
-    [WallpaperType, string]
-  >) {
-    if (normalizedTags.has(workshopTag.toLowerCase())) {
-      return type
-    }
-  }
-
-  return 'scene'
+  return (
+    WALLPAPER_TYPE_OPTIONS.find((option) => normalizedTags.has(option.label.toLowerCase()))
+      ?.value ?? 'scene'
+  )
 }
 
 export function parseWorkshopResolution(tags: string[]): Wallpaper['resolution'] {
@@ -147,9 +130,9 @@ export function buildFilterCombinations(
   )
   const alwaysRequired = Array.from(new Set(baseTags))
 
-  const typeTags = settings.workshopFilterType
-    .filter((value): value is WallpaperType => value !== 'all')
-    .map((type) => WORKSHOP_TYPE_TAGS[type])
+  const typeTags = settings.workshopFilterType.flatMap((type) =>
+    WALLPAPER_TYPE_OPTIONS.filter((option) => option.value === type).map((option) => option.label),
+  )
   const ageRatingTags = settings.workshopFilterAgeRating.map(
     (rating) => AGE_RATINGS[rating].workshopTag,
   )

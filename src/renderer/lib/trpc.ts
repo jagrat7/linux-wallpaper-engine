@@ -35,10 +35,12 @@ const browserWindowLink: TRPCLink<AppRouter> =
     if (op.path === 'window.openExternal' || op.path === 'window.maximize') {
       return observable((observer) => {
         if (op.path === 'window.openExternal') {
-          const input = op.input as { url: string }
-          const url = new URL(input.url)
-          if (url.protocol === 'https:' || url.protocol === 'http:') {
-            window.open(url.href, '_blank', 'noopener,noreferrer')
+          const { input } = op
+          if (typeof input === 'object' && input !== null && 'url' in input) {
+            const url = new URL(String(input.url))
+            if (url.protocol === 'https:' || url.protocol === 'http:') {
+              window.open(url.href, '_blank', 'noopener,noreferrer')
+            }
           }
         }
         observer.next({ result: { data: { success: true } } })

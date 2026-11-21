@@ -109,6 +109,8 @@ const createWindow = (page: AppPage = 'installed') => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
+const notifyDisplayChange = () => invalidationService.emit('display.list')
+
 void app.whenReady().then(() => {
   if (!isPrimaryInstance) return
 
@@ -164,7 +166,6 @@ void app.whenReady().then(() => {
 
   // Push a display.list invalidation to the renderer whenever monitors
   // are added, removed, or change resolution so apply menus stay accurate
-  const notifyDisplayChange = () => invalidationService.emit('display.list')
   screen.on('display-added', notifyDisplayChange)
   screen.on('display-removed', notifyDisplayChange)
   screen.on('display-metrics-changed', notifyDisplayChange)

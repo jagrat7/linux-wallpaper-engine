@@ -162,10 +162,9 @@ export const wallpaperRouter = trpc.router({
 
   // Get debug logs for a screen
   getDebugLogs: trpc.procedure.input(z.object({ screen: z.string() })).query(async ({ input }) => {
-    return wallpaperService.diagnose({
-      kind: 'getLogs',
-      screen: input.screen,
-    }) as Promise<DebugInfo>
+    const result = await wallpaperService.diagnose({ kind: 'getLogs', screen: input.screen })
+    const empty: DebugInfo = { command: '', logs: [] }
+    return result && 'logs' in result ? result : empty
   }),
 
   // Clear debug logs for a screen

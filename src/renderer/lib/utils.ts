@@ -15,6 +15,14 @@ import type { Wallpaper } from '../../shared/constants/wallpaper'
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+/** The option value equal to `value`, typed as the options' value type; undefined when none matches. */
+export function findOptionValue<V extends string>(
+  options: ReadonlyArray<{ readonly value: V }>,
+  value: string,
+): V | undefined {
+  return options.find((option) => option.value === value)?.value
+}
 // Format bytes to human-readable file size
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -43,7 +51,7 @@ export function getFpsOptions(maxRefreshRate: number, currentFps?: number): numb
     options.add(currentFps)
   }
 
-  return Array.from(options).sort((a, b) => a - b)
+  return Array.from(options).toSorted((a, b) => a - b)
 }
 
 // ── Playlist delay conversion ──────────────────────────────────────────
@@ -109,12 +117,13 @@ export function cleanLabel(text: string, fallback: string): string {
   )
 }
 
+const channel = (v: number) =>
+  Math.round(Math.min(Math.max(v, 0), 255))
+    .toString(16)
+    .padStart(2, '0')
+
 /** Convert 0-255 rgb channels into a `#rrggbb` hex string. */
 export function rgbToHex(r: number, g: number, b: number): string {
-  const channel = (v: number) =>
-    Math.round(Math.min(Math.max(v, 0), 255))
-      .toString(16)
-      .padStart(2, '0')
   return `#${channel(r)}${channel(g)}${channel(b)}`
 }
 

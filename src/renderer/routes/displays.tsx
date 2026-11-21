@@ -49,7 +49,7 @@ function DisplaysPage() {
               thumbnail: active.thumbnail ? mediaUrl(active.thumbnail) : '',
             }
           : null,
-        scaling: (active?.wallpaper.scaling ?? 'default') as DisplayMonitor['scaling'],
+        scaling: active?.wallpaper.scaling ?? 'default',
       }
     })
   }, [displays, activeWallpapers])

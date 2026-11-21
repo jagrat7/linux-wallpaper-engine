@@ -6,10 +6,7 @@ export const PLAYLIST_ORDER_OPTIONS = [
   { label: 'Random', value: 'random' },
 ] as const
 export type PlaylistOrder = (typeof PLAYLIST_ORDER_OPTIONS)[number]['value']
-export const PLAYLIST_ORDER_VALUES = PLAYLIST_ORDER_OPTIONS.map((o) => o.value) as [
-  PlaylistOrder,
-  ...PlaylistOrder[],
-]
+export const PLAYLIST_ORDER_VALUES = PLAYLIST_ORDER_OPTIONS.map((o) => o.value)
 
 export const PLAYLIST_TIME_UNIT_OPTIONS = [
   { label: 'sec', value: 'seconds' },
@@ -17,17 +14,11 @@ export const PLAYLIST_TIME_UNIT_OPTIONS = [
   { label: 'hr', value: 'hours' },
 ] as const
 export type PlaylistTimeUnit = (typeof PLAYLIST_TIME_UNIT_OPTIONS)[number]['value']
-export const PLAYLIST_TIME_UNIT_VALUES = PLAYLIST_TIME_UNIT_OPTIONS.map((o) => o.value) as [
-  PlaylistTimeUnit,
-  ...PlaylistTimeUnit[],
-]
+export const PLAYLIST_TIME_UNIT_VALUES = PLAYLIST_TIME_UNIT_OPTIONS.map((o) => o.value)
 
 export const PLAYLIST_MODE_OPTIONS = [{ label: 'Timer', value: 'timer' }] as const
 export type PlaylistMode = (typeof PLAYLIST_MODE_OPTIONS)[number]['value']
-export const PLAYLIST_MODE_VALUES = PLAYLIST_MODE_OPTIONS.map((o) => o.value) as [
-  PlaylistMode,
-  ...PlaylistMode[],
-]
+export const PLAYLIST_MODE_VALUES = PLAYLIST_MODE_OPTIONS.map((o) => o.value)
 
 export interface PlaylistSettings {
   delay: number // minutes between switches (engine format)

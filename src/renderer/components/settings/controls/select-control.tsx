@@ -5,18 +5,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { cn, findOptionValue } from '@/lib/utils'
 
-interface SelectControlProps {
-  options: ReadonlyArray<{ readonly label: string; readonly value: string }>
-  value: string
-  onChange: (value: string) => void
+interface SelectControlProps<V extends string> {
+  options: ReadonlyArray<{ readonly label: string; readonly value: V }>
+  value: V
+  onChange: (value: V) => void
   triggerClassName?: string
 }
 
-export function SelectControl({ options, value, onChange, triggerClassName }: SelectControlProps) {
+export function SelectControl<V extends string>({
+  options,
+  value,
+  onChange,
+  triggerClassName,
+}: SelectControlProps<V>) {
   return (
-    <Select value={value} onValueChange={onChange}>
+    <Select
+      value={value}
+      onValueChange={(next) => {
+        const option = findOptionValue(options, next)
+        if (option) onChange(option)
+      }}
+    >
       <SelectTrigger className={cn('max-w-48', triggerClassName)}>
         {/* The trigger's built-in line-clamp doesn't apply (its value
                     slot is forced to display:flex), so truncate explicitly. */}

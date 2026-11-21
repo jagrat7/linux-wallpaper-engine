@@ -7,16 +7,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import {
-  useWallpaperFilter,
-  type AgeRating,
-  type WallpaperFilterType,
-} from '@/contexts/wallpaper-search-context'
+import { useWallpaperFilter } from '@/contexts/wallpaper-search-context'
 import { FilterSection } from './filter-section'
-import {
-  COMPATIBILITY_OPTIONS,
-  type CompatibilityStatus,
-} from '../../../shared/constants/compatibility'
+import { COMPATIBILITY_OPTIONS } from '../../../shared/constants/compatibility'
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from '../../../shared/constants/wallpaper'
 
 const TYPE_ITEMS = FILTER_TYPE_OPTIONS.filter((o) => o.value !== 'all').map((o) => ({
@@ -123,7 +116,7 @@ export function FiltersDropdown() {
           label="Compatibility"
           items={COMPAT_ITEMS}
           selected={filterCompatibility}
-          onToggle={(key) => toggleFilterCompatibility(key as CompatibilityStatus)}
+          onToggle={toggleFilterCompatibility}
           multi
           badge={
             filterCompatibility.length > 0 ? (
@@ -151,7 +144,7 @@ export function FiltersDropdown() {
           label="Age rating"
           items={AGE_RATING_ITEMS}
           selected={filterAgeRating}
-          onToggle={(key) => toggleFilterAgeRating(key as AgeRating)}
+          onToggle={toggleFilterAgeRating}
           multi
           badge={
             filterAgeRating.length > 0 ? (
@@ -164,7 +157,7 @@ export function FiltersDropdown() {
           label="Type"
           items={TYPE_ITEMS}
           selected={filterType}
-          onToggle={(key) => toggleFilterType(key as WallpaperFilterType)}
+          onToggle={toggleFilterType}
           multi
           badge={
             filterType.length > 0 ? (

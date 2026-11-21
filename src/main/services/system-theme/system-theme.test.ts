@@ -33,16 +33,10 @@ afterEach(() => {
 describe('system theme events', () => {
   it('refreshes from platform events and disposes every subscription', async () => {
     let scheme: 'light' | 'dark' = 'dark'
-    let notifyChange = () => {
-      throw new Error('Platform was not subscribed')
-    }
     const unsubscribe = vi.fn()
     const platform = {
       readScheme: () => scheme,
-      subscribe: vi.fn((onChange) => {
-        notifyChange = onChange
-        return unsubscribe
-      }),
+      subscribe: vi.fn((_onChange: () => void) => unsubscribe),
     } satisfies SystemThemePlatform
     mocks.detectSystemTheme.mockImplementation(async (_, platformScheme) => ({
       scheme: platformScheme,
@@ -61,6 +55,7 @@ describe('system theme events', () => {
     })
 
     scheme = 'light'
+    const [notifyChange] = platform.subscribe.mock.calls[0]
     notifyChange()
     await vi.waitFor(() => {
       expect(mocks.emitInvalidation).toHaveBeenCalledWith('settings.systemTheme')

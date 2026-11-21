@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useForm } from '@tanstack/react-form'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useForm, useStore } from '@tanstack/react-form'
+import { useState, useMemo, useCallback } from 'react'
 import { z } from 'zod'
 import {
   PLAYLIST_ORDER_VALUES,
@@ -38,7 +38,7 @@ function buildDefaults(playlist?: Playlist | null) {
       delay: parsed.value,
       timeUnit: parsed.unit,
       order: playlist.settings.order,
-      overrides: (playlist.settings.overrides ?? {}) as WallpaperOverrides,
+      overrides: playlist.settings.overrides ?? {},
       wallpapers: playlist.items,
     }
   }
@@ -59,7 +59,6 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
   const updateMutation = trpc.playlist.update.useMutation()
 
   const isEditing = !!editPlaylist
-  const [selectedPaths, setSelectedPaths] = useState<string[]>(editPlaylist?.items ?? [])
   const [serverError, setServerError] = useState<string | null>(null)
 
   const form = useForm({
@@ -83,7 +82,7 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
           : await createMutation.mutateAsync(playlist)
 
       if (result.success) {
-        await utils.playlist.list.invalidate()
+        await Promise.all([utils.playlist.list.invalidate(), utils.playlist.get.invalidate()])
         void navigate({ to: '/playlists' })
       } else {
         setServerError(result.error ?? 'Failed to save playlist')
@@ -91,47 +90,32 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
     },
   })
 
-  // Sync local + form state when the source playlist changes
-  useEffect(() => {
-    const defaults = buildDefaults(editPlaylist)
-    setSelectedPaths(defaults.wallpapers)
-    form.reset(defaults)
-  }, [editPlaylist])
+  const selectedPaths = useStore(form.store, (state) => state.values.wallpapers)
 
   // O(1) lookup for selection checks
   const selectedSet = useMemo(() => new Set(selectedPaths), [selectedPaths])
 
   const handleToggleWallpaper = useCallback(
     (wallpaper: Wallpaper) => {
-      setSelectedPaths((prev) => {
-        const next = prev.includes(wallpaper.path)
+      form.setFieldValue('wallpapers', (prev) =>
+        prev.includes(wallpaper.path)
           ? prev.filter((p) => p !== wallpaper.path)
-          : [...prev, wallpaper.path]
-        form.setFieldValue('wallpapers', next)
-        return next
-      })
+          : [...prev, wallpaper.path],
+      )
     },
     [form],
   )
 
   const handleRemoveWallpaper = useCallback(
     (path: string) => {
-      setSelectedPaths((prev) => {
-        const next = prev.filter((p) => p !== path)
-        form.setFieldValue('wallpapers', next)
-        return next
-      })
+      form.setFieldValue('wallpapers', (prev) => prev.filter((p) => p !== path))
     },
     [form],
   )
 
   const handleSelectAll = useCallback(
     (paths: string[]) => {
-      setSelectedPaths((prev) => {
-        const merged = Array.from(new Set([...prev, ...paths]))
-        form.setFieldValue('wallpapers', merged)
-        return merged
-      })
+      form.setFieldValue('wallpapers', (prev) => Array.from(new Set([...prev, ...paths])))
     },
     [form],
   )
@@ -139,11 +123,7 @@ export function usePlaylistEditor(editPlaylist?: Playlist | null) {
   const handleDeselectAll = useCallback(
     (paths: string[]) => {
       const pathSet = new Set(paths)
-      setSelectedPaths((prev) => {
-        const next = prev.filter((p) => !pathSet.has(p))
-        form.setFieldValue('wallpapers', next)
-        return next
-      })
+      form.setFieldValue('wallpapers', (prev) => prev.filter((p) => !pathSet.has(p)))
     },
     [form],
   )

@@ -11,9 +11,7 @@ export const settingsService = {
   },
 
   async saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
-    for (const [key, value] of Object.entries(settings)) {
-      store.set(key as keyof AppSettings, value)
-    }
+    store.store = { ...store.store, ...settings }
     return store.store
   },
 

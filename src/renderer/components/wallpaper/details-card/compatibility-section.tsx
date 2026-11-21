@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { trpc } from '@/lib/trpc'
+import { findOptionValue } from '@/lib/utils'
 import {
   COMPATIBILITY_OPTIONS,
   type CompatibilityStatus,
@@ -38,10 +39,8 @@ export function CompatibilitySection({ wallpaperPath }: { wallpaperPath: string 
         <Select
           value={currentStatus}
           onValueChange={(value) => {
-            setCompatibility.mutate({
-              path: wallpaperPath,
-              status: value as CompatibilityStatus,
-            })
+            const status = findOptionValue(COMPATIBILITY_OPTIONS, value)
+            if (status) setCompatibility.mutate({ path: wallpaperPath, status })
           }}
         >
           <SelectTrigger className="h-8 w-32 text-xs">

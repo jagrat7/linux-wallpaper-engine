@@ -98,8 +98,8 @@ function SettingsPage() {
     updateMutation.mutate(
       { windowGeometry: windowGeometry || null },
       {
-        onError: (error) => {
-          windowGeometryForm.setError('windowGeometry', { message: error.message })
+        onError: (mutationError) => {
+          windowGeometryForm.setError('windowGeometry', { message: mutationError.message })
         },
       },
     )
@@ -351,9 +351,7 @@ function SettingsPage() {
             <SelectControl
               options={SCALING_OPTIONS}
               value={settings.defaultScaling}
-              onChange={(value) =>
-                updateSetting('defaultScaling', value as AppSettings['defaultScaling'])
-              }
+              onChange={(value) => updateSetting('defaultScaling', value)}
               triggerClassName="w-28"
             />
           </SettingRow>
@@ -387,8 +385,7 @@ function SettingsPage() {
             <SelectControl
               options={THEME_OPTIONS}
               value={mode}
-              onChange={(value) => {
-                const newTheme = value as AppSettings['theme']
+              onChange={(newTheme) => {
                 setMode(newTheme) // Apply theme immediately
                 updateSetting('theme', newTheme)
               }}

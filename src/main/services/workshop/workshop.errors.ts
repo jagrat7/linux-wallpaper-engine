@@ -40,17 +40,16 @@ export type WorkshopConnectionError =
   | SteamNotLoggedInError
   | WorkshopUnavailableError
 
+const WORKSHOP_CONNECTION_ERRORS: Record<WorkshopConnectionIssue, () => WorkshopConnectionError> = {
+  steam_not_running: () => new SteamNotRunningError(),
+  steam_not_logged_in: () => new SteamNotLoggedInError(),
+  steam_unavailable: () => new WorkshopUnavailableError(),
+}
+
 export function createWorkshopConnectionError(
   issue: WorkshopConnectionIssue,
 ): WorkshopConnectionError {
-  switch (issue) {
-    case 'steam_not_running':
-      return new SteamNotRunningError()
-    case 'steam_not_logged_in':
-      return new SteamNotLoggedInError()
-    case 'steam_unavailable':
-      return new WorkshopUnavailableError()
-  }
+  return WORKSHOP_CONNECTION_ERRORS[issue]()
 }
 
 export function isWorkshopConnectionError(error: unknown): error is WorkshopConnectionError {

@@ -1,13 +1,11 @@
+import { z } from 'zod'
 import { app } from 'electron'
 import { trpc } from '../trpc'
 import { GITHUB_REPO, type UpdateCheck } from '../../../shared/constants/app'
 import { updaterService } from '../../services/updater'
 import { isNewerVersion, stripVersionPrefix } from '../../utils/version'
 
-interface GithubRelease {
-  tag_name: string
-  html_url: string
-}
+const githubReleaseSchema = z.object({ tag_name: z.string(), html_url: z.string() })
 
 const releaseUrl = (version: string) => `https://github.com/${GITHUB_REPO}/releases/tag/v${version}`
 
@@ -20,7 +18,7 @@ const checkGithubRelease = async (): Promise<UpdateCheck> => {
     })
     if (!res.ok) return noUpdate
 
-    const release = (await res.json()) as GithubRelease
+    const release = githubReleaseSchema.parse(await res.json())
     const latestVersion = stripVersionPrefix(release.tag_name)
     const hasUpdate = isNewerVersion(latestVersion, app.getVersion())
     return { hasUpdate, latestVersion, releaseUrl: release.html_url, canAutoUpdate: false }

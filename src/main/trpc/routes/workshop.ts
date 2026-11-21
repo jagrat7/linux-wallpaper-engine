@@ -3,11 +3,9 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { trpc } from '../trpc'
 import { workshopService, type WorkshopConnectionEvent } from '../../services/workshop/workshop'
-import { WORKSHOP_SORT_OPTIONS, type WorkshopSortBy } from '../../../shared/constants/workshop'
+import { WORKSHOP_SORT_OPTIONS } from '../../../shared/constants/workshop'
 
-const workshopSortSchema = z.enum(
-  WORKSHOP_SORT_OPTIONS.map((o) => o.value) as [WorkshopSortBy, ...WorkshopSortBy[]],
-)
+const workshopSortSchema = z.enum(WORKSHOP_SORT_OPTIONS.map((o) => o.value))
 
 const toTrpcWorkshopError = (error: unknown): never => {
   if (workshopService.isConnectionError(error)) {

@@ -114,10 +114,10 @@ function PlaylistsPage() {
     const query = searchQuery.trim().toLowerCase()
     const filtered = query
       ? playlists.filter((p) => p.name.toLowerCase().includes(query))
-      : [...playlists]
+      : playlists
 
     // Sort by updatedAt so selecting/applying a playlist doesn't reorder the list
-    return filtered.sort((a, b) => {
+    return filtered.toSorted((a, b) => {
       const updatedA = a.updatedAt ?? 0
       const updatedB = b.updatedAt ?? 0
       return updatedB - updatedA

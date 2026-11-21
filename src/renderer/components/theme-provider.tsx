@@ -2,6 +2,7 @@ import { createContext, useContext, useLayoutEffect, useState } from 'react'
 import { DEFAULT_SETTINGS } from '../../shared/constants/app'
 import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants/theme'
 import { trpc } from '../lib/trpc'
+import { findOptionValue } from '@/lib/utils'
 
 /** Where the user's theme choice is kept in localStorage */
 export const THEME_STORAGE_KEY = 'wallpaper-engine-theme'
@@ -24,7 +25,9 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undef
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [mode, setMode] = useState<ThemeOption>(
-    () => (localStorage.getItem(THEME_STORAGE_KEY) as ThemeOption | null) ?? DEFAULT_SETTINGS.theme,
+    () =>
+      findOptionValue(THEME_OPTIONS, localStorage.getItem(THEME_STORAGE_KEY) ?? '') ??
+      DEFAULT_SETTINGS.theme,
   )
   const { data: systemTheme } = trpc.settings.systemTheme.useQuery(undefined, {
     enabled: mode === 'system',

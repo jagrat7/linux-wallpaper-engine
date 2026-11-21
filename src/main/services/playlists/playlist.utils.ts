@@ -112,7 +112,7 @@ export async function readSteamConfig(configPath: string): Promise<SteamConfig> 
     parsed.steamuser.general.playlists ??= []
     return parsed
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       return structuredClone(DEFAULT_CONFIG)
     }
     throw error

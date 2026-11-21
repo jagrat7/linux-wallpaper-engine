@@ -22,7 +22,7 @@ export const hostSpawn = (
  * Promisified exec. The command runs through a shell, so only pass trusted input.
  */
 export const hostExecAsync = (command: string): Promise<{ stdout: string; stderr: string }> =>
-  execPromise(command) as Promise<{ stdout: string; stderr: string }>
+  execPromise(command)
 
 /**
  * Promisified execFile. The command is never run through a shell: arguments
@@ -32,8 +32,7 @@ export const hostExecAsync = (command: string): Promise<{ stdout: string; stderr
 export const hostExecFileAsync = (
   file: string,
   args: string[],
-): Promise<{ stdout: string; stderr: string }> =>
-  execFilePromise(file, args) as Promise<{ stdout: string; stderr: string }>
+): Promise<{ stdout: string; stderr: string }> => execFilePromise(file, args)
 
 export const hostCommandExists = async (command: string): Promise<boolean> => {
   try {
