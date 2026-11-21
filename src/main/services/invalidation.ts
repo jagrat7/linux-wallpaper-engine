@@ -7,6 +7,7 @@ export type InvalidationKey =
   | PlaybackInvalidationKey
   | 'display.list'
   | 'settings.systemTheme'
+  | 'app.updateStatus'
 
 const emitter = new EventEmitter()
 

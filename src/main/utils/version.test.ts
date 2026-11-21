@@ -24,6 +24,11 @@ describe('isNewerVersion', () => {
     expect(isNewerVersion('0.4.4', '0.5.0')).toBe(false)
   })
 
+  it('ranks a release above its own pre-releases', () => {
+    expect(isNewerVersion('0.5.0', '0.5.0-beta.1')).toBe(true)
+    expect(isNewerVersion('0.5.0-beta.1', '0.5.0')).toBe(false)
+  })
+
   it('handles v-prefixed release tags', () => {
     expect(isNewerVersion('v0.5.0', '0.4.4')).toBe(true)
     expect(isNewerVersion('v0.4.4', '0.5.0')).toBe(false)
