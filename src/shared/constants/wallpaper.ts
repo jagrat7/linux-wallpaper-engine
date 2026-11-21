@@ -55,7 +55,7 @@ export interface Wallpaper {
   type: WallpaperType
   thumbnail: string
   previewUrl?: string
-  resolution: { width: number; height: number }
+  resolution: { width: number; height: number; label?: string }
   fileSize: number
   dateAdded: number
   tags: string[]

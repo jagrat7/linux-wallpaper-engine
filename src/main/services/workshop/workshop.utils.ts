@@ -81,7 +81,11 @@ export function parseWorkshopResolution(tags: string[]): Wallpaper['resolution']
   )?.label
   const size = resolutionTag?.match(/(\d+) x (\d+)/)
 
-  return size ? { width: Number(size[1]), height: Number(size[2]) } : { width: 0, height: 0 }
+  return {
+    width: size ? Number(size[1]) : 0,
+    height: size ? Number(size[2]) : 0,
+    label: resolutionTag,
+  }
 }
 
 export function toWorkshopResolutionTag(value: string): string | null {

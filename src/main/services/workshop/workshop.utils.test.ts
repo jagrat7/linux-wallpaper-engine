@@ -110,19 +110,28 @@ describe('WORKSHOP_RESOLUTION_OPTIONS', () => {
 })
 
 describe('parseWorkshopResolution', () => {
-  it('reads the size from the resolution tag', () => {
+  it('reads the size and Steam tag from the resolution tag', () => {
     expect(parseWorkshopResolution(['Wallpaper', 'Scene', '3840 x 2160'])).toEqual({
       width: 3840,
       height: 2160,
+      label: '3840 x 2160',
     })
     expect(parseWorkshopResolution(['ultrawide 3440 x 1440'])).toEqual({
       width: 3440,
       height: 1440,
+      label: 'Ultrawide 3440 x 1440',
     })
   })
 
-  it('returns 0x0 for tags without a size or no resolution tag', () => {
-    expect(parseWorkshopResolution(['Dynamic resolution'])).toEqual({ width: 0, height: 0 })
+  it('keeps the tag for resolutions without a size', () => {
+    expect(parseWorkshopResolution(['Dynamic resolution'])).toEqual({
+      width: 0,
+      height: 0,
+      label: 'Dynamic resolution',
+    })
+  })
+
+  it('returns 0x0 without a label when the item has no resolution tag', () => {
     expect(parseWorkshopResolution(['Wallpaper', 'Nature'])).toEqual({ width: 0, height: 0 })
   })
 })
@@ -138,6 +147,6 @@ describe('mapWorkshopItems', () => {
       },
     ])
 
-    expect(item.resolution).toEqual({ width: 2560, height: 1440 })
+    expect(item.resolution).toEqual({ width: 2560, height: 1440, label: '2560 x 1440' })
   })
 })
