@@ -169,8 +169,13 @@ jobs:
             gh release create "$TAG" release/* --verify-tag --generate-notes --title "$TAG" "${flags[@]}"
             exit 0
           fi
-          # Replacing a published file would change its checksum under the same version
-          published="$(gh release view "$TAG" --json assets --jq '.assets[].name')"
+          # Replacing a published file would change its checksum under the same version.
+          # An upload cut short leaves a "starter" asset with no content; replace those.
+          assets="$(gh release view "$TAG" --json assets)"
+          for name in $(jq -r '.assets[] | select(.state != "uploaded") | .name' <<<"$assets"); do
+            gh release delete-asset "$TAG" "$name" --yes
+          done
+          published="$(jq -r '.assets[] | select(.state == "uploaded") | .name' <<<"$assets")"
           for file in release/*; do
             if grep -qxF "$(basename "$file")" <<<"$published"; then
               echo "keeping the published $(basename "$file")"
