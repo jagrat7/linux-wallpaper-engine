@@ -44,7 +44,7 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
     // so status would still return a path, but the user already unsubscribed.
     {
       refetchInterval: (query) =>
-        subscribeMutation.isSuccess && !query.state.data?.path ? 1000 : 3000,
+        subscribeMutation.data === true && !query.state.data?.path ? 1000 : 3000,
       enabled: !isUnsubscribed,
     },
   )
@@ -62,7 +62,9 @@ export function WorkshopWallpaperDetails({ wallpaper, onClose }: WorkshopWallpap
   // Derive from server status so state survives navigation away and back; a
   // successful subscribe covers the brief window before the first poll returns.
   const isDownloading =
-    !isUnsubscribed && !wallpaperPath && (subscribeMutation.isSuccess || downloadProgress != null)
+    !isUnsubscribed &&
+    !wallpaperPath &&
+    (subscribeMutation.data === true || downloadProgress != null)
 
   const activeScreens = activeWallpapers
     .filter((w) => w.wallpaper.backgroundId === wallpaperPath)

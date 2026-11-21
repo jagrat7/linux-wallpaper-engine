@@ -2,7 +2,7 @@ import { createContext, useContext, useLayoutEffect, useState } from 'react'
 import { DEFAULT_SETTINGS } from '../../shared/constants/app'
 import { THEME_OPTIONS, type ThemeOption } from '../../shared/constants/theme'
 import { trpc } from '../lib/trpc'
-import { findOptionValue } from '../lib/utils'
+import { findOptionValue } from '@/lib/utils'
 
 /** Where the user's theme choice is kept in localStorage */
 export const THEME_STORAGE_KEY = 'wallpaper-engine-theme'

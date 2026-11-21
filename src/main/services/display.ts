@@ -12,17 +12,15 @@ import {
 import { hostExecAsync } from '../utils/host'
 import { settingsService } from './settings'
 
-const hyprlandMonitorsSchema = z.array(
-  z.object({
-    name: z.string().optional(),
-    width: z.number().optional(),
-    height: z.number().optional(),
-    x: z.number().optional(),
-    y: z.number().optional(),
-    refreshRate: z.number().optional(),
-    focused: z.boolean().optional(),
-  }),
-)
+const hyprlandMonitorSchema = z.object({
+  name: z.string().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  refreshRate: z.number().optional(),
+  focused: z.boolean().optional(),
+})
 
 export interface Display {
   id: string
@@ -146,7 +144,13 @@ export const displayService = {
     // Try Hyprland's native monitor API
     try {
       const { stdout } = await hostExecAsync(DISPLAY_COMMANDS.hyprlandMonitors)
-      const monitors = hyprlandMonitorsSchema.parse(JSON.parse(stdout))
+      const monitors = z
+        .array(z.unknown())
+        .parse(JSON.parse(stdout))
+        .flatMap((entry) => {
+          const parsed = hyprlandMonitorSchema.safeParse(entry)
+          return parsed.success ? [parsed.data] : []
+        })
 
       for (const monitor of monitors) {
         if (!monitor.name || !monitor.width || !monitor.height) continue
