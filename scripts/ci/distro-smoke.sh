@@ -14,7 +14,7 @@ out_dir="${3:-}"
 case "$distro" in
   debian) image=debian:12 ;;
   fedora) image=fedora:42 ;;
-  arch) image=archlinux:latest ;;
+  arch) image=archlinux:base-devel ;;
   *)
     echo "usage: $0 <debian|fedora|arch> <make dir> <output dir>" >&2
     exit 2
@@ -70,15 +70,17 @@ case "$distro" in
     ;;
   arch)
     # Builds the AUR PKGBUILD from this run's zip instead of the published release.
-    # -d skips linux-wallpaperengine, which is itself an AUR package.
-    in_root "pacman -Syu --noconfirm --needed -q base-devel xorg-server-xvfb xorg-xauth alsa-lib gtk3 mesa nss >/dev/null
+    # -d skips linux-wallpaperengine, which is itself an AUR package. pkgver can't
+    # hold a hyphen, so a pre-release like 0.5.0-beta.1 becomes 0.5.0_beta.1.
+    pkgver="${version//-/_}"
+    in_root "pacman -Syu --noconfirm --needed -q xorg-server-xvfb xorg-xauth alsa-lib gtk3 mesa nss >/dev/null
       useradd -m builder
       install -d -o builder /home/builder/pkg
       cd /home/builder/pkg
       cp /aur/wallpaperx-bin/PKGBUILD .
-      sed -i 's/^pkgver=.*/pkgver=$version/' PKGBUILD
-      cp /make/zip/linux/x64/*.zip wallpaperx-bin-$version.zip
-      cp /LICENSE LICENSE-$version
+      sed -i 's/^pkgver=.*/pkgver=$pkgver/' PKGBUILD
+      cp /make/zip/linux/x64/*.zip wallpaperx-bin-$pkgver.zip
+      cp /LICENSE LICENSE-$pkgver
       chown -R builder /home/builder/pkg
       sudo -u builder makepkg -d --skipchecksums --noconfirm >/dev/null
       pacman -Udd --noconfirm wallpaperx-bin-*.pkg.tar.zst >/dev/null"

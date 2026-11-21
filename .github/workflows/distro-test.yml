@@ -12,6 +12,7 @@ on:
       - scripts/**
       - src/main/main.ts
       - src/main/utils/autostart.ts
+      - vite.config.mts
       - .github/workflows/distro-test.yml
   workflow_dispatch:
   workflow_call:
