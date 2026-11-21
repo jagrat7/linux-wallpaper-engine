@@ -59,7 +59,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - id: pick
         env:
@@ -145,7 +145,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       # The exact files the distro tests installed and launched
       - uses: actions/download-artifact@v8
@@ -221,7 +221,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Open and merge the version PR
         run: |

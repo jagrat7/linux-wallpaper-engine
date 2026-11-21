@@ -35,7 +35,7 @@ jobs:
       # electron-builder and the Vite+ CLI run on Node; 24 is the LTS packaging is known to work on.
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

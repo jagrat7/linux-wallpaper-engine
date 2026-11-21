@@ -64,7 +64,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       # electron-builder's .rpm target calls rpmbuild
       - name: Install packaging tools
@@ -123,7 +123,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - uses: actions/download-artifact@v8
         with:
@@ -165,7 +165,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - uses: actions/cache@v6
         with:
