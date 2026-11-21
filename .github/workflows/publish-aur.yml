@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout PKGBUILD
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.pkgbuild_ref }}
           sparse-checkout: distro/aur
