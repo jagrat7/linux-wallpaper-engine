@@ -87,6 +87,8 @@ chmod +x linux-wallpaper-engine-<version>-x86_64.AppImage
 ./linux-wallpaper-engine-<version>-x86_64.AppImage
 ```
 
+Ubuntu 22.04 and later don't ship the FUSE 2 library AppImages need: install it with `sudo apt install libfuse2t64` (`libfuse2` on 22.04).
+
 #### ZIP (Portable)
 
 ```bash

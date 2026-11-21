@@ -77,7 +77,7 @@ nix develop
 nix develop -c bun dev
 ```
 
-In the devshell, you can run the make targets to package for other platforms. To build specifically for Nix, you'll have to build the flake output package:
+In the devshell, `bun run make` packages the app; the .rpm also needs `rpmbuild`, which the devshell doesn't provide. To build specifically for Nix, you'll have to build the flake output package:
 
 ```bash
 # nix build, but with prettier output
