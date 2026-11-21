@@ -27,8 +27,7 @@ export function WallpaperMetadata({ wallpaper }: { wallpaper: Wallpaper }) {
         </span>
       </div>
 
-      {/* Steam's item listing has no file size, so an uninstalled Workshop item would show 0 B. */}
-      {(wallpaper.installed || wallpaper.fileSize > 0) && (
+      {wallpaper.fileSize > 0 && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground flex items-center gap-2">
             <HardDrive className="size-4" />

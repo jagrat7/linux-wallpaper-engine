@@ -37,9 +37,6 @@ export const WORKSHOP_SORT_OPTIONS = [
 ] as const
 export type WorkshopSortBy = (typeof WORKSHOP_SORT_OPTIONS)[number]['value']
 
-// Steam Workshop's resolution tags for Wallpaper Engine, in Steam's order. `label` is the tag Steam
-// shows; `value` is what workshopFilterResolution stores: plain sizes in the compact "WxH" form
-// (toWorkshopResolutionTag turns it into Steam's "W x H"), every other tag as-is.
 export const WORKSHOP_RESOLUTION_OPTIONS = [
   { label: 'Standard Definition', value: 'Standard Definition' },
   { label: '1280 x 720', value: '1280x720' },
@@ -202,8 +199,6 @@ export const CURATED_DISCOVER_SECTION_CONFIGS: DiscoverSectionConfig[] = [
   },
 ]
 
-// Genre tags offered in the Workshop filters menu: the curated Discover sections' tags, so the menu
-// and Discover agree on spelling.
 export const WORKSHOP_TAG_OPTIONS = CURATED_DISCOVER_SECTION_CONFIGS.flatMap((section) =>
   (section.requiredTags ?? []).map((tag) => ({ label: section.title, value: tag })),
 )

@@ -56,8 +56,6 @@ export interface Wallpaper {
   thumbnail: string
   previewUrl?: string
   resolution: { width: number; height: number }
-  // Steam's resolution tag for Workshop items (e.g. "3840 x 2160", "Dynamic resolution"); local
-  // wallpapers only have the numeric size above.
   resolutionLabel?: string
   fileSize: number
   dateAdded: number
