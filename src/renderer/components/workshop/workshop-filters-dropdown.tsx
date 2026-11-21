@@ -14,6 +14,10 @@ import {
 } from '@/contexts/workshop-search-context'
 import { FilterSection } from '@/components/wallpaper/filter-section'
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from '../../../shared/constants/wallpaper'
+import {
+  WORKSHOP_RESOLUTION_OPTIONS,
+  WORKSHOP_TAG_OPTIONS,
+} from '../../../shared/constants/workshop'
 
 const TYPE_ITEMS = FILTER_TYPE_OPTIONS.filter((o) => o.value !== 'all').map((o) => ({
   key: o.value,
@@ -21,6 +25,16 @@ const TYPE_ITEMS = FILTER_TYPE_OPTIONS.filter((o) => o.value !== 'all').map((o) 
 }))
 
 const AGE_RATING_ITEMS = AGE_RATING_OPTIONS.map((opt) => ({
+  key: opt.value,
+  label: opt.label,
+}))
+
+const RESOLUTION_ITEMS = WORKSHOP_RESOLUTION_OPTIONS.map((opt) => ({
+  key: opt.value,
+  label: opt.label,
+}))
+
+const TAG_ITEMS = WORKSHOP_TAG_OPTIONS.map((opt) => ({
   key: opt.value,
   label: opt.label,
 }))
@@ -33,14 +47,23 @@ export function WorkshopFiltersDropdown() {
     filterAgeRating,
     setFilterAgeRating,
     toggleFilterAgeRating,
+    filterResolution,
+    setFilterResolution,
+    toggleResolution,
+    filterTags,
+    setFilterTags,
+    toggleTag,
   } = useWorkshopFilter()
 
-  const activeFilterCount = filterType.length + filterAgeRating.length
+  const activeFilterCount =
+    filterType.length + filterAgeRating.length + filterResolution.length + filterTags.length
 
   const handleClearAll = (e: React.MouseEvent) => {
     e.stopPropagation()
     setFilterType([])
     setFilterAgeRating([])
+    setFilterResolution([])
+    setFilterTags([])
   }
 
   return (
@@ -81,6 +104,32 @@ export function WorkshopFiltersDropdown() {
             </Button>
           )}
         </div>
+
+        <FilterSection
+          label="Tags"
+          items={TAG_ITEMS}
+          selected={filterTags}
+          onToggle={toggleTag}
+          multi
+          badge={
+            filterTags.length > 0 ? (
+              <span className="text-primary">{filterTags.length} selected</span>
+            ) : undefined
+          }
+        />
+
+        <FilterSection
+          label="Resolution"
+          items={RESOLUTION_ITEMS}
+          selected={filterResolution}
+          onToggle={toggleResolution}
+          multi
+          badge={
+            filterResolution.length > 0 ? (
+              <span className="text-primary">{filterResolution.length} selected</span>
+            ) : undefined
+          }
+        />
 
         <FilterSection
           label="Age rating"

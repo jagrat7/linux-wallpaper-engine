@@ -83,7 +83,7 @@ export function toWallpaper(item: WorkshopItem): Wallpaper {
     type: item.type,
     thumbnail: item.previewUrl ?? '',
     previewUrl: item.previewUrl,
-    resolution: { width: 0, height: 0 },
+    resolution: item.resolution,
     fileSize: 0,
     dateAdded: 0,
     tags: item.tags,

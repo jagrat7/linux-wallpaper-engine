@@ -1,4 +1,4 @@
-import type { AgeRating, WallpaperType } from '../../../shared/constants/wallpaper'
+import type { AgeRating, Wallpaper, WallpaperType } from '../../../shared/constants/wallpaper'
 import type { WorkshopSortBy } from '../../../shared/constants/workshop'
 
 export interface WorkshopDownloadProgress {
@@ -39,6 +39,7 @@ export interface WorkshopItem {
   author: string
   ageRating?: AgeRating
   type: WallpaperType
+  resolution: Wallpaper['resolution']
   tags: string[]
   previewUrl?: string
 }
