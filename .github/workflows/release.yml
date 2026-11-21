@@ -67,6 +67,8 @@ jobs:
           BUMP: ${{ inputs.bump }}
           EXACT: ${{ inputs.version }}
           PRERELEASE: ${{ inputs.prerelease }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           current="$(node -p "require('./package.json').version")"
           if [[ "$EVENT" == workflow_dispatch ]]; then
@@ -88,6 +90,13 @@ jobs:
             fi
             echo "::notice::$tag is already released; this package.json change isn't a new version"
             release=false
+          fi
+          # Never go backwards, say from a package.json set to an old version by mistake
+          latest="$(gh release view --json tagName --jq .tagName 2>/dev/null || true)"
+          if [[ "$release" == true && -n "$latest" ]] &&
+            ! node scripts/ci/next-version.mjs "${latest#v}" patch "$version" >/dev/null 2>&1; then
+            echo "::error::$tag isn't newer than the latest release, $latest"
+            exit 1
           fi
 
           prerelease=false
@@ -216,11 +225,13 @@ jobs:
 
       - name: Open and merge the version PR
         run: |
-          npm pkg set version="$VERSION"
-          if git diff --quiet; then
-            echo "main already has version $VERSION"
+          # A newer version may have been merged during the release; never lower it
+          main_version="$(node -p "require('./package.json').version")"
+          if ! node scripts/ci/next-version.mjs "$main_version" patch "$VERSION" >/dev/null 2>&1; then
+            echo "main is at $main_version already, not older than $VERSION; leaving it"
             exit 0
           fi
+          npm pkg set version="$VERSION"
           branch="release/$TAG"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
