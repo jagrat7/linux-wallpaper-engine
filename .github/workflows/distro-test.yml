@@ -18,6 +18,7 @@ on:
       - src/main/services/updater.ts
       - src/main/trpc/routes/app.ts
       - src/renderer/components/update-reminder-banner.tsx
+      - dev/verify/lwe
       - .github/workflows/distro-test.yml
   workflow_dispatch:
   workflow_call:
@@ -165,6 +166,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: packaging-${{ hashFiles('bun.lock') }}
+          restore-keys: packaging-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

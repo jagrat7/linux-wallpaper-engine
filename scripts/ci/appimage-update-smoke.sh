@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Proves an AppImage updates itself: builds the current version and a newer one
-# (99.0.0) that both read a local update feed, launches the current one on Debian 12,
-# clicks "Update now" and "Restart to update", then checks the .AppImage file on
-# disk became the new build and the app started again.
+# Proves an AppImage updates itself: builds the app as 1.0.0 and as 99.0.0, both
+# reading a local update feed, launches 1.0.0 on Debian 12 under its release file
+# name, clicks "Update now" and "Restart to update", then checks that same file on
+# disk became the 99.0.0 build and the app started again.
 #
 # Usage: appimage-update-smoke.sh <output dir>
 # Needs `bun run build` done first, docker, node, python3 and `dev/verify/lwe setup`.
@@ -45,7 +45,8 @@ build() {
   (cd "$repo" && node_modules/.bin/electron-builder --config "$work/electron-builder.yml" \
     --linux AppImage --publish never -c.directories.output="$work/$1" "${@:2}" >"$out_dir/build-$1.log" 2>&1)
 }
-build current
+# Fixed stable versions, so a pre-release in package.json can't change the update feed
+build current -c.extraMetadata.version=1.0.0
 build newer -c.extraMetadata.version=99.0.0
 grep -q '^version: 99.0.0$' "$work/newer/latest-linux.yml"
 
@@ -62,11 +63,15 @@ docker exec "$name" bash -c 'apt-get update -qq
   DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb xauth procps libgtk-3-0 libnotify4 \
     libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libasound2 libgbm1 >/dev/null
   useradd -m tester'
-docker exec -u tester "$name" bash -c 'mkdir -p ~/Applications
-  cp /builds/current/*.AppImage ~/Applications/app.AppImage && chmod +x ~/Applications/app.AppImage'
+# The release's own file name, which electron-updater must replace in place
+appimage="$(basename "$(ls "$work"/current/*.AppImage)")"
+[[ "$(basename "$(ls "$work"/newer/*.AppImage)")" == "$appimage" ]] ||
+  { echo "the AppImage file name changes between versions" >&2; exit 1; }
+docker exec -u tester "$name" bash -c "mkdir -p ~/Applications
+  cp /builds/current/$appimage ~/Applications/ && chmod +x ~/Applications/$appimage"
 # Containers have no FUSE, so the AppImage extracts itself and runs instead of mounting
 docker exec -u tester -e HOME=/home/tester "$name" bash -c "cd ~ && APPIMAGE_EXTRACT_AND_RUN=1 \
-  setsid nohup xvfb-run -n $port -s '-screen 0 1280x800x24' ~/Applications/app.AppImage \
+  setsid nohup xvfb-run -n $port -s '-screen 0 1280x800x24' ~/Applications/$appimage \
   --remote-debugging-port=$port >app.log 2>&1 </dev/null &"
 
 # The extracted app runs from /tmp/appimage_extracted_<hash of the AppImage>/; this
@@ -84,12 +89,12 @@ node "$repo/scripts/ci/smoke-app.mjs" "$port" "$out_dir" update
 
 log "checking the .AppImage file was replaced and the app started again"
 for _ in $(seq 1 60); do
-  docker exec "$name" bash -c 'cmp -s ~tester/Applications/app.AppImage /builds/newer/*.AppImage' && break
+  docker exec "$name" cmp -s "/home/tester/Applications/$appimage" "/builds/newer/$appimage" && break
   sleep 2
 done
-docker exec "$name" bash -c 'cmp ~tester/Applications/app.AppImage /builds/newer/*.AppImage' ||
+docker exec "$name" cmp "/home/tester/Applications/$appimage" "/builds/newer/$appimage" ||
   { echo "the .AppImage file was not replaced with the new build" >&2; exit 1; }
-echo "~/Applications/app.AppImage is now the 99.0.0 build"
+echo "~/Applications/$appimage is now the 99.0.0 build"
 # The new build extracts to a different folder, so a process from it is the relaunch
 new_app=""
 for _ in $(seq 1 30); do
