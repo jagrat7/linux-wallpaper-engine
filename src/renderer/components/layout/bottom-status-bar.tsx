@@ -94,7 +94,6 @@ export function StatusBar({ className }: StatusBarProps) {
 
   const handleStop = async () => {
     if (!activeWallpaper) return
-    const activePlaylist = activePlaylists.find((entry) => entry.screen === activeWallpaper.screen)
     if (activePlaylist) {
       await stopPlaylistMutation.mutateAsync({
         playlistName: activePlaylist.name,

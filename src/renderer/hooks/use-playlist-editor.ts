@@ -38,7 +38,7 @@ function buildDefaults(playlist?: Playlist | null) {
       delay: parsed.value,
       timeUnit: parsed.unit,
       order: playlist.settings.order,
-      overrides: (playlist.settings.overrides ?? {}) as WallpaperOverrides,
+      overrides: playlist.settings.overrides ?? {},
       wallpapers: playlist.items,
     }
   }

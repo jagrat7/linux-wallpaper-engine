@@ -121,9 +121,7 @@ export const ColorPickerSelection = memo(({ className, ...props }: ColorPickerSe
       setPositionY(y)
       setSaturation(x * 100)
       const topLightness = x < 0.01 ? 100 : 50 + 50 * (1 - x)
-      const lightness = topLightness * (1 - y)
-
-      setLightness(lightness)
+      setLightness(topLightness * (1 - y))
     },
     [setSaturation, setLightness],
   )
@@ -190,7 +188,7 @@ export const ColorPickerHue = ({ className, ...props }: ColorPickerHueProps) => 
     <Slider.Root
       className={cn('relative flex h-4 w-full touch-none', className)}
       max={360}
-      onValueChange={([hue]) => setHue(hue)}
+      onValueChange={([value]) => setHue(value)}
       step={1}
       value={[hue]}
       {...props}

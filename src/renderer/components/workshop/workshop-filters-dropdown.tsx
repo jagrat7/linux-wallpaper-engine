@@ -7,11 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import {
-  useWorkshopFilter,
-  type AgeRating,
-  type WallpaperFilterType,
-} from '@/contexts/workshop-search-context'
+import { useWorkshopFilter } from '@/contexts/workshop-search-context'
 import { FilterSection } from '@/components/wallpaper/filter-section'
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from '../../../shared/constants/wallpaper'
 import {
@@ -135,7 +131,7 @@ export function WorkshopFiltersDropdown() {
           label="Age rating"
           items={AGE_RATING_ITEMS}
           selected={filterAgeRating}
-          onToggle={(key) => toggleFilterAgeRating(key as AgeRating)}
+          onToggle={toggleFilterAgeRating}
           multi
           badge={
             filterAgeRating.length > 0 ? (
@@ -148,7 +144,7 @@ export function WorkshopFiltersDropdown() {
           label="Type"
           items={TYPE_ITEMS}
           selected={filterType}
-          onToggle={(key) => toggleFilterType(key as WallpaperFilterType)}
+          onToggle={toggleFilterType}
           multi
           badge={
             filterType.length > 0 ? (

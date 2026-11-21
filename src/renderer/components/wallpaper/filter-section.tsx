@@ -5,29 +5,29 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 
-interface FilterItem {
-  key: string
+interface FilterItem<K extends string> {
+  key: K
   label: string
   icon?: React.ReactNode
 }
 
-interface FilterSectionProps {
+interface FilterSectionProps<K extends string> {
   label: string
-  items: FilterItem[]
-  selected: string[]
-  onToggle: (key: string) => void
+  items: FilterItem<K>[]
+  selected: K[]
+  onToggle: (key: K) => void
   multi?: boolean
   badge?: React.ReactNode
 }
 
-export function FilterSection({
+export function FilterSection<K extends string>({
   label,
   items,
   selected,
   onToggle,
   multi = false,
   badge,
-}: FilterSectionProps) {
+}: FilterSectionProps<K>) {
   return (
     <>
       <DropdownMenuSeparator className="bg-border/50" />

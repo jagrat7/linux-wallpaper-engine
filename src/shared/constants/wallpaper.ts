@@ -169,7 +169,7 @@ export const ENGINE_OVERRIDE_FIELDS = [
 ] as const
 export type EngineOverrideField = (typeof ENGINE_OVERRIDE_FIELDS)[number]
 
-const SCALING_VALUES = SCALING_OPTIONS.map((o) => o.value) as [ScalingOption, ...ScalingOption[]]
+const SCALING_VALUES = SCALING_OPTIONS.map((o) => o.value)
 
 // Shared zod schema for the user-settable engine flag overrides. Reused by the
 // per-wallpaper and per-playlist tRPC inputs and the playlist editor form.

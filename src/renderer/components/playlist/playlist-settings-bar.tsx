@@ -12,8 +12,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import {
   PLAYLIST_ORDER_OPTIONS,
   PLAYLIST_TIME_UNIT_OPTIONS,
-  type PlaylistOrder,
-  type PlaylistTimeUnit,
 } from '../../../shared/constants/playlist'
 import {
   ENGINE_OVERRIDE_FIELDS,
@@ -22,7 +20,7 @@ import {
 import { GlobalProperties } from '../wallpaper/details-card/property-settings/global-properties'
 import { engineFieldDefault } from '../wallpaper/details-card/property-settings/global-prop-variants'
 import { trpc } from '@/lib/trpc'
-import { cn } from '@/lib/utils'
+import { cn, findOptionValue } from '@/lib/utils'
 import { useGlass } from '@/hooks/use-glass'
 import type { PlaylistEditorReturn } from '@/hooks/use-playlist-editor'
 
@@ -52,9 +50,8 @@ export function PlaylistSettingsBar({
       className={cn('border-border bg-card flex items-start gap-6 rounded-xl border p-5', glass)}
     >
       {/* Name */}
-      <form.Field
-        name="name"
-        children={(field) => {
+      <form.Field name="name">
+        {(field) => {
           const hasValidationError = field.state.meta.isTouched && !field.state.meta.isValid
           const hasError = hasValidationError || !!serverError
           return (
@@ -79,15 +76,14 @@ export function PlaylistSettingsBar({
             </div>
           )
         }}
-      />
+      </form.Field>
 
       {/* Rotation interval: delay value + time unit */}
       <div className="space-y-1.5">
         <FieldLabel>Rotation Interval</FieldLabel>
         <div className="flex items-start gap-1.5">
-          <form.Field
-            name="delay"
-            children={(field) => {
+          <form.Field name="delay">
+            {(field) => {
               const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
               return (
                 <div className="flex min-w-0 flex-col gap-1.5">
@@ -104,14 +100,16 @@ export function PlaylistSettingsBar({
                 </div>
               )
             }}
-          />
-          <form.Field
-            name="timeUnit"
-            children={(field) => (
+          </form.Field>
+          <form.Field name="timeUnit">
+            {(field) => (
               <Select
                 name={field.name}
                 value={field.state.value}
-                onValueChange={(v) => field.handleChange(v as PlaylistTimeUnit)}
+                onValueChange={(v) => {
+                  const unit = findOptionValue(PLAYLIST_TIME_UNIT_OPTIONS, v)
+                  if (unit) field.handleChange(unit)
+                }}
               >
                 <SelectTrigger className="h-9 w-20">
                   <SelectValue />
@@ -125,14 +123,13 @@ export function PlaylistSettingsBar({
                 </SelectContent>
               </Select>
             )}
-          />
+          </form.Field>
         </div>
       </div>
 
       {/* Order */}
-      <form.Field
-        name="order"
-        children={(field) => {
+      <form.Field name="order">
+        {(field) => {
           const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
           return (
             <div className="space-y-1.5">
@@ -140,7 +137,10 @@ export function PlaylistSettingsBar({
               <Select
                 name={field.name}
                 value={field.state.value}
-                onValueChange={(v) => field.handleChange(v as PlaylistOrder)}
+                onValueChange={(v) => {
+                  const order = findOptionValue(PLAYLIST_ORDER_OPTIONS, v)
+                  if (order) field.handleChange(order)
+                }}
               >
                 <SelectTrigger id={field.name} className="h-9 w-30" aria-invalid={isInvalid}>
                   <SelectValue />
@@ -157,12 +157,11 @@ export function PlaylistSettingsBar({
             </div>
           )
         }}
-      />
+      </form.Field>
 
       {/* Engine setting overrides for the whole playlist */}
-      <form.Field
-        name="overrides"
-        children={(field) => {
+      <form.Field name="overrides">
+        {(field) => {
           const overrides = field.state.value
           const activeCount = ENGINE_OVERRIDE_FIELDS.filter(
             (f) =>
@@ -221,12 +220,11 @@ export function PlaylistSettingsBar({
             </div>
           )
         }}
-      />
+      </form.Field>
 
       {/* Selected count badge */}
-      <form.Field
-        name="wallpapers"
-        children={(field) => {
+      <form.Field name="wallpapers">
+        {(field) => {
           const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
           return (
             <div className="space-y-1.5">
@@ -243,7 +241,7 @@ export function PlaylistSettingsBar({
             </div>
           )
         }}
-      />
+      </form.Field>
     </div>
   )
 }

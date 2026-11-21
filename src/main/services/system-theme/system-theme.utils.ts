@@ -194,7 +194,7 @@ export const watchThemeFiles = (
   filesByDirectory.forEach((fileNames, directory) => {
     try {
       const watcher = watch(directory, (_, fileName) => {
-        if (fileName === null || fileNames.has(fileName.toString())) onChange()
+        if (fileName === null || fileNames.has(fileName)) onChange()
       })
       watcher.on('error', onError)
       watchers.push(watcher)

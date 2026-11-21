@@ -129,9 +129,9 @@ describe('screenPattern', () => {
   })
 })
 
-describe('signalBackend', () => {
-  const withKill = (kill: ReturnType<typeof vi.fn>) => Object.assign(new ChildProcess(), { kill })
+const withKill = (kill: ReturnType<typeof vi.fn>) => Object.assign(new ChildProcess(), { kill })
 
+describe('signalBackend', () => {
   beforeEach(() => {
     mockHostExecFileAsync.mockReset()
   })

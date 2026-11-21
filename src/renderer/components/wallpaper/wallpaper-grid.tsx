@@ -117,8 +117,8 @@ export function WallpaperGrid() {
       },
     )
 
-    const uniqueTags = [...new Set(tags)].sort()
-    const uniqueResolutions = [...new Set(resolutions)].sort((a, b) => {
+    const uniqueTags = [...new Set(tags)].toSorted()
+    const uniqueResolutions = [...new Set(resolutions)].toSorted((a, b) => {
       if (a === 'Unknown') return -1
       if (b === 'Unknown') return 1
 

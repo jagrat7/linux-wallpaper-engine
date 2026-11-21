@@ -66,20 +66,22 @@ const baseName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 const BODY = project.classes?.body ?? 'text-muted-foreground'
 const CONTROL = project.classes?.control
 
+const extra = (entries: ExtraEntry[] = []) => entries.map((entry) => entry.title)
+
 /** Everything the page shows, worked out from the sources. */
 function read(sources: Sources) {
   const tokens = readTokens(sources.css, sources.designMd, project.name)
 
   // One of each: some bundlers list a file under two paths.
-  const demos = [...new Map(project.demos.map((demo) => [demo.meta.title, demo])).values()].sort(
-    (a, b) => a.meta.title.localeCompare(b.meta.title),
-  )
+  const demos = [
+    ...new Map(project.demos.map((demo) => [demo.meta.title, demo])).values(),
+  ].toSorted((a, b) => a.meta.title.localeCompare(b.meta.title))
   const uiDemos = demos.filter((demo) => !demo.meta.custom)
   const customDemos = demos.filter((demo) => demo.meta.custom)
 
   // Every component in the UI folder: to name the ones no demo shows yet, and to find the files
   // that import each.
-  const components = sources.components.map((c) => c.name).sort()
+  const components = sources.components.map((c) => c.name).toSorted()
   const shown = new Set(demos.flatMap((demo) => demo.meta.components))
   const missing = components.filter((name) => !shown.has(name))
 
@@ -105,7 +107,7 @@ function read(sources: Sources) {
   const appRoot = shared.length > 0 ? `${shared.join('/')}/` : ''
 
   const usedIn = (names: string[]) =>
-    [...new Set(names.flatMap((name) => users[name] ?? []))].sort()
+    [...new Set(names.flatMap((name) => users[name] ?? []))].toSorted()
 
   /** The type roles: the project's, else DESIGN.md's. */
   const typography = (theme: Theme) =>
@@ -116,8 +118,6 @@ function read(sources: Sources) {
           style: undefined,
         }))
       : tokens.typography(theme)
-
-  const extra = (entries: ExtraEntry[] = []) => entries.map((entry) => entry.title)
 
   /** The page's contents: its sections and the entries in each. The index is drawn from this,
       and an entry's address is its section's id and its title (`#shadcn-button`). */
@@ -349,7 +349,7 @@ export default function DesignPage({ sources }: { sources: Sources }) {
   const section = (id: string, summary: ReactNode, entries: ReactElement[]) => {
     const found = contents.find((s) => s.id === id)
     if (!found || !found.entries.some((entry) => matches(entry, filter))) return null
-    const children = [...entries].sort(
+    const children = entries.toSorted(
       (a, b) => found.entries.indexOf(String(a.key)) - found.entries.indexOf(String(b.key)),
     )
     return (
@@ -784,7 +784,7 @@ function choices({ sources: { shadcn, preset }, tokens }: Design) {
       glyph: <MousePointer2 className="size-4" />,
     },
   ]
-  return list.filter((choice) => choice.value)
+  return list.filter((entry) => entry.value)
 }
 
 function presetEntries(design: Design) {

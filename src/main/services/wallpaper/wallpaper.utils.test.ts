@@ -4,21 +4,21 @@ import type { Wallpaper } from '../../../shared/constants/wallpaper'
 import { buildApplyOptions, pickRandomWallpaper } from './wallpaper.utils'
 import { backendArgPattern, escapeRegExp } from '../../utils/host'
 
-describe('pickRandomWallpaper', () => {
-  const makeWallpaper = (path: string): Wallpaper => ({
-    id: path,
-    title: path,
-    author: 'Author',
-    type: 'scene',
-    thumbnail: '',
-    resolution: { width: 1920, height: 1080 },
-    fileSize: 0,
-    dateAdded: 0,
-    tags: [],
-    installed: true,
-    path,
-  })
+const makeWallpaper = (path: string): Wallpaper => ({
+  id: path,
+  title: path,
+  author: 'Author',
+  type: 'scene',
+  thumbnail: '',
+  resolution: { width: 1920, height: 1080 },
+  fileSize: 0,
+  dateAdded: 0,
+  tags: [],
+  installed: true,
+  path,
+})
 
+describe('pickRandomWallpaper', () => {
   const WALLPAPERS = ['/wp/a', '/wp/b', '/wp/c'].map(makeWallpaper)
 
   it('only picks from the unused pool', () => {

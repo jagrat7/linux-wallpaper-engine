@@ -169,7 +169,7 @@ class CompatibilityService {
         })
       }
     }
-    return results.sort((a, b) => b.lastTested - a.lastTested)
+    return results.toSorted((a, b) => b.lastTested - a.lastTested)
   }
 
   getScanProgress(): ScanProgress {

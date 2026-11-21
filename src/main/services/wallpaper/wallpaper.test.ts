@@ -109,19 +109,19 @@ describe('wallpaperService.getActive', () => {
   })
 })
 
-describe('wallpaperService.getActive during restore', () => {
-  // A screen saved by the last run, with no process handle yet
-  const loadWithRestoredScreen = async () => {
-    mockStore.get.mockImplementation((key: string) => {
-      if (key === 'activeWallpapers') return { 'eDP-1': { backgroundId: wallpaperPath } }
-      return key === 'overrides' ? {} : undefined
-    })
-    vi.resetModules()
-    const { wallpaperService: service } = await import('./wallpaper')
-    const { supervisorService: supervisor } = await import('../supervisor/supervisor')
-    return { service, supervisor }
-  }
+// A screen saved by the last run, with no process handle yet
+const loadWithRestoredScreen = async () => {
+  mockStore.get.mockImplementation((key: string) => {
+    if (key === 'activeWallpapers') return { 'eDP-1': { backgroundId: wallpaperPath } }
+    return key === 'overrides' ? {} : undefined
+  })
+  vi.resetModules()
+  const { wallpaperService: service } = await import('./wallpaper')
+  const { supervisorService: supervisor } = await import('../supervisor/supervisor')
+  return { service, supervisor }
+}
 
+describe('wallpaperService.getActive during restore', () => {
   afterAll(() => {
     mockStore.get.mockImplementation((key: string) =>
       key === 'activeWallpapers' || key === 'overrides' ? {} : undefined,

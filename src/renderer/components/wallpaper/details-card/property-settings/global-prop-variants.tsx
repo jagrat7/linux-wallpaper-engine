@@ -6,7 +6,6 @@ import type {
   EngineOverrideField,
   WallpaperOverrides,
 } from '../../../../../shared/constants/wallpaper'
-import type { ScalingOption } from '../../../../../shared/constants/display'
 
 interface GlobalOverrideControlProps {
   field: EngineOverrideField
@@ -35,7 +34,7 @@ export function GlobalOverrideControl({
         <SelectControl
           options={field.options}
           value={overrides?.[field.key] ?? settings?.[field.globalKey] ?? field.fallback}
-          onChange={(value) => onUpdate(field.key, value as ScalingOption)}
+          onChange={(value) => onUpdate(field.key, value)}
           triggerClassName="w-24"
         />
       )
