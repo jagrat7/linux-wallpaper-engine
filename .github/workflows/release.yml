@@ -127,9 +127,90 @@ jobs:
       ref: ${{ github.sha }}
       version: ${{ needs.version.outputs.version }}
 
+  # A short summary from Claude over GitHub's generated list, following
+  # .github/release-notes-prompt.md. Its own job, so Claude never holds the token that
+  # publishes. If it fails, the release goes out with GitHub's generated notes.
+  # Pre-releases skip it but still run the job, so the release job isn't skipped too.
+  notes:
+    name: Write release notes
+    needs: version
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+      SKIP: ${{ needs.version.outputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+        if: env.SKIP != 'true'
+        with:
+          persist-credentials: false
+
+      # The tag doesn't exist yet, so GitHub lists the PRs from the latest full
+      # release up to the commit being built
+      - name: Get GitHub's generated notes
+        if: env.SKIP != 'true'
+        continue-on-error: true
+        run: |
+          previous="$(gh release view --json tagName --jq .tagName)"
+          mkdir -p release-notes
+          gh api "repos/$GH_REPO/releases/generate-notes" \
+            -f tag_name="$TAG" -f target_commitish="$GITHUB_SHA" -f previous_tag_name="$previous" \
+            --jq .body >release-notes/generated.md
+          cat release-notes/generated.md
+
+      - name: Write the summary
+        if: env.SKIP != 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Write the release notes summary for ${{ needs.version.outputs.tag }} of ${{ github.repository }}.
+            Follow .github/release-notes-prompt.md exactly.
+          claude_args: --allowedTools "Read,Write,Bash(gh pr view:*),Bash(curl:*)"
+
+      # Summary, then "Plus N more", the full list folded, and New Contributors last
+      - name: Assemble the notes
+        if: env.SKIP != 'true'
+        run: |
+          cd release-notes
+          [[ -s generated.md && -s summary.md ]] || { echo "::warning::No summary; the release keeps GitHub's notes"; exit 0; }
+          awk '/^## What.s Changed/ {next} /^## New Contributors/ {skip=1} /^\*\*Full Changelog\*\*/ {skip=0} !skip' \
+            generated.md >changelog.md
+          awk '/^## New Contributors/ {on=1; print "### New Contributors"; next} /^\*\*Full Changelog\*\*/ {on=0} on' \
+            generated.md >contributors.md
+          total="$(grep -c '^\* ' changelog.md || true)"
+          covered="$(grep -cE '^[0-9]+$' covered.txt 2>/dev/null || true)"
+          more=$((total - ${covered:-0}))
+          {
+            printf '%s\n\n' "$(cat summary.md)"
+            if ((more == 1)); then echo '### Plus 1 more bug fix or improvement.'; fi
+            if ((more > 1)); then echo "### Plus $more more bug fixes and performance improvements."; fi
+            echo
+            printf '<details>\n<summary>Full changelog</summary>\n\n'
+            printf '%s\n' "$(sed -e '/./,$!d' changelog.md)"
+            printf '\n</details>\n'
+            if grep -q '^\* ' contributors.md; then echo; sed -e '/^$/d' contributors.md; fi
+          } >notes.md
+          cat notes.md >>"$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        if: env.SKIP != 'true' && hashFiles('release-notes/notes.md') != ''
+        with:
+          name: release-notes
+          path: release-notes/notes.md
+
   release:
     name: GitHub release
-    needs: [version, checks, packages]
+    needs: [version, checks, packages, notes]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -152,6 +233,13 @@ jobs:
         with:
           name: packages
           path: release
+
+      # Missing when the notes job was skipped or failed
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: release-notes
+          path: release-notes
 
       # The tag points at what was built: this commit, plus the new version in
       # package.json when the run raised it. A token-pushed tag starts no workflows.
@@ -176,7 +264,9 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             flags=(--latest)
             if [[ "$PRERELEASE" == true ]]; then flags=(--prerelease --latest=false); fi
-            gh release create "$TAG" release/* --verify-tag --generate-notes --title "$TAG" "${flags[@]}"
+            notes=(--generate-notes)
+            if [[ -s release-notes/notes.md ]]; then notes=(--notes-file release-notes/notes.md); fi
+            gh release create "$TAG" release/* --verify-tag "${notes[@]}" --title "$TAG" "${flags[@]}"
             exit 0
           fi
           # Replacing a published file would change its checksum under the same version.
