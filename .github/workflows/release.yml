@@ -127,14 +127,42 @@ jobs:
       ref: ${{ github.sha }}
       version: ${{ needs.version.outputs.version }}
 
-  # A short summary from Claude over GitHub's generated list, following
-  # .github/release-notes-prompt.md. Its own job, so Claude never holds the token that
-  # publishes. If it fails, the release goes out with GitHub's generated notes.
-  # Pre-releases skip it but still run the job, so the release job isn't skipped too.
+  # GitHub's generated list of PRs since the latest full release. Generating it needs
+  # write access, so it's its own job and the notes job stays read-only.
+  changelog:
+    name: List the changes
+    needs: version
+    if: needs.version.outputs.release == 'true' && needs.version.outputs.prerelease != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      contents: write
+    outputs:
+      body: ${{ steps.generate.outputs.body }}
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # The tag doesn't exist yet, so GitHub lists the PRs up to the commit being built
+      - id: generate
+        run: |
+          previous="$(gh release view --json tagName --jq .tagName)"
+          body="$(gh api "repos/$GH_REPO/releases/generate-notes" \
+            -f tag_name="$TAG" -f target_commitish="$GITHUB_SHA" -f previous_tag_name="$previous" \
+            --jq .body)"
+          echo "$body"
+          eof="EOF_$(openssl rand -hex 8)"
+          printf 'body<<%s\n%s\n%s\n' "$eof" "$body" "$eof" >>"$GITHUB_OUTPUT"
+
+  # A short summary from Claude over that list, following .github/release-notes-prompt.md.
+  # Claude never holds a token that can write. If anything here fails, the release goes
+  # out with GitHub's generated notes; pre-releases always do.
   notes:
     name: Write release notes
-    needs: version
-    if: needs.version.outputs.release == 'true'
+    needs: [version, changelog]
+    if: ${{ !cancelled() && needs.changelog.outputs.body != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     continue-on-error: true
@@ -142,32 +170,24 @@ jobs:
       contents: read
       pull-requests: read
     env:
-      TAG: ${{ needs.version.outputs.tag }}
-      SKIP: ${{ needs.version.outputs.prerelease }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v7
-        if: env.SKIP != 'true'
         with:
           persist-credentials: false
 
-      # The tag doesn't exist yet, so GitHub lists the PRs from the latest full
-      # release up to the commit being built
-      - name: Get GitHub's generated notes
-        if: env.SKIP != 'true'
-        continue-on-error: true
+      - name: Save the list
+        env:
+          CHANGELOG: ${{ needs.changelog.outputs.body }}
         run: |
-          previous="$(gh release view --json tagName --jq .tagName)"
           mkdir -p release-notes
-          gh api "repos/$GH_REPO/releases/generate-notes" \
-            -f tag_name="$TAG" -f target_commitish="$GITHUB_SHA" -f previous_tag_name="$previous" \
-            --jq .body >release-notes/generated.md
-          cat release-notes/generated.md
+          printf '%s\n' "$CHANGELOG" >release-notes/generated.md
 
+      # Its own timeout, so a stuck run fails this step instead of cancelling the job
       - name: Write the summary
-        if: env.SKIP != 'true'
         continue-on-error: true
+        timeout-minutes: 12
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -179,7 +199,6 @@ jobs:
 
       # Summary, then "Plus N more", the full list folded, and New Contributors last
       - name: Assemble the notes
-        if: env.SKIP != 'true'
         run: |
           cd release-notes
           [[ -s generated.md && -s summary.md ]] || { echo "::warning::No summary; the release keeps GitHub's notes"; exit 0; }
@@ -187,9 +206,10 @@ jobs:
             generated.md >changelog.md
           awk '/^## New Contributors/ {on=1; print "### New Contributors"; next} /^\*\*Full Changelog\*\*/ {on=0} on' \
             generated.md >contributors.md
-          total="$(grep -c '^\* ' changelog.md || true)"
-          covered="$(grep -cE '^[0-9]+$' covered.txt 2>/dev/null || true)"
-          more=$((total - ${covered:-0}))
+          # Count each PR once, and only the covered ones that are in this release
+          grep -oE '/pull/[0-9]+$' changelog.md | cut -d/ -f3 | sort -u >prs.txt
+          { grep -oE '^[0-9]+$' covered.txt 2>/dev/null || true; } | sort -u >covered-prs.txt
+          more="$(comm -23 prs.txt covered-prs.txt | wc -l)"
           {
             printf '%s\n\n' "$(cat summary.md)"
             if ((more == 1)); then echo '### Plus 1 more bug fix or improvement.'; fi
@@ -203,7 +223,7 @@ jobs:
           cat notes.md >>"$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v7
-        if: env.SKIP != 'true' && hashFiles('release-notes/notes.md') != ''
+        if: hashFiles('release-notes/notes.md') != ''
         with:
           name: release-notes
           path: release-notes/notes.md
@@ -211,6 +231,9 @@ jobs:
   release:
     name: GitHub release
     needs: [version, checks, packages, notes]
+    # Waits for the notes but doesn't need them: a skipped, failed or timed-out
+    # notes job leaves GitHub's generated notes
+    if: ${{ !cancelled() && needs.checks.result == 'success' && needs.packages.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
