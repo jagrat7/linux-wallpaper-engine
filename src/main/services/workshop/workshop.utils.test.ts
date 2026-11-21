@@ -67,6 +67,33 @@ describe('buildFilterCombinations', () => {
       }),
     ).toEqual([['3840 x 2160']])
   })
+
+  it('matches any of several selected tags instead of all of them', () => {
+    const combinations = buildFilterCombinations({
+      ...noFilters,
+      workshopFilterTags: ['Nature', 'Anime'],
+    })
+
+    expect(sorted(combinations)).toEqual([['Anime'], ['Nature']])
+  })
+
+  it('keeps base tags required alongside any-of tags', () => {
+    const combinations = buildFilterCombinations(
+      { ...noFilters, workshopFilterTags: ['Nature', 'Anime'] },
+      ['Wallpaper'],
+    )
+
+    expect(sorted(combinations)).toEqual([
+      ['Anime', 'Wallpaper'],
+      ['Nature', 'Wallpaper'],
+    ])
+  })
+
+  it('ignores blank and duplicate tags', () => {
+    expect(
+      buildFilterCombinations({ ...noFilters, workshopFilterTags: ['Nature', ' Nature ', ''] }),
+    ).toEqual([['Nature']])
+  })
 })
 
 describe('WORKSHOP_RESOLUTION_OPTIONS', () => {

@@ -105,17 +105,32 @@ export function toWorkshopResolutionTag(value: string): string | null {
   return `${resolutionMatch[1]} x ${resolutionMatch[2]}`
 }
 
-// All filters we want Steam to honor, split into two classes:
-//  - "always required": tags every combination must include (custom tags, any caller-supplied base tags).
-//  - "axes": categories where the user may pick multiple values (type, age rating, resolution). We
-//    Cartesian-product the axes so each sub-query is a pure AND (matchAnyTag=false), and the union of
-//    sub-queries gives OR-within-category. Resolution must be an axis: a wallpaper carries one resolution
-//    tag, so requiring two of them at once matches nothing.
+/**
+ * Builds the Steam tag sets to query for the current Workshop filters. Each set is one query, and the
+ * union of all queries is the result.
+ *
+ * Tags split into two classes:
+ * - "always required": `baseTags`, included in every set (for example a Discover section's tag).
+ * - "axes": categories where the user may pick several values (type, age rating, tags, resolution).
+ *   The axes are Cartesian-producted so each query is a pure AND (matchAnyTag=false) and the union
+ *   gives OR-within-category. Resolution must be an axis: a wallpaper carries one resolution tag, so
+ *   requiring two of them at once matches nothing. Tags are an axis for the same reason in practice:
+ *   genre tags rarely overlap, so requiring several of them mostly returns nothing.
+ *
+ * The number of sets is the product of the selected values per axis, and each set is one Steam query
+ * per page.
+ *
+ * @param settings - The persisted Workshop filter settings.
+ * @param baseTags - Tags every returned set must include.
+ * @returns One tag list per Steam query; a single empty list when nothing is selected.
+ */
 export function buildFilterCombinations(
   settings: WorkshopFilterSettings,
   baseTags: string[] = [],
 ): string[][] {
-  const customTags = settings.workshopFilterTags.map((tag) => tag.trim()).filter(Boolean)
+  const customTags = Array.from(
+    new Set(settings.workshopFilterTags.map((tag) => tag.trim()).filter(Boolean)),
+  )
   const resolutionTags = Array.from(
     new Set(
       settings.workshopFilterResolution
@@ -123,7 +138,7 @@ export function buildFilterCombinations(
         .filter((value): value is string => value != null),
     ),
   )
-  const alwaysRequired = Array.from(new Set([...baseTags, ...customTags]))
+  const alwaysRequired = Array.from(new Set(baseTags))
 
   const typeTags = settings.workshopFilterType
     .filter((value): value is WallpaperType => value !== 'all')
@@ -136,6 +151,7 @@ export function buildFilterCombinations(
   const axes: Array<Array<string | null>> = [
     typeTags.length > 0 ? typeTags : [null],
     ageRatingTags.length > 0 ? ageRatingTags : [null],
+    customTags.length > 0 ? customTags : [null],
     resolutionTags.length > 0 ? resolutionTags : [null],
   ]
 
