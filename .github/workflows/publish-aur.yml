@@ -48,7 +48,7 @@ jobs:
 
       - name: Set up environment
         run: |
-          pacman -Sy --noconfirm git openssh pacman-contrib
+          pacman -Syu --noconfirm --needed git openssh pacman-contrib
           useradd -m builder
 
       - name: Configure SSH
