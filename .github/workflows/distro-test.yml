@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -62,16 +62,16 @@ jobs:
         with:
           bun-version: 1.4.4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       # electron-builder's .rpm target calls rpmbuild
       - name: Install packaging tools
         run: sudo apt-get update -qq && sudo apt-get install -y -qq rpm
 
       # bun's packages, and the Electron and AppImage tool downloads electron-builder makes
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -86,7 +86,7 @@ jobs:
       - name: Build deb, rpm, zip and AppImage
         run: bun run make
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages
           path: |
@@ -109,7 +109,7 @@ jobs:
         # appimage: the .AppImage on Debian 12
         distro: [debian, fedora, arch, appimage]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -121,11 +121,11 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: packages
           path: release
@@ -141,7 +141,7 @@ jobs:
       - name: Install, launch and drive the app
         run: bash scripts/ci/distro-smoke.sh ${{ matrix.distro }} release smoke-output
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           # One per attempt, so a rerun keeps the failed attempt's logs and doesn't clash with them
@@ -154,7 +154,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -163,11 +163,11 @@ jobs:
         with:
           bun-version: 1.4.4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -193,7 +193,7 @@ jobs:
       - name: Update an AppImage from the app
         run: bash scripts/ci/appimage-update-smoke.sh update-output
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: smoke-appimage-update-attempt-${{ github.run_attempt }}
@@ -205,7 +205,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
