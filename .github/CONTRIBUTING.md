@@ -41,13 +41,13 @@ bun dev
 | `bun dev`                           | `vp run dev`                | Web preview only               |
 | `bun run dev:desktop` / `bun ddev`  | `vp run dev:desktop`        | Desktop window only            |
 | `bun run dev:full` / `bun fdev`     | `vp run dev:full`           | Web preview and desktop window |
-| `bun run make`                      | `vp run make`               | Build packages                 |
+| `bun run make`                      | `vp run make`               | Build release packages         |
 | `bun run check`                     | `vp run check`              | Lint and type check            |
 | `bun run lint` / `bun run lint:fix` | `vp lint` / `vp lint --fix` | Lint                           |
 | `bun run fmt` / `bun run fmt:check` | `vp fmt` / `vp fmt --check` | Format                         |
 | `bun run test` / `bun run test:w`   | `vp test` / `vp test watch` | Test                           |
 
-Native features that need a window, such as the tray, only run with `dev:desktop` or `dev:full`. `vp check` runs format, lint and type checks in one pass. Use `vp run dev`, not `vp dev`: `vp dev` is Vite's own dev server without Electron.
+Native features that need a window, such as the tray, only run with `dev:desktop` or `dev:full`. Every dev script runs `scripts/app.mjs dev`: it serves the renderer with Vite, rebuilds main and preload on save, and restarts Electron when main-process code changes (type `rs` to restart by hand). `vp check` runs format, lint and type checks in one pass. Use `vp run dev`, not `vp dev`: `vp dev` is Vite's own dev server without Electron.
 
 ### Building Packages
 
@@ -55,7 +55,9 @@ Native features that need a window, such as the tray, only run with `dev:desktop
 bun run make
 ```
 
-Builds packages for your current platform using Electron Forge. Build configuration is in `forge.config.ts`. The results will be in the `out/` directory.
+Builds the deb, rpm, zip and AppImage with [electron-builder](https://www.electron.build/) into `release/`. Packaging is configured in `electron-builder.yml`; `bun run package` builds only the unpacked app (`release/linux-unpacked/`). Building the .rpm needs `rpmbuild` installed.
+
+Releases are built and tested in CI, not on a laptop. The `Distro tests` workflow installs and launches each package on Debian, Fedora and Arch (the AUR PKGBUILD) and runs the AppImage; run one locally with `bash scripts/ci/distro-smoke.sh <debian|fedora|arch|appimage> release <output dir>` (needs Docker and `dev/verify/lwe setup`).
 
 ### Nix Devshell
 
@@ -75,7 +77,7 @@ nix develop
 nix develop -c bun dev
 ```
 
-In the devshell, you can run the make targets to package for other platforms. To build specifically for Nix, you'll have to build the flake output package:
+In the devshell, `bun run make` packages the app; the .rpm also needs `rpmbuild`, which the devshell doesn't provide. To build specifically for Nix, you'll have to build the flake output package:
 
 ```bash
 # nix build, but with prettier output
@@ -113,18 +115,19 @@ src/
     └── utils/             # Pure helpers shared across layers
 
 dev/                       # Dev tooling: custom Oxlint rules, app verification driver
-scripts/                   # Design preset, tray icon generation, publishing
+scripts/                   # Dev runner (app.mjs), CI package tests, design preset, tray icons
 distro/                    # Packaging for AUR and Nix
 docs/                      # Screenshots and feature docs (docs/features/)
 assets/                    # App icons, favicons and tray icons
 
-forge.config.ts            # Electron Forge (packaging, makers, publishers)
-vite.config.mts            # Vite+ config: main, preload and renderer builds, plus lint, fmt and test
+electron-builder.yml       # Packaging: deb, rpm, zip, AppImage
+scripts/app.mjs            # Builds main, preload and renderer with Vite; runs `bun dev`
+vite.config.mts            # Vite+ config: the renderer build, plus lint, fmt and test
 components.json            # shadcn/ui config
 flake.nix                  # Nix package and devshell
 ```
 
-Each build in `vite.config.mts` has `@` and `~` aliases pointing to its respective `src/` subdirectory.
+Each build (`scripts/app.mjs` for main and preload, `vite.config.mts` for the renderer) has `@` and `~` aliases pointing to its respective `src/` subdirectory.
 
 The renderer communicates with the main process through tRPC — IPC in the Electron window, plus a development-only WebSocket bridge so the renderer URL from `bun dev` and `bun run dev:full` also works in a browser tab. This gives full type safety across process boundaries. You can check out my [react-electron-template](https://github.com/jagrat7/react-electron-template) for details on how I setup the app.
 
@@ -160,10 +163,10 @@ Make your best effort to keep it DRY and organized. Before writing new code, che
 - **Design page** — `/design` (dev only, `#/design` in `bun dev`) shows the design system: the tokens from `src/renderer/styles/global.css` and a demo of every UI component. A new file in `src/renderer/components/ui/` needs a `src/renderer/design/demos/<name>.demo.tsx`, written from the component's own variants; the page lists any component without one. Rerun `bun scripts/design-preset.ts` after changing `components.json`
 - **Styling** — use Tailwind CSS
 
-### Configuration (`forge.config.ts`, `vite.config.mts`)
+### Configuration (`electron-builder.yml`, `scripts/app.mjs`, `vite.config.mts`)
 
-- **Forge config** — controls packaging, makers, and publishing. Changes here affect how the app is built and distributed
-- **Vite config** — one `vite.config.mts` picks the main, preload or renderer build from the Forge target. The renderer build includes the React, TanStack Router and Tailwind plugins. Lint, format and test settings live here too
+- **electron-builder config** — controls packaging: targets, package dependencies, what goes into `app.asar`. Changes here affect how the app is built and distributed, so the `Distro tests` workflow runs on them
+- **Vite builds** — `scripts/app.mjs` holds the main and preload configs; `vite.config.mts` is the renderer's, with the React, TanStack Router, and Tailwind plugins
 
 ### Code Rules
 

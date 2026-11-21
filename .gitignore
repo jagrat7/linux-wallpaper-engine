@@ -5,6 +5,7 @@ node_modules/
 /.vite/
 /dist/
 /out/
+/release/
 /.tanstack/
 /.vitest/
 /.cache/
