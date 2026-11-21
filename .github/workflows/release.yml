@@ -211,7 +211,7 @@ jobs:
             code="$(curl -sL -r 0-0 --max-time 10 -o /dev/null -w '%{http_code}' "$url" || true)"
             if [[ "$code" != 200 && "$code" != 206 ]]; then
               echo "::warning::Dropped a screenshot that doesn't load ($code): $url"
-              sed -i "s|!\[[^]]*\]($url)||g" summary.md
+              sed -i "s|!\[[^]]*\]($url[^)]*)||g" summary.md
             fi
           done
           awk '/^## What.s Changed/ {next} /^## New Contributors/ {skip=1} /^\*\*Full Changelog\*\*/ {skip=0} !skip' \
