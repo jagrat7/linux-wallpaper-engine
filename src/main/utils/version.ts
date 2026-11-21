@@ -25,7 +25,10 @@ function compareVersions(a: string, b: string): number | null {
     if (diff !== 0) return diff
   }
 
-  return 0
+  // A release ranks above its own pre-releases: 0.5.0 is newer than 0.5.0-beta.1
+  const aPre = stripVersionPrefix(a).includes('-')
+  const bPre = stripVersionPrefix(b).includes('-')
+  return aPre === bPre ? 0 : aPre ? -1 : 1
 }
 
 export function isNewerVersion(latest: string, current: string): boolean {
