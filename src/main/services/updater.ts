@@ -1,7 +1,6 @@
 import { app } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import type { UpdateDownloadStatus } from '../../shared/constants/app'
-import { isNewerVersion } from '../utils/version'
 import { invalidationService } from './invalidation'
 
 /**
@@ -28,10 +27,14 @@ class UpdaterService {
    */
   async check(): Promise<{ latestVersion: string; hasUpdate: boolean }> {
     autoUpdater.autoDownload = false
+    // Full releases only, even when this build is a pre-release, which electron-updater
+    // would otherwise move onto a pre-release feed the Release workflow doesn't publish
+    autoUpdater.allowPrerelease = false
     const result = await autoUpdater.checkForUpdates()
     const latestVersion = result?.updateInfo.version ?? app.getVersion()
     this.latestVersion = latestVersion
-    return { latestVersion, hasUpdate: isNewerVersion(latestVersion, app.getVersion()) }
+    // electron-updater compares full semver, so 0.5.0 counts as newer than 0.5.0-beta.1
+    return { latestVersion, hasUpdate: Boolean(result?.isUpdateAvailable) }
   }
 
   /** Where the download stands; the renderer refetches it on `app.updateStatus`. */
@@ -58,10 +61,23 @@ class UpdaterService {
     }
   }
 
-  /** Quits, replaces the .AppImage file with the downloaded one, and starts it. */
+  /**
+   * Quits, replaces the .AppImage file with the downloaded one, and starts it. If the
+   * file can't be replaced, such as in a folder the user can't write to, the app keeps
+   * running and the status becomes `failed`.
+   */
   install(): void {
     if (this.status.state !== 'ready') return
+    // The new AppImage starts before this one exits; without the lock it can take over
+    app.releaseSingleInstanceLock()
+    const onError = (error: Error) => {
+      console.error('AppImage update install failed:', error)
+      app.requestSingleInstanceLock()
+      this.setStatus({ state: 'failed', version: this.latestVersion })
+    }
+    autoUpdater.once('error', onError)
     autoUpdater.quitAndInstall()
+    autoUpdater.off('error', onError)
   }
 
   private setStatus(status: UpdateDownloadStatus): void {

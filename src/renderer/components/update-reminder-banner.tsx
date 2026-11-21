@@ -61,7 +61,7 @@ export function UpdateReminderBanner() {
     message = (
       <>
         <span className="font-medium">
-          {downloadState === 'failed' ? 'Update download failed.' : 'Update available:'}
+          {downloadState === 'failed' ? 'Update failed.' : 'Update available:'}
         </span>{' '}
         {downloadState === 'failed' ? '' : `v${update.latestVersion} is out. `}
         <button onClick={() => downloadUpdate.mutate()} className={linkClass}>

@@ -1,12 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 const { mockApp, mockAutoUpdater, mockEmit } = vi.hoisted(() => ({
-  mockApp: { isPackaged: true, getVersion: vi.fn(() => '1.0.0') },
+  mockApp: {
+    isPackaged: true,
+    getVersion: vi.fn(() => '1.0.0'),
+    releaseSingleInstanceLock: vi.fn(),
+    requestSingleInstanceLock: vi.fn(),
+  },
   mockAutoUpdater: {
     autoDownload: true,
+    allowPrerelease: true,
     checkForUpdates: vi.fn(),
     downloadUpdate: vi.fn(),
     quitAndInstall: vi.fn(),
+    // Enough of an EventEmitter for install() to hear one 'error'
+    listeners: new Map<string, (error: Error) => void>(),
+    once(event: string, listener: (error: Error) => void) {
+      this.listeners.set(event, listener)
+    },
+    off(event: string) {
+      this.listeners.delete(event)
+    },
   },
   mockEmit: vi.fn(),
 }))
@@ -21,11 +35,18 @@ const loadService = async () => {
   return (await import('./updater')).updaterService
 }
 
-const feedVersion = (version: string) => ({ updateInfo: { version } })
+// electron-updater decides isUpdateAvailable with full semver against the running version
+const feedVersion = (version: string, isUpdateAvailable = version !== '1.0.0') => ({
+  updateInfo: { version },
+  isUpdateAvailable,
+})
 
 describe('updaterService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockAutoUpdater.quitAndInstall.mockReset()
+    mockAutoUpdater.listeners.clear()
+    mockApp.getVersion.mockReturnValue('1.0.0')
     mockApp.isPackaged = true
     vi.stubEnv('APPIMAGE', '/home/user/Applications/app.AppImage')
   })
@@ -57,6 +78,7 @@ describe('updaterService', () => {
 
       await expect(service.check()).resolves.toEqual({ latestVersion: '1.2.0', hasUpdate: true })
       expect(mockAutoUpdater.autoDownload).toBe(false)
+      expect(mockAutoUpdater.allowPrerelease).toBe(false)
       expect(mockAutoUpdater.downloadUpdate).not.toHaveBeenCalled()
     })
 
@@ -65,6 +87,14 @@ describe('updaterService', () => {
       const service = await loadService()
 
       await expect(service.check()).resolves.toEqual({ latestVersion: '1.0.0', hasUpdate: false })
+    })
+
+    it("takes electron-updater's semver verdict, which ranks 1.0.0 above 1.0.0-beta.1", async () => {
+      mockApp.getVersion.mockReturnValue('1.0.0-beta.1')
+      mockAutoUpdater.checkForUpdates.mockResolvedValue(feedVersion('1.0.0', true))
+      const service = await loadService()
+
+      await expect(service.check()).resolves.toEqual({ latestVersion: '1.0.0', hasUpdate: true })
     })
   })
 
@@ -118,7 +148,25 @@ describe('updaterService', () => {
 
       await service.download()
       service.install()
+      expect(mockApp.releaseSingleInstanceLock).toHaveBeenCalled()
       expect(mockAutoUpdater.quitAndInstall).toHaveBeenCalledTimes(1)
+    })
+
+    it('reports a failed install, such as an unwritable folder, and keeps the app running', async () => {
+      mockAutoUpdater.checkForUpdates.mockResolvedValue(feedVersion('1.2.0'))
+      mockAutoUpdater.downloadUpdate.mockResolvedValue([])
+      mockAutoUpdater.quitAndInstall.mockImplementation(() => {
+        mockAutoUpdater.listeners.get('error')?.(new Error('EACCES'))
+      })
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const service = await loadService()
+      await service.download()
+
+      service.install()
+
+      expect(service.getStatus()).toEqual({ state: 'failed', version: '1.2.0' })
+      expect(mockApp.requestSingleInstanceLock).toHaveBeenCalled()
+      expect(mockAutoUpdater.listeners.size).toBe(0)
     })
   })
 })

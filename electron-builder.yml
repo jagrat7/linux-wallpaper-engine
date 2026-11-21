@@ -52,6 +52,13 @@ linux:
   # No spaces, so GitHub keeps the names as-is: linux-wallpaper-engine-0.5.0-x64.zip
   artifactName: ${name}-${version}-${arch}.${ext}
 
+# No version in the name (electron-builder calls the arch x86_64 here): electron-updater then replaces the file in place, so
+# launchers and the autostart entry keep pointing at it. A versioned name would
+# be moved to the new version's name. This also gives a stable download link:
+# /releases/latest/download/linux-wallpaper-engine-x86_64.AppImage
+appImage:
+  artifactName: ${name}-${arch}.${ext}
+
 # electron-builder's default dependencies plus what Electron also loads at startup:
 # ALSA (without it the app exits with "libasound.so.2: cannot open shared object file"),
 # and the GBM/DRM libraries for GPU rendering.

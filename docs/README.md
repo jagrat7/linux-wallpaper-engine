@@ -83,8 +83,9 @@ sudo dnf install ./linux-wallpaper-engine-<version>-x86_64.rpm
 #### AppImage (any distro)
 
 ```bash
-chmod +x linux-wallpaper-engine-<version>-x86_64.AppImage
-./linux-wallpaper-engine-<version>-x86_64.AppImage
+curl -LO https://github.com/jagrat7/linux-wallpaper-engine/releases/latest/download/linux-wallpaper-engine-x86_64.AppImage
+chmod +x linux-wallpaper-engine-x86_64.AppImage
+./linux-wallpaper-engine-x86_64.AppImage
 ```
 
 Ubuntu 22.04 and later don't ship the FUSE 2 library AppImages need: install it with `sudo apt install libfuse2t64` (`libfuse2` on 22.04).
