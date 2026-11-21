@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
@@ -13,7 +12,7 @@ import {
   type AgeRating,
   type WallpaperFilterType,
 } from '@/contexts/workshop-search-context'
-import { FilterSubmenu } from '@/components/wallpaper/filter-submenu'
+import { FilterSection } from '@/components/wallpaper/filter-section'
 import { AGE_RATING_OPTIONS, FILTER_TYPE_OPTIONS } from '../../../shared/constants/wallpaper'
 import {
   WORKSHOP_RESOLUTION_OPTIONS,
@@ -106,26 +105,56 @@ export function WorkshopFiltersDropdown() {
           )}
         </div>
 
-        <DropdownMenuSeparator className="bg-border/50" />
+        <FilterSection
+          label="Tags"
+          items={TAG_ITEMS}
+          selected={filterTags}
+          onToggle={toggleTag}
+          multi
+          badge={
+            filterTags.length > 0 ? (
+              <span className="text-primary">{filterTags.length} selected</span>
+            ) : undefined
+          }
+        />
 
-        <FilterSubmenu
-          label="Age rating"
-          items={AGE_RATING_ITEMS}
-          selected={filterAgeRating}
-          onToggle={(key) => toggleFilterAgeRating(key as AgeRating)}
-        />
-        <FilterSubmenu
-          label="Type"
-          items={TYPE_ITEMS}
-          selected={filterType}
-          onToggle={(key) => toggleFilterType(key as WallpaperFilterType)}
-        />
-        <FilterSubmenu label="Tags" items={TAG_ITEMS} selected={filterTags} onToggle={toggleTag} />
-        <FilterSubmenu
+        <FilterSection
           label="Resolution"
           items={RESOLUTION_ITEMS}
           selected={filterResolution}
           onToggle={toggleResolution}
+          multi
+          badge={
+            filterResolution.length > 0 ? (
+              <span className="text-primary">{filterResolution.length} selected</span>
+            ) : undefined
+          }
+        />
+
+        <FilterSection
+          label="Age rating"
+          items={AGE_RATING_ITEMS}
+          selected={filterAgeRating}
+          onToggle={(key) => toggleFilterAgeRating(key as AgeRating)}
+          multi
+          badge={
+            filterAgeRating.length > 0 ? (
+              <span className="text-primary">{filterAgeRating.length} selected</span>
+            ) : undefined
+          }
+        />
+
+        <FilterSection
+          label="Type"
+          items={TYPE_ITEMS}
+          selected={filterType}
+          onToggle={(key) => toggleFilterType(key as WallpaperFilterType)}
+          multi
+          badge={
+            filterType.length > 0 ? (
+              <span className="text-primary">{filterType.length} selected</span>
+            ) : undefined
+          }
         />
       </DropdownMenuContent>
     </DropdownMenu>
