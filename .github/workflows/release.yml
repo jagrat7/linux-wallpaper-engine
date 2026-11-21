@@ -206,6 +206,14 @@ jobs:
         run: |
           cd release-notes
           [[ -s generated.md && -s summary.md ]] || { echo "::warning::No summary; the release keeps GitHub's notes"; exit 0; }
+          # Drop any screenshot that doesn't load, say from a mistyped link
+          for url in $(grep -oE 'https://github\.com/user-attachments/assets/[A-Za-z0-9-]+' summary.md | sort -u); do
+            code="$(curl -sL -r 0-0 --max-time 10 -o /dev/null -w '%{http_code}' "$url" || true)"
+            if [[ "$code" != 200 && "$code" != 206 ]]; then
+              echo "::warning::Dropped a screenshot that doesn't load ($code): $url"
+              sed -i "s|!\[[^]]*\]($url)||g" summary.md
+            fi
+          done
           awk '/^## What.s Changed/ {next} /^## New Contributors/ {skip=1} /^\*\*Full Changelog\*\*/ {skip=0} !skip' \
             generated.md >changelog.md
           awk '/^## New Contributors/ {on=1; print "### New Contributors"; next} /^\*\*Full Changelog\*\*/ {on=0} on' \
@@ -225,10 +233,6 @@ jobs:
             if grep -q '^\* ' contributors.md; then echo; sed -e '/^$/d' contributors.md; fi
           } >notes.md
           cat notes.md >>"$GITHUB_STEP_SUMMARY"
-          for url in $(grep -oE 'https://github\.com/user-attachments/assets/[A-Za-z0-9-]+' summary.md | sort -u); do
-            code="$(curl -sL -r 0-0 -o /dev/null -w '%{http_code}' "$url" || true)"
-            [[ "$code" == 200 || "$code" == 206 ]] || echo "::warning::Screenshot doesn't load ($code): $url"
-          done
 
       - uses: actions/upload-artifact@v7
         if: hashFiles('release-notes/notes.md') != ''
