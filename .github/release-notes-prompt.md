@@ -20,7 +20,7 @@ Write two files and nothing else:
 
 1. **Callouts first.** Add a `> [!WARNING]` box for anything users must act on: an install method or feature that was removed or deprecated, a breaking change, a migration step. Take it from a PR's `## Release note` section when there is one; otherwise write one only when a PR clearly removes or replaces something users rely on. Say what replaces it and link the download or the README section with the steps. Most releases have no callout.
 2. **Bullets.** Up to 6, each `- **Short feature name.** One or two sentences.` Say what the user can now do or what now works, in words they see in the app. Group related PRs into one bullet. A last `**Smaller things.**` bullet can collect small visible fixes.
-3. **Screenshots.** Up to 4 images from the PRs' Evidence sections that show the bullets: the new UI, not before images, terminal output or debugging frames. Put them in two-column tables, with a header row naming each image. Copy each image URL exactly, and check it with `curl -sIL -o /dev/null -w '%{http_code}' <url>`; leave out any that doesn't return 200. No screenshots is fine.
+3. **Screenshots.** Up to 4 images from the PRs' Evidence sections that show the bullets: the new UI, not before images, terminal output or debugging frames. Put them in two-column tables, with a header row naming each image. Copy each image URL exactly as it appears in the PR; only use `https://github.com/user-attachments/assets/...` images, which the workflow checks after you finish. No screenshots is fine.
 
 Leave out:
 

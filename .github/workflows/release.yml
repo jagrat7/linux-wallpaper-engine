@@ -186,6 +186,7 @@ jobs:
 
       # Its own timeout, so a stuck run fails this step instead of cancelling the job
       - name: Write the summary
+        id: summary
         continue-on-error: true
         timeout-minutes: 12
         uses: anthropics/claude-code-action@v1
@@ -195,10 +196,13 @@ jobs:
           prompt: |
             Write the release notes summary for ${{ needs.version.outputs.tag }} of ${{ github.repository }}.
             Follow .github/release-notes-prompt.md exactly.
-          claude_args: --allowedTools "Read,Write,Bash(gh pr view:*),Bash(curl:*)"
+          # No network tools: PR bodies are untrusted, so Claude can read PRs and nothing else
+          claude_args: --allowedTools "Read,Write,Bash(gh pr view:*)"
 
-      # Summary, then "Plus N more", the full list folded, and New Contributors last
+      # Summary, then "Plus N more", the full list folded, and New Contributors last.
+      # Only from a finished run: one cut short may have left a partial summary.
       - name: Assemble the notes
+        if: steps.summary.outcome == 'success'
         run: |
           cd release-notes
           [[ -s generated.md && -s summary.md ]] || { echo "::warning::No summary; the release keeps GitHub's notes"; exit 0; }
@@ -221,6 +225,10 @@ jobs:
             if grep -q '^\* ' contributors.md; then echo; sed -e '/^$/d' contributors.md; fi
           } >notes.md
           cat notes.md >>"$GITHUB_STEP_SUMMARY"
+          for url in $(grep -oE 'https://github\.com/user-attachments/assets/[A-Za-z0-9-]+' summary.md | sort -u); do
+            code="$(curl -sL -r 0-0 -o /dev/null -w '%{http_code}' "$url" || true)"
+            [[ "$code" == 200 || "$code" == 206 ]] || echo "::warning::Screenshot doesn't load ($code): $url"
+          done
 
       - uses: actions/upload-artifact@v7
         if: hashFiles('release-notes/notes.md') != ''
