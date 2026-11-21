@@ -59,12 +59,13 @@ linux-wallpaperengine --screen-root DP-2 --bg /home/$USER/.local/share/Steam/ste
 
 Grab the latest package from [GitHub Releases](https://github.com/jagrat7/linux-wallpaper-engine/releases) for your distro.
 
-> **Coming from the Flatpak?** It isn't built anymore. Its settings stay in its sandbox; this copies them to where other installs look, unless you already have a profile there from an earlier install:
+> **Coming from the Flatpak?** It isn't built anymore. Its settings stay in its sandbox, so before you first open the new install, copy them to where other installs look. This leaves an existing profile alone:
 >
 > ```bash
 > dest="${XDG_CONFIG_HOME:-$HOME/.config}/Linux Wallpaper Engine"
-> [ -e "$dest" ] && echo "Already exists, not overwriting: $dest" ||
->   cp -r ~/.var/app/com.github.jagrat7.LinuxWallpaperEngine/config/"Linux Wallpaper Engine" "$dest"
+> if [ -e "$dest" ]; then echo "Already exists, not overwriting: $dest"
+> else mkdir -p "$(dirname "$dest")" && cp -r ~/.var/app/com.github.jagrat7.LinuxWallpaperEngine/config/"Linux Wallpaper Engine" "$dest"
+> fi
 > ```
 
 #### Debian / Ubuntu (.deb)
