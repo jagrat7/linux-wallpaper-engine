@@ -58,6 +58,8 @@ afterAll(() => fs.rmSync(library, { recursive: true, force: true }))
 import { wallpaperService } from './wallpaper'
 import { supervisorService } from '../supervisor/supervisor'
 import { hostSpawn } from '../../utils/host'
+import { displayService, type Display } from '../display'
+import { settingsService } from '../settings'
 
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -145,21 +147,42 @@ describe('wallpaperService.getActive during restore', () => {
   })
 })
 
+// A backend that keeps running, and one that dies on start like a wallpaper the engine can't run
+const running = () => Object.assign(new ChildProcess(), { unref: vi.fn(), kill: vi.fn(() => true) })
+const failing = () => {
+  const proc = running()
+  setTimeout(() => proc.emit('exit', 1, null))
+  return proc
+}
+const startOn = (screens: string[], backgroundId: string) =>
+  supervisorService.start(['--bg', backgroundId], {
+    screens,
+    wallpaper: { backgroundId },
+    stdio: 'ignore',
+  })
+const display = (name: string): Display => ({
+  id: name,
+  name,
+  resolution: '1920x1080',
+  width: 1920,
+  height: 1080,
+  x: 0,
+  y: 0,
+  refreshRate: 60,
+  primary: false,
+  connected: true,
+  degraded: false,
+})
+
 describe('wallpaperService.apply wallpaper', () => {
+  beforeEach(() => vi.mocked(hostSpawn).mockImplementation(running))
+  // Back to the file's default backend mock
+  afterAll(() => vi.mocked(hostSpawn).mockReset())
+
   it('brings back the previous wallpaper when the new one exits straight away', async () => {
-    await supervisorService.start(['--bg', '/wp/1'], {
-      screens: ['eDP-1'],
-      wallpaper: { backgroundId: '/wp/1' },
-      stdio: 'ignore',
-    })
-    // The next backend dies on start, like one the engine can't run
+    await startOn(['eDP-1'], '/wp/1')
     let failed: ChildProcess | undefined
-    vi.mocked(hostSpawn).mockImplementationOnce(() => {
-      const proc = Object.assign(new ChildProcess(), { unref: vi.fn(), kill: vi.fn() })
-      setTimeout(() => proc.emit('exit', 1, null))
-      failed = proc
-      return proc
-    })
+    vi.mocked(hostSpawn).mockImplementationOnce(() => (failed = failing()))
 
     const result = await wallpaperService.apply({
       kind: 'wallpaper',
@@ -171,6 +194,53 @@ describe('wallpaperService.apply wallpaper', () => {
     expect(record?.options.backgroundId).toBe('/wp/1')
     expect(record?.proc).toBeDefined()
     expect(record?.proc).not.toBe(failed)
+    expect(record?.proc?.exitCode).toBeNull()
+    expect(vi.mocked(hostSpawn).mock.lastCall?.[1]).toEqual(
+      expect.arrayContaining(['--screen-root', 'eDP-1', '--bg', '/wp/1']),
+    )
+  })
+
+  it('restores screens on their own backends, keeping each one paused or playing', async () => {
+    // The same wallpaper applied to each screen separately, with only eDP-1 paused
+    await startOn(['eDP-1'], '/wp/1')
+    await startOn(['HDMI-1'], '/wp/1')
+    await supervisorService.setPaused(['eDP-1'], true)
+    vi.spyOn(displayService, 'detectDisplays').mockResolvedValue([
+      display('eDP-1'),
+      display('HDMI-1'),
+    ])
+    vi.mocked(hostSpawn).mockImplementationOnce(failing)
+
+    const result = await wallpaperService.apply({
+      kind: 'wallpaper',
+      options: { backgroundId: '/wp/2' },
+    })
+
+    expect(result.success).toBe(false)
+    const records = supervisorService.screens()
+    const laptop = records.get('eDP-1')
+    const tv = records.get('HDMI-1')
+    expect([laptop?.options.backgroundId, tv?.options.backgroundId]).toEqual(['/wp/1', '/wp/1'])
+    expect(laptop?.proc).not.toBe(tv?.proc)
+    expect(laptop?.paused).toBe(true)
+    expect(tv?.paused).toBe(false)
+  })
+
+  it('keeps the failed launch in the debug log', async () => {
+    const getSetting = vi
+      .spyOn(settingsService, 'getSetting')
+      .mockImplementation((key) => key === 'debugMode')
+    await startOn(['eDP-1'], '/wp/1')
+    vi.mocked(hostSpawn).mockImplementationOnce(failing)
+
+    await wallpaperService.apply({
+      kind: 'wallpaper',
+      options: { backgroundId: '/wp/2', screen: 'eDP-1' },
+    })
+
+    const debug = await wallpaperService.diagnose({ kind: 'getLogs', screen: 'eDP-1' })
+    expect(debug).toEqual(expect.objectContaining({ command: expect.stringContaining('/wp/2') }))
+    getSetting.mockReset()
   })
 })
 

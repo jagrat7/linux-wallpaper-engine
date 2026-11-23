@@ -495,7 +495,7 @@ class WallpaperService implements IWallpaperService {
     }
 
     // What the targets show now, brought back if the new wallpaper fails to start
-    const previous = this.recordsOf(targetScreens)
+    const previous = this.backendsOf(targetScreens)
 
     // Release the target screens in one go so screens sharing their process
     // are respawned once, without first respawning a target with the old wallpaper
@@ -507,20 +507,33 @@ class WallpaperService implements IWallpaperService {
       invalidationService.emit('wallpaper.applied')
       this.stampApplied(options.backgroundId)
     } else {
-      await this.respawnGrouped(previous)
+      // Keep the failed launch's debug output, the part worth reading, over the restore's
+      const failedLog = this.debugLogs.get(targetScreens[0])
+      // One backend each, as before: respawnGrouped would merge separate backends
+      // showing the same wallpaper, and pausing one screen would then freeze both
+      for (const screens of previous) await this.respawnGrouped(screens)
+      if (failedLog) this.debugLogs.set(targetScreens[0], failedLog)
     }
     return result
   }
 
-  /** The wallpaper (or playlist) each of `screens` has now, in the form `respawnGrouped` takes. */
-  private recordsOf(screens: string[]): RemainingScreen[] {
+  /**
+   * What each of `screens` shows now, in the form `respawnGrouped` takes,
+   * split by the backend the screens share.
+   */
+  private backendsOf(screens: string[]): RemainingScreen[][] {
     const records = this.supervisor.screens()
-    return screens.flatMap((screen) => {
+    const backends = new Map<string, RemainingScreen[]>()
+    for (const screen of screens) {
       const record = records.get(screen)
-      if (!record) return []
-      const { options, playlist, paused } = record
-      return [{ screen, options, ...(playlist && { playlist }), paused }]
-    })
+      if (!record) continue
+      const { options, playlist, paused, group } = record
+      const key = group.toSorted().join('\n')
+      const entries = backends.get(key) ?? []
+      entries.push({ screen, options, ...(playlist && { playlist }), paused })
+      backends.set(key, entries)
+    }
+    return [...backends.values()]
   }
 
   private async spawnWindowed(options: ApplyWallpaperOptions): Promise<MutationResult> {
