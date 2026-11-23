@@ -2,6 +2,7 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { EventEmitter } from 'node:events'
+import { ChildProcess } from 'node:child_process'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 // --- Mocks ---------------------------------------------------------------
@@ -38,6 +39,7 @@ vi.mock('../../utils/host', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/host')>()),
   // `du` for sizes, `file` for resolutions; empty output is fine for these tests
   hostExecFileAsync: vi.fn(async () => ({ stdout: '', stderr: '' })),
+  hostCommandExists: vi.fn(async () => true),
   hostSpawn: vi.fn(() => Object.assign(new EventEmitter(), { unref: vi.fn(), kill: vi.fn() })),
 }))
 
@@ -55,6 +57,7 @@ afterAll(() => fs.rmSync(library, { recursive: true, force: true }))
 
 import { wallpaperService } from './wallpaper'
 import { supervisorService } from '../supervisor/supervisor'
+import { hostSpawn } from '../../utils/host'
 
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -139,6 +142,35 @@ describe('wallpaperService.getActive during restore', () => {
     await restoring
     // pgrep (mocked) finds no backend for eDP-1, so the idle prune drops it
     expect(await service.getActive()).toEqual([])
+  })
+})
+
+describe('wallpaperService.apply wallpaper', () => {
+  it('brings back the previous wallpaper when the new one exits straight away', async () => {
+    await supervisorService.start(['--bg', '/wp/1'], {
+      screens: ['eDP-1'],
+      wallpaper: { backgroundId: '/wp/1' },
+      stdio: 'ignore',
+    })
+    // The next backend dies on start, like one the engine can't run
+    let failed: ChildProcess | undefined
+    vi.mocked(hostSpawn).mockImplementationOnce(() => {
+      const proc = Object.assign(new ChildProcess(), { unref: vi.fn(), kill: vi.fn() })
+      setTimeout(() => proc.emit('exit', 1, null))
+      failed = proc
+      return proc
+    })
+
+    const result = await wallpaperService.apply({
+      kind: 'wallpaper',
+      options: { backgroundId: '/wp/2', screen: 'eDP-1' },
+    })
+
+    expect(result.success).toBe(false)
+    const record = supervisorService.screens().get('eDP-1')
+    expect(record?.options.backgroundId).toBe('/wp/1')
+    expect(record?.proc).toBeDefined()
+    expect(record?.proc).not.toBe(failed)
   })
 })
 

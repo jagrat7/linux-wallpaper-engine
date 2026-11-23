@@ -494,6 +494,9 @@ class WallpaperService implements IWallpaperService {
       }
     }
 
+    // What the targets show now, brought back if the new wallpaper fails to start
+    const previous = this.recordsOf(targetScreens)
+
     // Release the target screens in one go so screens sharing their process
     // are respawned once, without first respawning a target with the old wallpaper
     const { remaining } = await this.supervisor.stop({ screens: targetScreens })
@@ -503,8 +506,21 @@ class WallpaperService implements IWallpaperService {
     if (result.success) {
       invalidationService.emit('wallpaper.applied')
       this.stampApplied(options.backgroundId)
+    } else {
+      await this.respawnGrouped(previous)
     }
     return result
+  }
+
+  /** The wallpaper (or playlist) each of `screens` has now, in the form `respawnGrouped` takes. */
+  private recordsOf(screens: string[]): RemainingScreen[] {
+    const records = this.supervisor.screens()
+    return screens.flatMap((screen) => {
+      const record = records.get(screen)
+      if (!record) return []
+      const { options, playlist, paused } = record
+      return [{ screen, options, ...(playlist && { playlist }), paused }]
+    })
   }
 
   private async spawnWindowed(options: ApplyWallpaperOptions): Promise<MutationResult> {
