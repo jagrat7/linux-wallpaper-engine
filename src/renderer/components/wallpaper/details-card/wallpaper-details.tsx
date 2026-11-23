@@ -75,7 +75,8 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
       await utils.wallpaper.getActiveWallpaper.invalidate()
       await utils.playlist.active.invalidate()
 
-      if (settings?.debugMode && result.success) {
+      // Show the backend's output after a failed apply too: that's when it's needed
+      if (settings?.debugMode) {
         const displays = utils.display.list.getData()
         const primary = displays?.find((d) => d.primary) ?? displays?.[0]
         setDebugScreen(screen ?? primary?.name ?? 'default')
