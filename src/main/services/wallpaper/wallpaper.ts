@@ -30,6 +30,7 @@ import {
   resolveTimedCache,
   buildApplyOptions,
   pickRandomWallpaper,
+  debugLogKey,
   type TimedCache,
 } from './wallpaper.utils'
 import type { IWallpaperService } from './wallpaper.interface'
@@ -538,10 +539,11 @@ class WallpaperService implements IWallpaperService {
   ): Promise<MutationResult> {
     try {
       const proc = await this.launch(screens, args, options)
+      const logScreen = debugLogKey(screens)
       if (await this.exitedEarly(proc)) {
-        return { success: false }
+        return { success: false, logScreen }
       }
-      return { success: true, screens }
+      return { success: true, screens, logScreen }
     } catch (error) {
       return {
         success: false,
@@ -570,7 +572,7 @@ class WallpaperService implements IWallpaperService {
       onExit: (lostScreens) => this.handleLostScreens(lostScreens),
     })
     compatibilityService.monitorProcess(proc, options.backgroundId)
-    this.captureDebugLogs(proc, screens[0] ?? 'default', args)
+    this.captureDebugLogs(proc, debugLogKey(screens), args)
     return proc
   }
 

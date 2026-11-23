@@ -61,6 +61,9 @@ export const parseWindowGeometry = (
   return parsed
 }
 
+/** The key a launch's debug output is kept under: its first screen, or `default` in window mode. */
+export const debugLogKey = (screens: string[]): string => screens[0] ?? 'default'
+
 export const buildApplyOptions = (
   settings: AppSettings,
   input?: Partial<ApplyWallpaperOptions>,

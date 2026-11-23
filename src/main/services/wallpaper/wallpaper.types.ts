@@ -6,6 +6,8 @@ export interface MutationResult {
   success: boolean
   error?: string
   screens?: string[]
+  /** Where the launch's debug output is kept (`diagnose({ kind: 'getLogs', screen })`), failed or not */
+  logScreen?: string
 }
 
 export interface ActiveWallpaperEntry {

@@ -79,7 +79,7 @@ export function WallpaperDetails({ wallpaper, onClose, onUnsubscribe }: Wallpape
       if (settings?.debugMode) {
         const displays = utils.display.list.getData()
         const primary = displays?.find((d) => d.primary) ?? displays?.[0]
-        setDebugScreen(screen ?? primary?.name ?? 'default')
+        setDebugScreen(result.logScreen ?? screen ?? primary?.name ?? 'default')
       }
     } catch {
       setIsApplying(false)

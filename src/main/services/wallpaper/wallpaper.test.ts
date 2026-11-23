@@ -2,6 +2,7 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { EventEmitter } from 'node:events'
+import { ChildProcess } from 'node:child_process'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 // --- Mocks ---------------------------------------------------------------
@@ -38,6 +39,7 @@ vi.mock('../../utils/host', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/host')>()),
   // `du` for sizes, `file` for resolutions; empty output is fine for these tests
   hostExecFileAsync: vi.fn(async () => ({ stdout: '', stderr: '' })),
+  hostCommandExists: vi.fn(async () => true),
   hostSpawn: vi.fn(() => Object.assign(new EventEmitter(), { unref: vi.fn(), kill: vi.fn() })),
 }))
 
@@ -55,6 +57,9 @@ afterAll(() => fs.rmSync(library, { recursive: true, force: true }))
 
 import { wallpaperService } from './wallpaper'
 import { supervisorService } from '../supervisor/supervisor'
+import { hostSpawn } from '../../utils/host'
+import { displayService, type Display } from '../display'
+import { settingsService } from '../settings'
 
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -171,5 +176,63 @@ describe('wallpaperService.apply playlist', () => {
     expect(records.get('HDMI-1')?.proc).toBeDefined()
     expect(records.get('HDMI-1')?.proc).not.toBe(shared)
     expect(records.get('HDMI-1')?.proc).not.toBe(records.get('eDP-1')?.proc)
+  })
+})
+
+// A backend that dies on start, like a wallpaper the engine can't run
+const failingBackend = () => {
+  const proc = Object.assign(new ChildProcess(), { unref: vi.fn(), kill: vi.fn(() => true) })
+  setTimeout(() => proc.emit('exit', 1, null))
+  return proc
+}
+const display = (name: string, primary = false): Display => ({
+  id: name,
+  name,
+  resolution: '1920x1080',
+  width: 1920,
+  height: 1080,
+  x: 0,
+  y: 0,
+  refreshRate: 60,
+  primary,
+  connected: true,
+  degraded: false,
+})
+
+describe('wallpaperService.apply debug log screen', () => {
+  beforeEach(() => {
+    vi.spyOn(settingsService, 'getSetting').mockImplementation((key) => key === 'debugMode')
+    vi.mocked(hostSpawn).mockImplementationOnce(failingBackend)
+  })
+  afterAll(() => vi.restoreAllMocks())
+
+  it('names the screen holding a failed all-display launch, not the primary display', async () => {
+    vi.spyOn(displayService, 'detectDisplays').mockResolvedValue([
+      display('DP-1'),
+      display('HDMI-1', true),
+    ])
+
+    const result = await wallpaperService.apply({
+      kind: 'wallpaper',
+      options: { backgroundId: '/wp/2' },
+    })
+
+    expect(result).toEqual(expect.objectContaining({ success: false, logScreen: 'DP-1' }))
+    const logs = await wallpaperService.diagnose({ kind: 'getLogs', screen: 'DP-1' })
+    expect(logs).toEqual(expect.objectContaining({ command: expect.stringContaining('/wp/2') }))
+  })
+
+  it('names the window-mode log for a failed windowed launch', async () => {
+    vi.spyOn(settingsService, 'loadSettings').mockResolvedValueOnce({
+      ...(await settingsService.loadSettings()),
+      windowMode: true,
+    })
+
+    const result = await wallpaperService.apply({
+      kind: 'wallpaper',
+      options: { backgroundId: '/wp/2', screen: 'HDMI-1' },
+    })
+
+    expect(result).toEqual(expect.objectContaining({ success: false, logScreen: 'default' }))
   })
 })
