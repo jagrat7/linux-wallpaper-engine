@@ -29,3 +29,7 @@ Proof the change solves the problem: screenshots, recordings (GIFs preferred), c
 Add BEFORE and AFTER images when the change is visible.
 Say plainly what was not verified.
 -->
+
+## Release note
+
+<!-- Optional. One or two sentences for users if this needs a callout in the release, such as a deprecation, a breaking change or a migration step. Leave it out otherwise. -->
