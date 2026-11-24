@@ -1,3 +1,15 @@
+<!--
+Branch naming:
+
+| Prefix      | Use for               |
+| ----------- | --------------------- |
+| `feat/`     | New features          |
+| `fix/`      | Bug fixes             |
+| `docs/`     | Documentation changes |
+| `refactor/` | Code refactoring      |
+| `misc/`     | Miscellaneous changes |
+-->
+
 ## Why
 
 <!-- The problem that prompted this work: what was broken or missing, and for whom. Take it from the request or issue, not from the diff. Link related issues, e.g. "Addresses #12". -->
